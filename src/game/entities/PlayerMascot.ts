@@ -8,10 +8,10 @@ export class PlayerMascot {
   public isDodging = false;
 
   private speed = 230;
-  private attackCooldownMs = 420;
-  private dodgeCooldownMs = 650;
-  private lastAttackAt = 0;
-  private lastDodgeAt = 0;
+  private attackCooldownMs = 460;
+  private dodgeCooldownMs = 720;
+  private lastAttackAt = -9999;
+  private lastDodgeAt = -9999;
   private attackStartedThisFrame = false;
 
   constructor(private scene: Phaser.Scene, x: number, y: number) {
@@ -30,7 +30,7 @@ export class PlayerMascot {
     }
 
     if (this.isDodging) {
-      velocity.scale(1.7);
+      velocity.scale(1.85);
     }
 
     this.sprite.setVelocity(velocity.x, velocity.y);
@@ -48,34 +48,44 @@ export class PlayerMascot {
     return didStart;
   }
 
-  private attack(): void {
-    const now = Date.now();
-    if (this.isAttacking || now - this.lastAttackAt < this.attackCooldownMs) return;
+  canAttack(): boolean {
+    return !this.isAttacking && Date.now() - this.lastAttackAt >= this.attackCooldownMs;
+  }
 
-    this.lastAttackAt = now;
+  canDodge(): boolean {
+    return !this.isDodging && Date.now() - this.lastDodgeAt >= this.dodgeCooldownMs;
+  }
+
+  private attack(): void {
+    if (!this.canAttack()) return;
+
+    this.lastAttackAt = Date.now();
     this.isAttacking = true;
     this.attackStartedThisFrame = true;
     this.sprite.setTint(0xffffff);
+    this.sprite.setScale(1.08);
 
-    this.scene.time.delayedCall(180, () => {
+    this.scene.time.delayedCall(170, () => {
       if (!this.sprite.active) return;
       this.isAttacking = false;
       this.sprite.clearTint();
+      this.sprite.setScale(1);
     });
   }
 
   private dodge(): void {
-    const now = Date.now();
-    if (this.isDodging || now - this.lastDodgeAt < this.dodgeCooldownMs) return;
+    if (!this.canDodge()) return;
 
-    this.lastDodgeAt = now;
+    this.lastDodgeAt = Date.now();
     this.isDodging = true;
-    this.sprite.setAlpha(0.55);
+    this.sprite.setAlpha(0.5);
+    this.sprite.setTint(0xb66cff);
 
-    this.scene.time.delayedCall(220, () => {
+    this.scene.time.delayedCall(230, () => {
       if (!this.sprite.active) return;
       this.isDodging = false;
       this.sprite.setAlpha(1);
+      this.sprite.clearTint();
     });
   }
 }

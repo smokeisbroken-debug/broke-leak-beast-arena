@@ -20,21 +20,23 @@ export class ResultScene extends Phaser.Scene {
     this.add.circle(80, 115, 190, 0x123b10, 0.28);
     this.add.circle(GAME_WIDTH - 30, 90, 170, 0x40106b, 0.25);
 
-    this.add.text(GAME_WIDTH / 2, 82, this.result.leaksDefeated > 0 ? "RUN COMPLETE" : "TRY AGAIN", {
+    const grade = this.getGrade();
+
+    this.add.text(GAME_WIDTH / 2, 78, this.result.leaksDefeated > 0 ? "RUN COMPLETE" : "TRY AGAIN", {
       fontFamily: "Arial",
       fontSize: "34px",
       color: "#39ff14",
       fontStyle: "bold",
     }).setOrigin(0.5);
 
-    this.add.text(GAME_WIDTH / 2, 122, "You fought the leaks.", {
+    this.add.text(GAME_WIDTH / 2, 120, `Arena Grade: ${grade}`, {
       fontFamily: "Arial",
-      fontSize: "15px",
-      color: "#f5fff1",
+      fontSize: "16px",
+      color: "#b66cff",
       fontStyle: "bold",
     }).setOrigin(0.5);
 
-    this.add.rectangle(GAME_WIDTH / 2, 308, GAME_WIDTH - 56, 286, 0x050805, 0.78)
+    this.add.rectangle(GAME_WIDTH / 2, 314, GAME_WIDTH - 52, 306, 0x050805, 0.8)
       .setStrokeStyle(1, 0x39ff14, 0.28);
 
     const lines = [
@@ -62,7 +64,7 @@ export class ResultScene extends Phaser.Scene {
       }).setOrigin(1, 0);
     });
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 230, "First playable loop. No backend rewards yet.", {
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 230, "Prototype only. No backend rewards yet.", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#88aa88",
@@ -90,5 +92,13 @@ export class ResultScene extends Phaser.Scene {
 
     menu.setInteractive({ useHandCursor: true });
     menu.on("pointerdown", () => this.scene.start(SCENE_KEYS.menu));
+  }
+
+  private getGrade(): string {
+    if (this.result.score >= 2600 || this.result.survivedSeconds >= 90) return "S";
+    if (this.result.score >= 1600 || this.result.survivedSeconds >= 60) return "A";
+    if (this.result.score >= 900 || this.result.survivedSeconds >= 40) return "B";
+    if (this.result.score >= 350 || this.result.survivedSeconds >= 20) return "C";
+    return "D";
   }
 }

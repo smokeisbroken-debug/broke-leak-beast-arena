@@ -36,17 +36,18 @@ export class MainMenuScene extends Phaser.Scene {
 
     this.add.image(GAME_WIDTH / 2, 295, "mascot-placeholder").setScale(2.12);
 
-    this.add.text(GAME_WIDTH / 2, 430, "First playable loop", {
+    this.add.text(GAME_WIDTH / 2, 426, "First feel polish", {
       fontFamily: "Arial",
       fontSize: "15px",
       color: "#b66cff",
       fontStyle: "bold",
     }).setOrigin(0.5);
 
-    this.add.text(GAME_WIDTH / 2, 458, "Move. Attack. Dodge. Survive waves.", {
+    this.add.text(GAME_WIDTH / 2, 454, "3-second countdown. Easier start. Mini-boss waves.", {
       fontFamily: "Arial",
-      fontSize: "14px",
+      fontSize: "13px",
       color: "#f5fff1",
+      align: "center",
     }).setOrigin(0.5);
 
     const button = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 142, "PLAY ARENA", {
@@ -61,7 +62,7 @@ export class MainMenuScene extends Phaser.Scene {
     button.setInteractive({ useHandCursor: true });
     button.on("pointerdown", () => this.scene.start(SCENE_KEYS.arena));
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 70, "v0.1.1 first playable arena loop", {
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 70, "v0.1.4 gameplay balance / first feel", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#88aa88",

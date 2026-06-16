@@ -8,6 +8,8 @@ interface HudState {
   defeated: number;
   survivedSeconds: number;
   bossActive: boolean;
+  attackReady: boolean;
+  dodgeReady: boolean;
 }
 
 export class Hud {
@@ -17,6 +19,7 @@ export class Hud {
   private defeatedText: Phaser.GameObjects.Text;
   private timeText: Phaser.GameObjects.Text;
   private bossText: Phaser.GameObjects.Text;
+  private cooldownText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene) {
     scene.add.rectangle(GAME_WIDTH / 2, 38, GAME_WIDTH - 24, 60, 0x050805, 0.74)
@@ -37,7 +40,7 @@ export class Hud {
       fontStyle: "bold",
     }).setDepth(71);
 
-    this.hpText = scene.add.text(GAME_WIDTH - 18, 18, "HP 5", {
+    this.hpText = scene.add.text(GAME_WIDTH - 18, 18, "HP ♥♥♥♥♥", {
       fontFamily: "Arial",
       fontSize: "14px",
       color: "#f5fff1",
@@ -64,6 +67,13 @@ export class Hud {
       color: "#b66cff",
       fontStyle: "bold",
     }).setOrigin(0.5).setDepth(71);
+
+    this.cooldownText = scene.add.text(GAME_WIDTH / 2, 96, "", {
+      fontFamily: "Arial",
+      fontSize: "12px",
+      color: "#88aa88",
+      fontStyle: "bold",
+    }).setOrigin(0.5).setDepth(71);
   }
 
   update(state: HudState): void {
@@ -73,5 +83,10 @@ export class Hud {
     this.defeatedText.setText(`Leaks ${state.defeated}`);
     this.timeText.setText(`${state.survivedSeconds}s`);
     this.bossText.setText(state.bossActive ? "MINI-BOSS ACTIVE" : "Survive waves. Fight leaks.");
+
+    const attack = state.attackReady ? "ATK READY" : "ATK WAIT";
+    const dodge = state.dodgeReady ? "DODGE READY" : "DODGE WAIT";
+    this.cooldownText.setText(`${attack}  ·  ${dodge}`);
+    this.cooldownText.setColor(state.attackReady && state.dodgeReady ? "#9cff8a" : "#88aa88");
   }
 }
