@@ -43,7 +43,7 @@ export class MainMenuScene extends Phaser.Scene {
       fontStyle: "bold",
     }).setOrigin(0.5);
 
-    this.add.text(GAME_WIDTH / 2, 454, "Hold attack. Dash Slash. Leak Shield. Safe Pulse.", {
+    this.add.text(GAME_WIDTH / 2, 454, "Enemy tells. Dodge charges. Break boss patterns.", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#f5fff1",
@@ -62,7 +62,7 @@ export class MainMenuScene extends Phaser.Scene {
     button.setInteractive({ useHandCursor: true });
     button.on("pointerdown", () => this.scene.start(SCENE_KEYS.arena));
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 70, "v0.2.2 combat layout QA", {
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 70, "v0.2.3 enemy AI patterns", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#88aa88",

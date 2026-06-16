@@ -10,6 +10,8 @@ interface HitResult {
   score: number;
 }
 
+type BossPattern = "charge" | "bolt_spread" | "shockwave" | "summon";
+
 const ENEMY_ROTATION: EnemyKind[] = ["bad_habit", "bad_habit", "fomo", "scam", "smoke_brute"];
 
 export class WaveSystem {
@@ -185,95 +187,253 @@ export class WaveSystem {
       const kind = beast.getData("kind") as EnemyKind;
       const speed = Number(beast.getData("speed") ?? 90);
 
-      if (kind === "fomo" && !Boolean(beast.getData("boss"))) {
+      if (Boolean(beast.getData("boss"))) {
+        this.updateBossPattern(beast, targetX, targetY, now, speed);
+        return true;
+      }
+
+      if (kind === "fomo") {
         this.updateFomoCharge(beast, targetX, targetY, now, speed);
         return true;
       }
 
       if (kind === "scam") {
         this.updateScamShooter(beast, targetX, targetY, now, speed);
-      }
-
-      if (kind === "smoke_brute") {
-        this.updateSmokeBrute(beast, now);
-      }
-
-      if (Boolean(beast.getData("boss"))) {
-        this.updateBossPattern(beast, targetX, targetY, now, speed);
         return true;
       }
 
-      this.scene.physics.moveTo(beast, targetX, targetY, speed);
+      if (kind === "smoke_brute") {
+        this.updateSmokeBrute(beast, targetX, targetY, now, speed);
+        return true;
+      }
+
+      this.updateBadHabitPressure(beast, targetX, targetY, speed);
       return true;
     });
+  }
+
+  private updateBadHabitPressure(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, speed: number): void {
+    // Bad Habit Beast is the pressure unit. It is predictable but keeps walking into the player's space.
+    this.scene.physics.moveTo(beast, targetX, targetY, speed);
   }
 
   private updateFomoCharge(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, now: number, speed: number): void {
     const chargeUntil = Number(beast.getData("chargeUntil") ?? 0);
 
     if (chargeUntil > now) {
-      this.scene.physics.moveTo(beast, targetX, targetY, speed * 2.05);
+      const dirX = Number(beast.getData("chargeDirX") ?? 0);
+      const dirY = Number(beast.getData("chargeDirY") ?? 0);
+      beast.setVelocity(dirX * speed * 2.8, dirY * speed * 2.8);
+      return;
+    }
+
+    const windupUntil = Number(beast.getData("windupUntil") ?? 0);
+    if (windupUntil > now) {
+      beast.setVelocity(0, 0);
+      beast.setTint(0xff3355);
       return;
     }
 
     const nextChargeAt = Number(beast.getData("nextChargeAt") ?? 0);
-    if (nextChargeAt <= now) {
-      beast.setData("chargeUntil", now + 520);
-      beast.setData("nextChargeAt", now + 2450);
-      beast.setTint(0xffffff);
-      this.scene.time.delayedCall(130, () => {
-        if (beast.active) beast.clearTint();
-      });
+    const distance = Phaser.Math.Distance.Between(beast.x, beast.y, targetX, targetY);
+
+    if (nextChargeAt <= now && distance < 260) {
+      const dir = new Phaser.Math.Vector2(targetX - beast.x, targetY - beast.y);
+      if (dir.lengthSq() <= 0) dir.set(1, 0);
+      dir.normalize();
+
+      beast.setData("chargeDirX", dir.x);
+      beast.setData("chargeDirY", dir.y);
+      beast.setData("windupUntil", now + 520);
+      beast.setData("chargeUntil", now + 1160);
+      beast.setData("nextChargeAt", now + Phaser.Math.Between(2600, 3300));
+      beast.setVelocity(0, 0);
+      beast.setTint(0xff3355);
+      this.showTelegraphLine(beast.x, beast.y, beast.x + dir.x * 190, beast.y + dir.y * 190, 0xff3355, 520);
+      this.showEnemyWarning("FOMO CHARGE", beast.x, beast.y - 34, "#ff3355");
+      return;
     }
 
+    beast.clearTint();
     this.scene.physics.moveTo(beast, targetX, targetY, speed * 0.78);
   }
 
   private updateScamShooter(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, now: number, speed: number): void {
+    const shotAt = Number(beast.getData("shotAt") ?? 0);
+    const shotQueued = Boolean(beast.getData("shotQueued"));
+
+    if (shotQueued) {
+      beast.setVelocity(0, 0);
+      beast.setTint(0xb66cff);
+      if (now >= shotAt) {
+        const shotX = Number(beast.getData("shotX") ?? targetX);
+        const shotY = Number(beast.getData("shotY") ?? targetY);
+        this.spawnProjectile(beast.x, beast.y, shotX, shotY, 190);
+        beast.setData("shotQueued", false);
+        beast.clearTint();
+      }
+      return;
+    }
+
     const nextShotAt = Number(beast.getData("nextShotAt") ?? 0);
     const distance = Phaser.Math.Distance.Between(beast.x, beast.y, targetX, targetY);
 
-    if (distance > 155) {
-      this.scene.physics.moveTo(beast, targetX, targetY, speed * 0.7);
+    if (distance > 178) {
+      this.scene.physics.moveTo(beast, targetX, targetY, speed * 0.64);
+    } else if (distance < 104) {
+      const away = new Phaser.Math.Vector2(beast.x - targetX, beast.y - targetY);
+      if (away.lengthSq() <= 0) away.set(1, 0);
+      away.normalize().scale(speed * 0.62);
+      beast.setVelocity(away.x, away.y);
     } else {
       beast.setVelocity(0, 0);
     }
 
     if (nextShotAt <= now) {
-      beast.setData("nextShotAt", now + Phaser.Math.Between(1600, 2300));
-      this.spawnProjectile(beast.x, beast.y, targetX, targetY);
+      beast.setData("nextShotAt", now + Phaser.Math.Between(1800, 2500));
+      beast.setData("shotQueued", true);
+      beast.setData("shotAt", now + 480);
+      beast.setData("shotX", targetX);
+      beast.setData("shotY", targetY);
+      this.showTelegraphLine(beast.x, beast.y, targetX, targetY, 0xb66cff, 480);
+      this.showEnemyWarning("SCAM LINK", beast.x, beast.y - 34, "#b66cff");
     }
   }
 
-  private updateSmokeBrute(beast: Phaser.Physics.Arcade.Sprite, now: number): void {
-    const nextSmokeAt = Number(beast.getData("nextSmokeAt") ?? 0);
-    if (nextSmokeAt <= now) {
-      beast.setData("nextSmokeAt", now + Phaser.Math.Between(2100, 3000));
-      this.spawnHazard(beast.x, beast.y);
-    }
-  }
-
-  private updateBossPattern(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, now: number, speed: number): void {
-    const nextPatternAt = Number(beast.getData("nextPatternAt") ?? 0);
-    if (nextPatternAt <= now) {
-      beast.setData("nextPatternAt", now + 2300);
-      const pattern = Phaser.Math.Between(0, 2);
-      if (pattern === 0) {
-        beast.setData("hitStunUntil", now + 620);
-        this.scene.physics.moveTo(beast, targetX, targetY, speed * 3.2);
-        this.spawnHazard(targetX, targetY, 54, 1200);
-      } else if (pattern === 1) {
-        this.spawnProjectile(beast.x, beast.y, targetX, targetY, 185, true);
-        this.spawnProjectile(beast.x, beast.y, targetX + 90, targetY, 160, true);
-        this.spawnProjectile(beast.x, beast.y, targetX - 90, targetY, 160, true);
-      } else {
-        this.spawn(targetX, targetY, 99999, "bad_habit");
-        this.spawn(targetX, targetY, 99999, "fomo");
+  private updateSmokeBrute(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, now: number, speed: number): void {
+    const dropAt = Number(beast.getData("smokeDropAt") ?? 0);
+    if (dropAt > 0) {
+      beast.setVelocity(0, 0);
+      beast.setTint(0xb66cff);
+      if (now >= dropAt) {
+        const smokeX = Number(beast.getData("smokeX") ?? beast.x);
+        const smokeY = Number(beast.getData("smokeY") ?? beast.y);
+        this.spawnHazard(smokeX, smokeY, 50, 2000);
+        beast.setData("smokeDropAt", 0);
+        beast.clearTint();
       }
       return;
     }
 
-    this.scene.physics.moveTo(beast, targetX, targetY, speed * 0.72);
+    const nextSmokeAt = Number(beast.getData("nextSmokeAt") ?? 0);
+    if (nextSmokeAt <= now) {
+      beast.setData("nextSmokeAt", now + Phaser.Math.Between(2500, 3400));
+      beast.setData("smokeDropAt", now + 560);
+      beast.setData("smokeX", beast.x);
+      beast.setData("smokeY", beast.y);
+      this.showTelegraphCircle(beast.x, beast.y, 50, 0xb66cff, 560);
+      this.showEnemyWarning("SMOKE ZONE", beast.x, beast.y - 42, "#b66cff");
+      return;
+    }
+
+    this.scene.physics.moveTo(beast, targetX, targetY, speed * 0.82);
+  }
+
+  private updateBossPattern(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, now: number, speed: number): void {
+    const chargeUntil = Number(beast.getData("chargeUntil") ?? 0);
+    if (chargeUntil > now) {
+      const dirX = Number(beast.getData("chargeDirX") ?? 0);
+      const dirY = Number(beast.getData("chargeDirY") ?? 0);
+      beast.setVelocity(dirX * speed * 3.65, dirY * speed * 3.65);
+      return;
+    }
+
+    const patternFireAt = Number(beast.getData("patternFireAt") ?? 0);
+    const queuedPattern = beast.getData("queuedPattern") as BossPattern | undefined;
+
+    if (queuedPattern && patternFireAt > now) {
+      beast.setVelocity(0, 0);
+      beast.setTint(0xffffff);
+      return;
+    }
+
+    if (queuedPattern && patternFireAt <= now) {
+      this.executeBossPattern(beast, queuedPattern, targetX, targetY, now, speed);
+      beast.setData("queuedPattern", undefined);
+      beast.setData("patternFireAt", 0);
+      beast.setData("nextPatternAt", now + Phaser.Math.Between(2300, 3050));
+      beast.clearTint();
+      return;
+    }
+
+    const nextPatternAt = Number(beast.getData("nextPatternAt") ?? 0);
+    if (nextPatternAt <= now) {
+      const pattern = Phaser.Math.RND.pick(["charge", "bolt_spread", "shockwave", "summon"] as BossPattern[]);
+      beast.setData("queuedPattern", pattern);
+      beast.setData("patternFireAt", now + 650);
+      this.telegraphBossPattern(beast, pattern, targetX, targetY);
+      return;
+    }
+
+    this.scene.physics.moveTo(beast, targetX, targetY, speed * 0.68);
+  }
+
+  private telegraphBossPattern(beast: Phaser.Physics.Arcade.Sprite, pattern: BossPattern, targetX: number, targetY: number): void {
+    if (pattern === "charge") {
+      const dir = new Phaser.Math.Vector2(targetX - beast.x, targetY - beast.y);
+      if (dir.lengthSq() <= 0) dir.set(1, 0);
+      dir.normalize();
+      beast.setData("chargeDirX", dir.x);
+      beast.setData("chargeDirY", dir.y);
+      this.showTelegraphLine(beast.x, beast.y, beast.x + dir.x * 230, beast.y + dir.y * 230, 0xff3355, 650);
+      this.showEnemyWarning("BOSS CHARGE", beast.x, beast.y - 62, "#ff3355");
+      return;
+    }
+
+    if (pattern === "bolt_spread") {
+      this.showTelegraphLine(beast.x, beast.y, targetX, targetY, 0xb66cff, 650);
+      this.showTelegraphLine(beast.x, beast.y, targetX + 85, targetY, 0xb66cff, 650);
+      this.showTelegraphLine(beast.x, beast.y, targetX - 85, targetY, 0xb66cff, 650);
+      this.showEnemyWarning("BOLT SPREAD", beast.x, beast.y - 62, "#b66cff");
+      return;
+    }
+
+    if (pattern === "shockwave") {
+      this.showTelegraphCircle(beast.x, beast.y, 86, 0xff3355, 650);
+      this.showEnemyWarning("SHOCKWAVE", beast.x, beast.y - 62, "#ff3355");
+      return;
+    }
+
+    this.showTelegraphCircle(targetX, targetY, 70, 0x39ff14, 650);
+    this.showEnemyWarning("SUMMON LEAKS", beast.x, beast.y - 62, "#39ff14");
+  }
+
+  private executeBossPattern(
+    beast: Phaser.Physics.Arcade.Sprite,
+    pattern: BossPattern,
+    targetX: number,
+    targetY: number,
+    now: number,
+    speed: number,
+  ): void {
+    if (pattern === "charge") {
+      beast.setData("chargeUntil", now + 720);
+      return;
+    }
+
+    if (pattern === "bolt_spread") {
+      this.spawnProjectile(beast.x, beast.y, targetX, targetY, 205, true);
+      this.spawnProjectile(beast.x, beast.y, targetX + 90, targetY, 175, true);
+      this.spawnProjectile(beast.x, beast.y, targetX - 90, targetY, 175, true);
+      return;
+    }
+
+    if (pattern === "shockwave") {
+      this.spawnHazard(beast.x, beast.y, 86, 1450);
+      for (let i = 0; i < 6; i += 1) {
+        const angle = (Math.PI * 2 * i) / 6;
+        this.spawnProjectile(beast.x, beast.y, beast.x + Math.cos(angle) * 160, beast.y + Math.sin(angle) * 160, 145, true);
+      }
+      return;
+    }
+
+    this.spawn(targetX, targetY, 99999, "bad_habit");
+    this.spawn(targetX, targetY, 99999, "fomo");
+    if (this.currentWave >= 4) this.spawn(targetX, targetY, 99999, "scam");
+    beast.setVelocity(0, 0);
+    beast.setData("hitStunUntil", now + 360);
+    // Keep the argument used so TypeScript does not complain if build settings change.
+    void speed;
   }
 
   private updateProjectiles(): void {
@@ -305,8 +465,8 @@ export class WaveSystem {
 
   private getSpawnInterval(runElapsedMs: number): number {
     const earlySafetyMs = runElapsedMs < 9000 ? 220 : 0;
-    const bossSafetyMs = this.bossActive ? 300 : 0;
-    return Math.max(520, 1220 - this.currentWave * 78 + earlySafetyMs + bossSafetyMs);
+    const bossSafetyMs = this.bossActive ? 360 : 0;
+    return Math.max(560, 1260 - this.currentWave * 74 + earlySafetyMs + bossSafetyMs);
   }
 
   private shouldSpawnMiniBoss(): boolean {
@@ -376,8 +536,58 @@ export class WaveSystem {
     });
   }
 
+  private showTelegraphLine(x1: number, y1: number, x2: number, y2: number, color: number, durationMs: number): void {
+    const line = this.scene.add.line(0, 0, x1, y1, x2, y2, color, 0.72)
+      .setOrigin(0, 0)
+      .setLineWidth(4)
+      .setDepth(9);
+
+    this.scene.tweens.add({
+      targets: line,
+      alpha: 0.12,
+      duration: durationMs,
+      yoyo: true,
+      onComplete: () => line.destroy(),
+    });
+  }
+
+  private showTelegraphCircle(x: number, y: number, radius: number, color: number, durationMs: number): void {
+    const circle = this.scene.add.circle(x, y, radius, color, 0.14)
+      .setStrokeStyle(3, color, 0.68)
+      .setDepth(8);
+
+    this.scene.tweens.add({
+      targets: circle,
+      alpha: 0.04,
+      scaleX: 1.1,
+      scaleY: 1.1,
+      duration: durationMs,
+      yoyo: true,
+      onComplete: () => circle.destroy(),
+    });
+  }
+
+  private showEnemyWarning(text: string, x: number, y: number, color: string): void {
+    const label = this.scene.add.text(x, y, text, {
+      fontFamily: "Arial",
+      fontSize: "10px",
+      color,
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(50);
+
+    this.scene.tweens.add({
+      targets: label,
+      y: y - 16,
+      alpha: 0,
+      duration: 620,
+      onComplete: () => label.destroy(),
+    });
+  }
+
   private pickEnemyKind(runElapsedMs: number): EnemyKind {
-    if (runElapsedMs < 14000) return "bad_habit";
+    if (runElapsedMs < 13000) return "bad_habit";
     if (this.currentWave < 2) return Phaser.Math.RND.pick(["bad_habit", "fomo"] as EnemyKind[]);
     return Phaser.Math.RND.pick(ENEMY_ROTATION);
   }
