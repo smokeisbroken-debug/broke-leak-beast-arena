@@ -34,9 +34,7 @@ export class ArenaScene extends Phaser.Scene {
     this.fightStarted = false;
     this.lastShownWave = 1;
 
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.bg);
-    this.add.circle(62, 145, 170, 0x123b10, 0.18);
-    this.add.circle(GAME_WIDTH + 8, 105, 150, 0x40106b, 0.19);
+    this.createArenaBackground();
 
     this.add.text(20, 24, "LEAK BEAST ARENA", {
       fontFamily: "Arial",
@@ -95,6 +93,41 @@ export class ArenaScene extends Phaser.Scene {
 
     this.score += Math.floor(delta / 100);
     this.hud.update(this.getHudState(survivedMs));
+  }
+
+  private createArenaBackground(): void {
+    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.bg);
+    this.add.circle(58, 138, 182, 0x123b10, 0.22);
+    this.add.circle(GAME_WIDTH + 16, 92, 164, 0x40106b, 0.23);
+    this.add.circle(315, 508, 122, 0x0c3318, 0.18);
+
+    const grid = this.add.graphics().setDepth(1);
+    grid.lineStyle(1, 0x39ff14, 0.055);
+    for (let y = 118; y < GAME_HEIGHT - 136; y += 54) {
+      grid.lineBetween(18, y, GAME_WIDTH - 18, y);
+    }
+    grid.lineStyle(1, 0x8a00ff, 0.045);
+    for (let x = 32; x < GAME_WIDTH; x += 54) {
+      grid.lineBetween(x, 96, x, GAME_HEIGHT - 150);
+    }
+
+    this.add.rectangle(GAME_WIDTH / 2, 370, GAME_WIDTH - 36, 390, 0x071007, 0.42)
+      .setStrokeStyle(2, 0x39ff14, 0.18)
+      .setDepth(2);
+
+    const cracks = this.add.graphics().setDepth(3);
+    cracks.lineStyle(2, 0x39ff14, 0.14);
+    cracks.lineBetween(50, 220, 92, 250);
+    cracks.lineBetween(316, 245, 278, 282);
+    cracks.lineBetween(70, 474, 112, 428);
+    cracks.lineBetween(320, 524, 292, 486);
+
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 152, "TOUCH ZONE", {
+      fontFamily: "Arial",
+      fontSize: "11px",
+      color: "#234d25",
+      fontStyle: "bold",
+    }).setOrigin(0.5).setDepth(3);
   }
 
   private getHudState(survivedMs: number) {

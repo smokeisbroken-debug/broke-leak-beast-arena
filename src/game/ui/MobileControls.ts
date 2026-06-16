@@ -17,10 +17,10 @@ export class MobileControls {
     // Extra pointers are required so the player can hold movement and tap attack/dodge at the same time.
     scene.input.addPointer(3);
 
-    this.joystickBase = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, this.joystickRadius, 0x112211, 0.82)
-      .setStrokeStyle(2, 0x39ff14, 0.55)
+    this.joystickBase = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, this.joystickRadius, 0x112211, 0.88)
+      .setStrokeStyle(2, 0x39ff14, 0.72)
       .setDepth(80);
-    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 22, 0x39ff14, 0.82)
+    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 22, 0x39ff14, 0.9)
       .setDepth(81);
 
     this.createButtons();

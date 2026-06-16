@@ -22,8 +22,8 @@ export class Hud {
   private cooldownText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene) {
-    scene.add.rectangle(GAME_WIDTH / 2, 38, GAME_WIDTH - 24, 60, 0x050805, 0.74)
-      .setStrokeStyle(1, 0x39ff14, 0.25)
+    scene.add.rectangle(GAME_WIDTH / 2, 38, GAME_WIDTH - 24, 60, 0x050805, 0.82)
+      .setStrokeStyle(1, 0x39ff14, 0.34)
       .setDepth(70);
 
     this.waveText = scene.add.text(GAME_WIDTH / 2, 18, "WAVE 1", {
@@ -82,10 +82,10 @@ export class Hud {
     this.waveText.setText(`WAVE ${state.wave}`);
     this.defeatedText.setText(`Leaks ${state.defeated}`);
     this.timeText.setText(`${state.survivedSeconds}s`);
-    this.bossText.setText(state.bossActive ? "MINI-BOSS ACTIVE" : "Survive waves. Fight leaks.");
+    this.bossText.setText(state.bossActive ? "MINI-BOSS ACTIVE" : "Find the leak. Fight the leak.");
 
-    const attack = state.attackReady ? "ATK READY" : "ATK WAIT";
-    const dodge = state.dodgeReady ? "DODGE READY" : "DODGE WAIT";
+    const attack = state.attackReady ? "⚔ ATK READY" : "⚔ ATK WAIT";
+    const dodge = state.dodgeReady ? "⬡ DODGE READY" : "⬡ DODGE WAIT";
     this.cooldownText.setText(`${attack}  ·  ${dodge}`);
     this.cooldownText.setColor(state.attackReady && state.dodgeReady ? "#9cff8a" : "#88aa88");
   }

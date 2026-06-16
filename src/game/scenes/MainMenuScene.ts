@@ -10,8 +10,10 @@ export class MainMenuScene extends Phaser.Scene {
   create(): void {
     this.cameras.main.setBackgroundColor("#050805");
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x050805);
-    this.add.circle(70, 120, 190, 0x123b10, 0.3);
-    this.add.circle(GAME_WIDTH - 30, 70, 170, 0x40106b, 0.24);
+    this.add.circle(70, 120, 190, 0x123b10, 0.32);
+    this.add.circle(GAME_WIDTH - 30, 70, 170, 0x40106b, 0.28);
+    this.add.rectangle(GAME_WIDTH / 2, 303, GAME_WIDTH - 48, 285, 0x071007, 0.52)
+      .setStrokeStyle(2, 0x39ff14, 0.16);
 
     this.add.text(GAME_WIDTH / 2, 66, "LEAK BEAST", {
       fontFamily: "Arial",
@@ -34,16 +36,24 @@ export class MainMenuScene extends Phaser.Scene {
       align: "center",
     }).setOrigin(0.5);
 
-    this.add.image(GAME_WIDTH / 2, 295, "mascot-placeholder").setScale(2.12);
+    this.add.image(GAME_WIDTH / 2, 292, "mascot-placeholder").setScale(2.18);
 
-    this.add.text(GAME_WIDTH / 2, 426, "First feel polish", {
+    this.add.text(GAME_WIDTH / 2, 378, "FIGHT BAD HABITS · FOMO · SCAMS · SMOKE", {
+      fontFamily: "Arial",
+      fontSize: "12px",
+      color: "#9cff8a",
+      fontStyle: "bold",
+      align: "center",
+    }).setOrigin(0.5);
+
+    this.add.text(GAME_WIDTH / 2, 426, "Visual identity polish", {
       fontFamily: "Arial",
       fontSize: "15px",
       color: "#b66cff",
       fontStyle: "bold",
     }).setOrigin(0.5);
 
-    this.add.text(GAME_WIDTH / 2, 454, "3-second countdown. Easier start. Mini-boss waves.", {
+    this.add.text(GAME_WIDTH / 2, 454, "Cleaner mascot, stronger beasts, darker arena.", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#f5fff1",
@@ -62,7 +72,7 @@ export class MainMenuScene extends Phaser.Scene {
     button.setInteractive({ useHandCursor: true });
     button.on("pointerdown", () => this.scene.start(SCENE_KEYS.arena));
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 70, "v0.1.4 gameplay balance / first feel", {
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 70, "v0.1.5 visual identity / mascot polish", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#88aa88",

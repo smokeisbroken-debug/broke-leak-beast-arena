@@ -17,7 +17,8 @@ export class PlayerMascot {
   constructor(private scene: Phaser.Scene, x: number, y: number) {
     this.sprite = scene.physics.add.sprite(x, y, "mascot-placeholder");
     this.sprite.setCollideWorldBounds(true);
-    this.sprite.setSize(46, 58);
+    this.sprite.setSize(48, 62);
+    this.sprite.setDepth(30);
   }
 
   update(input: InputState, delta: number): void {
