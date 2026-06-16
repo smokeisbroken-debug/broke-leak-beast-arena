@@ -40,7 +40,14 @@ export class ArenaScene extends Phaser.Scene {
     this.controls = new MobileControls(this);
     this.hud = new Hud(this);
 
-    this.hud.update({ hp: this.hp, score: this.score, wave: 1 });
+    this.hud.update({
+      hp: this.hp,
+      score: this.score,
+      wave: 1,
+      defeated: this.waves.defeatedCount,
+      survivedSeconds: 0,
+      bossActive: false,
+    });
 
     this.physics.add.overlap(
       this.player.sprite,
@@ -62,7 +69,14 @@ export class ArenaScene extends Phaser.Scene {
     this.waves.update(time, delta, this.player.sprite.x, this.player.sprite.y);
 
     this.score += Math.floor(delta / 100);
-    this.hud.update({ hp: this.hp, score: this.score, wave: this.waves.currentWave });
+    this.hud.update({
+      hp: this.hp,
+      score: this.score,
+      wave: this.waves.currentWave,
+      defeated: this.waves.defeatedCount,
+      survivedSeconds: Math.floor((Date.now() - this.runStartedAt) / 1000),
+      bossActive: false,
+    });
   }
 
   private resolvePlayerAttack(): void {
