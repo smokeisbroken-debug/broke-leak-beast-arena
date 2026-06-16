@@ -5,7 +5,9 @@ export interface InputState {
   y: number;
   attack: boolean;
   dodge: boolean;
-  skill: boolean;
+  pulse: boolean;
+  shield: boolean;
+  slash: boolean;
 }
 
 export type EnemyKind = "bad_habit" | "fomo" | "scam" | "smoke_brute";
@@ -41,6 +43,7 @@ export interface AttackSpec {
   knockback: number;
   maxTargets: number;
   direction: Phaser.Math.Vector2;
+  kind?: "combo" | "dash_slash" | "pulse";
 }
 
 export interface PlayerUpgradeState {

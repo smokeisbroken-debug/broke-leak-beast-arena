@@ -36,14 +36,14 @@ export class MainMenuScene extends Phaser.Scene {
 
     this.add.image(GAME_WIDTH / 2, 295, "mascot-placeholder").setScale(2.12);
 
-    this.add.text(GAME_WIDTH / 2, 426, "Real arena combat", {
+    this.add.text(GAME_WIDTH / 2, 426, "Skill-based arena combat", {
       fontFamily: "Arial",
       fontSize: "15px",
       color: "#b66cff",
       fontStyle: "bold",
     }).setOrigin(0.5);
 
-    this.add.text(GAME_WIDTH / 2, 454, "3-hit combo. Dash iframes. Safe Pulse. Enemy patterns.", {
+    this.add.text(GAME_WIDTH / 2, 454, "Hold attack. Dash Slash. Leak Shield. Safe Pulse.", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#f5fff1",
@@ -62,7 +62,7 @@ export class MainMenuScene extends Phaser.Scene {
     button.setInteractive({ useHandCursor: true });
     button.on("pointerdown", () => this.scene.start(SCENE_KEYS.arena));
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 70, "v0.2.0 real arena combat foundation", {
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 70, "v0.2.1 skill combat loop", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#88aa88",

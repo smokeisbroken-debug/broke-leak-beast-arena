@@ -7,25 +7,37 @@ export class PlayerMascot {
 
   public isAttacking = false;
   public isDodging = false;
-  public isSkillCasting = false;
+  public isPulseCasting = false;
+  public isSlashCasting = false;
+  public isShieldCasting = false;
 
   private baseSpeed = 230;
   private attackCooldownMs = 330;
   private dodgeCooldownMs = 780;
-  private skillCooldownMs = 5200;
+  private pulseCooldownMs = 5200;
+  private shieldCooldownMs = 6200;
+  private slashCooldownMs = 3600;
 
   private lastAttackAt = -9999;
   private lastDodgeAt = -9999;
-  private lastSkillAt = -9999;
+  private lastPulseAt = -9999;
+  private lastShieldAt = -9999;
+  private lastSlashAt = -9999;
   private invincibleUntil = -9999;
+  private slashDashUntil = -9999;
 
   private attackStartedThisFrame = false;
-  private skillStartedThisFrame = false;
+  private pulseStartedThisFrame = false;
+  private shieldStartedThisFrame = false;
   private pendingAttackSpec: AttackSpec | null = null;
+  private pendingSlashSpec: AttackSpec | null = null;
 
   private comboStep = 0;
   private lastComboAt = -9999;
-  private readonly comboResetMs = 720;
+  private readonly comboResetMs = 760;
+
+  private shieldUntil = -9999;
+  private shieldCharges = 0;
 
   private facing = new Phaser.Math.Vector2(1, 0);
   private upgrades: PlayerUpgradeState = {
@@ -45,8 +57,16 @@ export class PlayerMascot {
 
   update(input: InputState, _delta: number): void {
     this.attackStartedThisFrame = false;
-    this.skillStartedThisFrame = false;
+    this.pulseStartedThisFrame = false;
+    this.shieldStartedThisFrame = false;
     this.pendingAttackSpec = null;
+    this.pendingSlashSpec = null;
+
+    const now = Date.now();
+    if (this.shieldCharges > 0 && now > this.shieldUntil) {
+      this.shieldCharges = 0;
+      if (!this.isDodging && !this.isAttacking && !this.isPulseCasting && !this.isSlashCasting) this.sprite.clearTint();
+    }
 
     const velocity = new Phaser.Math.Vector2(input.x, input.y);
 
@@ -62,10 +82,16 @@ export class PlayerMascot {
       movement.copy(this.facing).scale(currentSpeed * 2.35);
     }
 
+    if (this.isSlashCasting && now < this.slashDashUntil) {
+      movement.copy(this.facing).scale(currentSpeed * 2.9);
+    }
+
     this.sprite.setVelocity(movement.x, movement.y);
 
     if (input.attack) this.attack();
-    if (input.skill) this.castSkill();
+    if (input.slash) this.dashSlash();
+    if (input.pulse) this.castPulse();
+    if (input.shield) this.castShield();
     if (input.dodge) this.dodge();
   }
 
@@ -77,9 +103,22 @@ export class PlayerMascot {
     return spec;
   }
 
-  consumeSkillStarted(): boolean {
-    const didStart = this.skillStartedThisFrame;
-    this.skillStartedThisFrame = false;
+  consumeSlashStarted(): AttackSpec | null {
+    if (!this.pendingSlashSpec) return null;
+    const spec = this.pendingSlashSpec;
+    this.pendingSlashSpec = null;
+    return spec;
+  }
+
+  consumePulseStarted(): boolean {
+    const didStart = this.pulseStartedThisFrame;
+    this.pulseStartedThisFrame = false;
+    return didStart;
+  }
+
+  consumeShieldStarted(): boolean {
+    const didStart = this.shieldStartedThisFrame;
+    this.shieldStartedThisFrame = false;
     return didStart;
   }
 
@@ -91,15 +130,27 @@ export class PlayerMascot {
     return !this.isDodging && Date.now() - this.lastDodgeAt >= this.dodgeCooldownMs * this.upgrades.dodgeCooldownMultiplier;
   }
 
-  canSkill(): boolean {
-    return !this.isSkillCasting && Date.now() - this.lastSkillAt >= this.skillCooldownMs;
+  canPulse(): boolean {
+    return !this.isPulseCasting && Date.now() - this.lastPulseAt >= this.pulseCooldownMs;
+  }
+
+  canShield(): boolean {
+    return !this.isShieldCasting && Date.now() - this.lastShieldAt >= this.shieldCooldownMs;
+  }
+
+  canSlash(): boolean {
+    return !this.isSlashCasting && Date.now() - this.lastSlashAt >= this.slashCooldownMs;
   }
 
   getCooldownState() {
     return {
       attackReady: this.canAttack(),
       dodgeReady: this.canDodge(),
-      skillReady: this.canSkill(),
+      pulseReady: this.canPulse(),
+      shieldReady: this.canShield(),
+      slashReady: this.canSlash(),
+      shieldActive: this.isShieldActive(),
+      shieldCharges: this.shieldCharges,
     };
   }
 
@@ -111,8 +162,12 @@ export class PlayerMascot {
     return this.facing.clone();
   }
 
-  getSkillPower(): number {
+  getPulsePower(): number {
     return 2 + this.upgrades.skillPowerBonus;
+  }
+
+  getSlashPower(): number {
+    return 3 + this.upgrades.damageBonus + Math.floor(this.upgrades.skillPowerBonus / 2);
   }
 
   getMaxHpBonus(): number {
@@ -123,11 +178,33 @@ export class PlayerMascot {
     return Date.now() < this.invincibleUntil;
   }
 
+  isShieldActive(): boolean {
+    return this.shieldCharges > 0 && Date.now() < this.shieldUntil;
+  }
+
+  tryBlockDamage(): boolean {
+    if (!this.isShieldActive()) return false;
+
+    this.shieldCharges = Math.max(0, this.shieldCharges - 1);
+    this.invincibleUntil = Math.max(this.invincibleUntil, Date.now() + 260);
+    this.sprite.setTint(0x39ff14);
+    this.scene.time.delayedCall(120, () => {
+      if (!this.sprite.active || this.isShieldActive() || this.isDodging || this.isAttacking || this.isPulseCasting || this.isSlashCasting) return;
+      this.sprite.clearTint();
+    });
+
+    if (this.shieldCharges <= 0) {
+      this.shieldUntil = -9999;
+    }
+
+    return true;
+  }
+
   applyUpgrade(id: string): string {
     switch (id) {
       case "damage":
         this.upgrades.damageBonus += 1;
-        return "Combo damage increased";
+        return "Combo and Slash damage increased";
       case "speed":
         this.upgrades.speedBonus += 18;
         return "Movement speed increased";
@@ -136,7 +213,7 @@ export class PlayerMascot {
         return "Dodge cooldown reduced";
       case "pulse":
         this.upgrades.skillPowerBonus += 1;
-        return "Safe Pulse damage increased";
+        return "Skills damage increased";
       case "heart":
         this.upgrades.maxHpBonus += 1;
         return "Max HP increased";
@@ -148,7 +225,7 @@ export class PlayerMascot {
   flashHit(): void {
     this.sprite.setTint(0xff3355);
     this.scene.time.delayedCall(110, () => {
-      if (!this.sprite.active || this.isDodging || this.isSkillCasting) return;
+      if (!this.sprite.active || this.isDodging || this.isPulseCasting || this.isSlashCasting || this.isShieldActive()) return;
       this.sprite.clearTint();
     });
   }
@@ -179,6 +256,7 @@ export class PlayerMascot {
       knockback: comboStep === 3 ? 260 : 150,
       maxTargets: comboStep === 3 ? 5 : 3,
       direction: this.facing.clone(),
+      kind: "combo",
     };
 
     this.isAttacking = true;
@@ -189,7 +267,7 @@ export class PlayerMascot {
     this.scene.time.delayedCall(comboStep === 3 ? 210 : 145, () => {
       if (!this.sprite.active) return;
       this.isAttacking = false;
-      if (!this.isDodging && !this.isSkillCasting) this.sprite.clearTint();
+      if (!this.isDodging && !this.isPulseCasting && !this.isSlashCasting && !this.isShieldActive()) this.sprite.clearTint();
       this.sprite.setScale(1);
     });
   }
@@ -207,23 +285,71 @@ export class PlayerMascot {
       if (!this.sprite.active) return;
       this.isDodging = false;
       this.sprite.setAlpha(1);
-      if (!this.isAttacking && !this.isSkillCasting) this.sprite.clearTint();
+      if (!this.isAttacking && !this.isPulseCasting && !this.isSlashCasting && !this.isShieldActive()) this.sprite.clearTint();
     });
   }
 
-  private castSkill(): void {
-    if (!this.canSkill()) return;
+  private dashSlash(): void {
+    if (!this.canSlash()) return;
 
-    this.lastSkillAt = Date.now();
-    this.isSkillCasting = true;
-    this.skillStartedThisFrame = true;
+    this.lastSlashAt = Date.now();
+    this.isSlashCasting = true;
+    this.slashDashUntil = Date.now() + 255;
+    this.invincibleUntil = Math.max(this.invincibleUntil, Date.now() + 230);
+    this.comboStep = 0;
+
+    this.pendingSlashSpec = {
+      comboStep: 0,
+      damage: this.getSlashPower(),
+      range: 188,
+      arcDegrees: 58,
+      knockback: 390,
+      maxTargets: 7,
+      direction: this.facing.clone(),
+      kind: "dash_slash",
+    };
+
+    this.sprite.setTint(0x39ff14);
+    this.sprite.setScale(1.18);
+
+    this.scene.time.delayedCall(285, () => {
+      if (!this.sprite.active) return;
+      this.isSlashCasting = false;
+      this.sprite.setScale(1);
+      if (!this.isAttacking && !this.isDodging && !this.isPulseCasting && !this.isShieldActive()) this.sprite.clearTint();
+    });
+  }
+
+  private castPulse(): void {
+    if (!this.canPulse()) return;
+
+    this.lastPulseAt = Date.now();
+    this.isPulseCasting = true;
+    this.pulseStartedThisFrame = true;
     this.invincibleUntil = Math.max(this.invincibleUntil, Date.now() + 180);
     this.sprite.setTint(0x39ff14);
 
     this.scene.time.delayedCall(250, () => {
       if (!this.sprite.active) return;
-      this.isSkillCasting = false;
-      if (!this.isAttacking && !this.isDodging) this.sprite.clearTint();
+      this.isPulseCasting = false;
+      if (!this.isAttacking && !this.isDodging && !this.isSlashCasting && !this.isShieldActive()) this.sprite.clearTint();
+    });
+  }
+
+  private castShield(): void {
+    if (!this.canShield()) return;
+
+    this.lastShieldAt = Date.now();
+    this.isShieldCasting = true;
+    this.shieldStartedThisFrame = true;
+    this.shieldCharges = 2;
+    this.shieldUntil = Date.now() + 2600;
+    this.invincibleUntil = Math.max(this.invincibleUntil, Date.now() + 160);
+    this.sprite.setTint(0x39ff14);
+
+    this.scene.time.delayedCall(240, () => {
+      if (!this.sprite.active) return;
+      this.isShieldCasting = false;
     });
   }
 

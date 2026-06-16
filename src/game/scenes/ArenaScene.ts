@@ -97,8 +97,17 @@ export class ArenaScene extends Phaser.Scene {
       this.resolvePlayerAttack(attack);
     }
 
-    if (this.player.consumeSkillStarted()) {
+    const slash = this.player.consumeSlashStarted();
+    if (slash) {
+      this.resolveDashSlash(slash);
+    }
+
+    if (this.player.consumePulseStarted()) {
       this.resolveSafePulse();
+    }
+
+    if (this.player.consumeShieldStarted()) {
+      this.resolveLeakShield();
     }
 
     this.activeElapsedMs += delta;
@@ -153,7 +162,11 @@ export class ArenaScene extends Phaser.Scene {
     const cooldowns = this.player?.getCooldownState() ?? {
       attackReady: true,
       dodgeReady: true,
-      skillReady: true,
+      pulseReady: true,
+      shieldReady: true,
+      slashReady: true,
+      shieldActive: false,
+      shieldCharges: 0,
     };
 
     return {
@@ -215,15 +228,30 @@ export class ArenaScene extends Phaser.Scene {
     );
   }
 
+  private resolveDashSlash(attack: AttackSpec): void {
+    this.showDashSlash(attack);
+    const hitResult = this.waves.hitEnemiesInArc(this.player.sprite.x, this.player.sprite.y, attack);
+    const points = hitResult.score + hitResult.hits * 18 + (hitResult.bossHit ? 55 : 0);
+    this.score += points;
+
+    this.cameras.main.shake(95, 0.004);
+    this.showFloatingText(hitResult.hits > 0 ? `DASH SLASH +${points}` : "DASH SLASH", this.player.sprite.x, this.player.sprite.y - 80, "#39ff14");
+  }
+
   private resolveSafePulse(): void {
     this.showSafePulse();
-    const damage = this.player.getSkillPower();
+    const damage = this.player.getPulsePower();
     const hitResult = this.waves.hitEnemiesNear(this.player.sprite.x, this.player.sprite.y, 142, damage, 12);
     const points = hitResult.score + hitResult.hits * 12 + (hitResult.bossHit ? 40 : 0);
     this.score += points;
 
     this.cameras.main.shake(90, 0.004);
     this.showFloatingText(hitResult.hits > 0 ? `SAFE PULSE +${points}` : "SAFE PULSE", this.player.sprite.x, this.player.sprite.y - 86, "#39ff14");
+  }
+
+  private resolveLeakShield(): void {
+    this.showLeakShield();
+    this.showFloatingText("LEAK SHIELD x2", this.player.sprite.x, this.player.sprite.y - 92, "#39ff14");
   }
 
   private onEnemyContact(enemy: Phaser.Physics.Arcade.Sprite): void {
@@ -264,6 +292,13 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private damagePlayer(amount: number, label: string): void {
+    if (this.player.tryBlockDamage()) {
+      this.cameras.main.shake(70, 0.003);
+      this.showBlockFlash();
+      this.showFloatingText(`BLOCKED ${label}`, this.player.sprite.x, this.player.sprite.y - 62, "#39ff14");
+      return;
+    }
+
     this.hp -= amount;
     this.player.flashHit();
     this.cameras.main.shake(135, 0.008);
@@ -295,6 +330,32 @@ export class ArenaScene extends Phaser.Scene {
     });
   }
 
+  private showDashSlash(attack: AttackSpec): void {
+    const direction = attack.direction.clone().normalize();
+    const startX = this.player.sprite.x;
+    const startY = this.player.sprite.y;
+    const endX = startX + direction.x * 170;
+    const endY = startY + direction.y * 170;
+
+    const slash = this.add.line(0, 0, startX, startY, endX, endY, 0x39ff14, 0.95)
+      .setLineWidth(10)
+      .setDepth(38);
+    const glow = this.add.ellipse(endX, endY, 82, 34)
+      .setStrokeStyle(4, 0x39ff14, 0.72)
+      .setDepth(37);
+    glow.rotation = direction.angle();
+
+    this.tweens.add({
+      targets: [slash, glow],
+      alpha: 0,
+      duration: 230,
+      onComplete: () => {
+        slash.destroy();
+        glow.destroy();
+      },
+    });
+  }
+
   private showSafePulse(): void {
     const ring = this.add.circle(this.player.sprite.x, this.player.sprite.y, 35)
       .setStrokeStyle(5, 0x39ff14, 0.95)
@@ -306,6 +367,38 @@ export class ArenaScene extends Phaser.Scene {
       alpha: 0,
       duration: 270,
       onComplete: () => ring.destroy(),
+    });
+  }
+
+  private showLeakShield(): void {
+    const shield = this.add.circle(this.player.sprite.x, this.player.sprite.y, 34)
+      .setStrokeStyle(5, 0x39ff14, 0.72)
+      .setDepth(34);
+
+    this.tweens.add({
+      targets: shield,
+      radius: 66,
+      alpha: 0.18,
+      duration: 2600,
+      onUpdate: () => {
+        if (!this.player?.sprite.active) return;
+        shield.setPosition(this.player.sprite.x, this.player.sprite.y);
+      },
+      onComplete: () => shield.destroy(),
+    });
+  }
+
+  private showBlockFlash(): void {
+    const block = this.add.circle(this.player.sprite.x, this.player.sprite.y, 42)
+      .setStrokeStyle(6, 0x39ff14, 0.9)
+      .setDepth(36);
+
+    this.tweens.add({
+      targets: block,
+      radius: 82,
+      alpha: 0,
+      duration: 220,
+      onComplete: () => block.destroy(),
     });
   }
 
