@@ -62,7 +62,7 @@ export class MainMenuScene extends Phaser.Scene {
     button.setInteractive({ useHandCursor: true });
     button.on("pointerdown", () => this.scene.start(SCENE_KEYS.arena));
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 70, "v0.2.1 skill combat loop", {
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 70, "v0.2.2 combat layout QA", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#88aa88",

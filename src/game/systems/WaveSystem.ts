@@ -55,6 +55,13 @@ export class WaveSystem {
     this.updateHazards(now);
   }
 
+  spawnOpeningPack(targetX: number, targetY: number): void {
+    // Spawn real targets immediately after countdown so the first screen does not feel empty.
+    this.spawn(targetX, targetY, 99999, "bad_habit");
+    this.spawn(targetX, targetY, 99999, "bad_habit");
+    this.spawnTimer = 520;
+  }
+
   defeatEnemy(enemy: Phaser.Physics.Arcade.Sprite): boolean {
     if (!enemy.active || !enemy.body) return false;
 
@@ -297,9 +304,9 @@ export class WaveSystem {
   }
 
   private getSpawnInterval(runElapsedMs: number): number {
-    const earlySafetyMs = runElapsedMs < 20000 ? 480 : 0;
-    const bossSafetyMs = this.bossActive ? 340 : 0;
-    return Math.max(580, 1450 - this.currentWave * 78 + earlySafetyMs + bossSafetyMs);
+    const earlySafetyMs = runElapsedMs < 9000 ? 220 : 0;
+    const bossSafetyMs = this.bossActive ? 300 : 0;
+    return Math.max(520, 1220 - this.currentWave * 78 + earlySafetyMs + bossSafetyMs);
   }
 
   private shouldSpawnMiniBoss(): boolean {
@@ -313,7 +320,7 @@ export class WaveSystem {
     const positions = [
       { x: Phaser.Math.Between(0, GAME_WIDTH), y: -margin },
       { x: GAME_WIDTH + margin, y: Phaser.Math.Between(100, GAME_HEIGHT - 152) },
-      { x: Phaser.Math.Between(0, GAME_WIDTH), y: GAME_HEIGHT + margin },
+      { x: Phaser.Math.Between(0, GAME_WIDTH), y: GAME_HEIGHT - 138 + margin },
       { x: -margin, y: Phaser.Math.Between(100, GAME_HEIGHT - 152) },
     ];
 

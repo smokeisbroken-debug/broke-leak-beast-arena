@@ -11,18 +11,18 @@ export class MobileControls {
   private joystickBase: Phaser.GameObjects.Arc;
   private joystickKnob: Phaser.GameObjects.Arc;
   private joystickPointerId: number | null = null;
-  private joystickCenter = new Phaser.Math.Vector2(82, GAME_HEIGHT - 86);
-  private joystickRadius = 52;
+  private joystickCenter = new Phaser.Math.Vector2(72, GAME_HEIGHT - 76);
+  private joystickRadius = 44;
 
   constructor(private scene: Phaser.Scene) {
     // Phaser keeps only one active touch pointer by default in some mobile browsers.
     // Extra pointers are required so the player can hold movement and tap skills at the same time.
     scene.input.addPointer(5);
 
-    this.joystickBase = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, this.joystickRadius, 0x112211, 0.82)
-      .setStrokeStyle(2, 0x39ff14, 0.55)
+    this.joystickBase = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, this.joystickRadius, 0x112211, 0.55)
+      .setStrokeStyle(2, 0x39ff14, 0.42)
       .setDepth(80);
-    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 22, 0x39ff14, 0.82)
+    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 18, 0x39ff14, 0.82)
       .setDepth(81);
 
     this.createButtons();
@@ -47,24 +47,26 @@ export class MobileControls {
   }
 
   private createButtons(): void {
-    this.createHoldButton(GAME_WIDTH - 72, GAME_HEIGHT - 82, "HOLD\nATTACK", 58, 0x39ff14, (held) => {
+    // Compact combat cluster. The arena field stays visible, while the player still has
+    // one main held attack and three timing skills.
+    this.createHoldButton(GAME_WIDTH - 64, GAME_HEIGHT - 68, "HOLD\nATK", 50, 0x39ff14, (held) => {
       this.attackHeld = held;
       if (held) this.inputState.attack = true;
     });
 
-    this.createTapButton(GAME_WIDTH - 168, GAME_HEIGHT - 70, "DASH", 43, 0x8a00ff, () => {
+    this.createTapButton(GAME_WIDTH - 150, GAME_HEIGHT - 62, "DASH", 32, 0x8a00ff, () => {
       this.inputState.dodge = true;
     });
 
-    this.createTapButton(GAME_WIDTH - 154, GAME_HEIGHT - 156, "SLASH", 40, 0x39ff14, () => {
+    this.createTapButton(GAME_WIDTH - 132, GAME_HEIGHT - 130, "SLASH", 30, 0x39ff14, () => {
       this.inputState.slash = true;
     });
 
-    this.createTapButton(GAME_WIDTH - 68, GAME_HEIGHT - 188, "SHIELD", 38, 0x123b10, () => {
+    this.createTapButton(GAME_WIDTH - 60, GAME_HEIGHT - 146, "SHIELD", 29, 0x123b10, () => {
       this.inputState.shield = true;
     });
 
-    this.createTapButton(GAME_WIDTH - 72, GAME_HEIGHT - 272, "PULSE", 37, 0xb66cff, () => {
+    this.createTapButton(GAME_WIDTH - 28, GAME_HEIGHT - 88, "PULSE", 29, 0xb66cff, () => {
       this.inputState.pulse = true;
     });
   }
@@ -77,14 +79,14 @@ export class MobileControls {
     color: number,
     callback: () => void,
   ): void {
-    const circle = this.scene.add.circle(x, y, radius, color, 0.82)
-      .setStrokeStyle(2, 0xffffff, 0.28)
+    const circle = this.scene.add.circle(x, y, radius, color, 0.74)
+      .setStrokeStyle(2, 0xffffff, 0.22)
       .setDepth(80)
       .setInteractive({ useHandCursor: true });
 
     const text = this.scene.add.text(x, y, label, {
       fontFamily: "Arial",
-      fontSize: "12px",
+      fontSize: "10px",
       color: color === 0x39ff14 ? "#050505" : "#ffffff",
       fontStyle: "bold",
       align: "center",
@@ -108,14 +110,14 @@ export class MobileControls {
     color: number,
     callback: (held: boolean) => void,
   ): void {
-    const circle = this.scene.add.circle(x, y, radius, color, 0.86)
-      .setStrokeStyle(3, 0xffffff, 0.32)
+    const circle = this.scene.add.circle(x, y, radius, color, 0.82)
+      .setStrokeStyle(3, 0xffffff, 0.25)
       .setDepth(80)
       .setInteractive({ useHandCursor: true });
 
     const text = this.scene.add.text(x, y, label, {
       fontFamily: "Arial",
-      fontSize: "12px",
+      fontSize: "11px",
       color: "#050505",
       fontStyle: "bold",
       align: "center",
@@ -124,7 +126,7 @@ export class MobileControls {
     const down = (pointer: Phaser.Input.Pointer) => {
       pointer.event?.preventDefault();
       callback(true);
-      circle.setScale(1.08);
+      circle.setScale(1.06);
     };
     const up = (pointer?: Phaser.Input.Pointer) => {
       pointer?.event?.preventDefault();
@@ -150,7 +152,9 @@ export class MobileControls {
 
   private createPointerControls(): void {
     this.scene.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (pointer.x > GAME_WIDTH / 2 || pointer.y < GAME_HEIGHT - 190) return;
+      // Left half is a virtual movement zone, not only the visible joystick.
+      // This makes the arena feel closer to a real mobile action game.
+      if (pointer.x > GAME_WIDTH * 0.52 || pointer.y < 86 || pointer.y > GAME_HEIGHT - 18) return;
 
       this.joystickPointerId = pointer.id;
       this.updateJoystick(pointer.x, pointer.y);

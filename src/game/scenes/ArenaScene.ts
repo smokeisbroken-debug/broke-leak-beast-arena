@@ -139,10 +139,14 @@ export class ArenaScene extends Phaser.Scene {
       this.add.line(0, 0, 12, y, GAME_WIDTH - 12, y + 6, 0x123b10, 0.14).setOrigin(0, 0).setDepth(1);
     }
 
-    this.add.text(20, 24, "LEAK BEAST ARENA", {
+    this.add.rectangle(GAME_WIDTH / 2, (GAME_HEIGHT - 88) / 2 + 72, GAME_WIDTH - 16, GAME_HEIGHT - 170, 0x000000, 0)
+      .setStrokeStyle(1, 0x39ff14, 0.12)
+      .setDepth(4);
+
+    this.add.text(18, 70, "MOVE LEFT SIDE  ·  HOLD ATTACK  ·  TIME SKILLS", {
       fontFamily: "Arial",
-      fontSize: "20px",
-      color: "#39ff14",
+      fontSize: "10px",
+      color: "#88aa88",
       fontStyle: "bold",
     }).setDepth(5);
   }
@@ -199,6 +203,8 @@ export class ArenaScene extends Phaser.Scene {
     this.time.delayedCall(steps.length * 700, () => {
       this.fightStarted = true;
       this.activeElapsedMs = 0;
+      this.waves.spawnOpeningPack(this.player.sprite.x, this.player.sprite.y);
+      this.showFloatingText("OPENING WAVE", GAME_WIDTH / 2, 118, "#39ff14");
       this.tweens.add({
         targets: this.countdownText,
         alpha: 0,
