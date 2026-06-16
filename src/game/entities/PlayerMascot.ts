@@ -59,7 +59,7 @@ export class PlayerMascot {
   constructor(private scene: Phaser.Scene, x: number, y: number) {
     this.sprite = scene.physics.add.sprite(x, y, "mascot-idle-front");
     this.sprite.setCollideWorldBounds(true);
-    this.sprite.setScale(0.1);
+    this.sprite.setScale(0.05);
     this.sprite.setSize(360, 520);
     this.sprite.setDepth(24);
     this.playVisual("mascot-idle-front-anim");
@@ -310,7 +310,7 @@ export class PlayerMascot {
       if (!this.sprite.active) return;
       this.isAttacking = false;
       if (!this.isDodging && !this.isPulseCasting && !this.isSlashCasting && !this.isShieldActive()) this.sprite.clearTint();
-      this.sprite.setScale(0.1);
+      this.sprite.setScale(0.05);
     });
   }
 
@@ -359,7 +359,7 @@ export class PlayerMascot {
     this.scene.time.delayedCall(285, () => {
       if (!this.sprite.active) return;
       this.isSlashCasting = false;
-      this.sprite.setScale(0.1);
+      this.sprite.setScale(0.05);
       if (!this.isAttacking && !this.isDodging && !this.isPulseCasting && !this.isShieldActive()) this.sprite.clearTint();
     });
   }

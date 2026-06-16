@@ -159,8 +159,8 @@ export class ArenaScene extends Phaser.Scene {
       .setDepth(4);
 
     this.add.image(GAME_WIDTH / 2, 132, "combat-control-strip")
-      .setDisplaySize(286, 72)
-      .setAlpha(0.94)
+       .setDisplaySize(300, 75)
+      .setAlpha(0.97)
       .setDepth(5);
 
     this.updateArenaBackgroundForWave(1);
@@ -396,31 +396,40 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private showSafePulse(): void {
-    const pulse = this.add.image(this.player.sprite.x, this.player.sprite.y, "arena-vfx-sheet", 4)
-      .setScale(0.15)
-      .setDepth(35)
-      .setAlpha(0.95);
+    const radius = this.player.getPulseRadius();
+    const ring = this.add.circle(this.player.sprite.x, this.player.sprite.y, 12, 0x39ff14, 0.12)
+      .setStrokeStyle(6, 0x78ff62, 0.9)
+      .setDepth(35);
+    const glow = this.add.circle(this.player.sprite.x, this.player.sprite.y, 6, 0xc6ff8d, 0.45)
+      .setDepth(34);
 
     this.tweens.add({
-      targets: pulse,
-      scaleX: this.player.getPulseRadius() / 180,
-      scaleY: this.player.getPulseRadius() / 180,
+      targets: ring,
+      radius,
       alpha: 0,
-      duration: 270,
-      onComplete: () => pulse.destroy(),
+      duration: 260,
+      ease: "Cubic.easeOut",
+      onComplete: () => ring.destroy(),
+    });
+
+    this.tweens.add({
+      targets: glow,
+      radius: radius * 0.72,
+      alpha: 0,
+      duration: 240,
+      ease: "Cubic.easeOut",
+      onComplete: () => glow.destroy(),
     });
   }
 
   private showLeakShield(): void {
-    const shield = this.add.image(this.player.sprite.x, this.player.sprite.y, "arena-vfx-sheet", 11)
-      .setScale(0.13)
-      .setDepth(34)
-      .setAlpha(0.52);
+    const shield = this.add.circle(this.player.sprite.x, this.player.sprite.y, 26, 0x39ff14, 0.08)
+      .setStrokeStyle(4, 0x39ff14, 0.55)
+      .setDepth(34);
 
     this.tweens.add({
       targets: shield,
-      scaleX: 0.19,
-      scaleY: 0.19,
+      radius: 34,
       alpha: 0.18,
       duration: 2850,
       onUpdate: () => {
