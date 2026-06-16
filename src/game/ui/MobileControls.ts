@@ -4,7 +4,9 @@ import type { InputState } from "../types/game";
 
 export class MobileControls {
   private inputState: InputState = { x: 0, y: 0, attack: false, dodge: false, pulse: false, shield: false, slash: false };
-  private attackHeld = false;
+  private attackToggled = false;
+  private attackCircle?: Phaser.GameObjects.Arc;
+  private attackText?: Phaser.GameObjects.Text;
   private keys?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd?: Record<"left" | "right" | "up" | "down", Phaser.Input.Keyboard.Key>;
   private keyboardAttack?: Phaser.Input.Keyboard.Key;
@@ -35,7 +37,7 @@ export class MobileControls {
 
     const snapshot = {
       ...this.inputState,
-      attack: this.attackHeld || Boolean(this.keyboardAttack?.isDown) || this.inputState.attack,
+      attack: this.attackToggled || Boolean(this.keyboardAttack?.isDown) || this.inputState.attack,
     };
 
     this.inputState.attack = false;
@@ -47,12 +49,10 @@ export class MobileControls {
   }
 
   private createButtons(): void {
-    // Compact combat cluster. The arena field stays visible, while the player still has
-    // one main held attack and three timing skills.
-    this.createHoldButton(GAME_WIDTH - 64, GAME_HEIGHT - 68, "HOLD\nATK", 50, 0x39ff14, (held) => {
-      this.attackHeld = held;
-      if (held) this.inputState.attack = true;
-    });
+    // Compact combat cluster. Attack is a toggle, not a fragile hold action.
+    // This avoids mobile pointerout/pointerup bugs where auto-attack stops after a few seconds
+    // while the player is still moving with another finger.
+    this.createAttackToggleButton(GAME_WIDTH - 64, GAME_HEIGHT - 68, 50);
 
     this.createTapButton(GAME_WIDTH - 150, GAME_HEIGHT - 62, "DASH", 32, 0x8a00ff, () => {
       this.inputState.dodge = true;
@@ -102,20 +102,13 @@ export class MobileControls {
     text.on("pointerdown", press);
   }
 
-  private createHoldButton(
-    x: number,
-    y: number,
-    label: string,
-    radius: number,
-    color: number,
-    callback: (held: boolean) => void,
-  ): void {
-    const circle = this.scene.add.circle(x, y, radius, color, 0.82)
+  private createAttackToggleButton(x: number, y: number, radius: number): void {
+    this.attackCircle = this.scene.add.circle(x, y, radius, 0x39ff14, 0.82)
       .setStrokeStyle(3, 0xffffff, 0.25)
       .setDepth(80)
       .setInteractive({ useHandCursor: true });
 
-    const text = this.scene.add.text(x, y, label, {
+    this.attackText = this.scene.add.text(x, y, "AUTO\nOFF", {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#050505",
@@ -123,24 +116,27 @@ export class MobileControls {
       align: "center",
     }).setOrigin(0.5).setDepth(81).setInteractive({ useHandCursor: true });
 
-    const down = (pointer: Phaser.Input.Pointer) => {
+    const toggle = (pointer: Phaser.Input.Pointer) => {
       pointer.event?.preventDefault();
-      callback(true);
-      circle.setScale(1.06);
-    };
-    const up = (pointer?: Phaser.Input.Pointer) => {
-      pointer?.event?.preventDefault();
-      callback(false);
-      circle.setScale(1);
+      this.attackToggled = !this.attackToggled;
+      this.inputState.attack = this.attackToggled;
+      this.updateAttackButtonVisual();
+      this.flashButton(this.attackCircle!);
     };
 
-    circle.on("pointerdown", down);
-    text.on("pointerdown", down);
-    circle.on("pointerup", up);
-    text.on("pointerup", up);
-    circle.on("pointerout", up);
-    text.on("pointerout", up);
-    this.scene.input.on("pointerup", up);
+    this.attackCircle.on("pointerdown", toggle);
+    this.attackText.on("pointerdown", toggle);
+    this.updateAttackButtonVisual();
+  }
+
+  private updateAttackButtonVisual(): void {
+    if (!this.attackCircle || !this.attackText) return;
+
+    this.attackCircle.setFillStyle(this.attackToggled ? 0x39ff14 : 0x173817, this.attackToggled ? 0.92 : 0.78);
+    this.attackCircle.setStrokeStyle(3, this.attackToggled ? 0xffffff : 0x39ff14, this.attackToggled ? 0.34 : 0.26);
+    this.attackCircle.setScale(this.attackToggled ? 1.05 : 1);
+    this.attackText.setText(this.attackToggled ? "AUTO\nON" : "AUTO\nOFF");
+    this.attackText.setColor(this.attackToggled ? "#050505" : "#d9ffd2");
   }
 
   private flashButton(circle: Phaser.GameObjects.Arc): void {

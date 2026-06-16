@@ -62,7 +62,7 @@ export class MainMenuScene extends Phaser.Scene {
     button.setInteractive({ useHandCursor: true });
     button.on("pointerdown", () => this.scene.start(SCENE_KEYS.arena));
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 70, "v0.2.4 roguelite upgrade loop", {
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 70, "v0.2.5 stable auto-attack toggle", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#88aa88",
