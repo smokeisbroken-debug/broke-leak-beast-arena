@@ -16,6 +16,8 @@ interface HudState {
   shieldActive: boolean;
   shieldCharges: number;
   comboStep: number;
+  upgradeCount: number;
+  nextUpgradeIn: number;
 }
 
 export class Hud {
@@ -26,6 +28,7 @@ export class Hud {
   private timeText: Phaser.GameObjects.Text;
   private bossText: Phaser.GameObjects.Text;
   private comboText: Phaser.GameObjects.Text;
+  private upgradeText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene) {
     scene.add.rectangle(GAME_WIDTH / 2, 34, GAME_WIDTH - 18, 56, 0x050805, 0.66)
@@ -82,6 +85,15 @@ export class Hud {
       stroke: "#050805",
       strokeThickness: 3,
     }).setOrigin(0.5).setDepth(71);
+
+    this.upgradeText = scene.add.text(GAME_WIDTH / 2, 75, "BUILD 0", {
+      fontFamily: "Arial",
+      fontSize: "10px",
+      color: "#88aa88",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(71);
   }
 
   update(state: HudState): void {
@@ -110,5 +122,10 @@ export class Hud {
 
     this.comboText.setText(combo || ready);
     this.comboText.setColor(combo ? "#39ff14" : "#88aa88");
+
+    this.upgradeText.setText(state.nextUpgradeIn > 0
+      ? `BUILD ${state.upgradeCount} · NEXT UPGRADE IN ${state.nextUpgradeIn}`
+      : `BUILD ${state.upgradeCount} · UPGRADE READY`);
+    this.upgradeText.setColor(state.nextUpgradeIn > 0 ? "#88aa88" : "#39ff14");
   }
 }

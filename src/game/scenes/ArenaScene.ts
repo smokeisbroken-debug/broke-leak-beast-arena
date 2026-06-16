@@ -6,20 +6,28 @@ import { PlayerMascot } from "../entities/PlayerMascot";
 import { WaveSystem } from "../systems/WaveSystem";
 import { MobileControls } from "../ui/MobileControls";
 import { Hud } from "../ui/Hud";
-import type { AttackSpec, RunResult } from "../types/game";
+import type { AttackSpec, PlayerUpgradeId, RunResult } from "../types/game";
+
+type UpgradeRarity = "core" | "rare" | "survival";
 
 interface UpgradeOption {
-  id: "damage" | "speed" | "dash" | "pulse" | "heart";
+  id: PlayerUpgradeId;
   title: string;
   description: string;
+  rarity: UpgradeRarity;
+  tag: string;
 }
 
 const UPGRADE_POOL: UpgradeOption[] = [
-  { id: "damage", title: "Razor Combo", description: "+1 damage on every hit" },
-  { id: "speed", title: "Clean Footwork", description: "+movement speed" },
-  { id: "dash", title: "Leak Step", description: "faster dodge cooldown" },
-  { id: "pulse", title: "Safe Pulse+", description: "stronger pulse skill" },
-  { id: "heart", title: "Wallet HP", description: "+max HP and heal" },
+  { id: "damage", title: "Razor Combo", description: "+1 damage on every combo hit", rarity: "core", tag: "DAMAGE" },
+  { id: "attack_speed", title: "Quick Hands", description: "combo attacks recover faster", rarity: "core", tag: "COMBO" },
+  { id: "wide_swing", title: "Wide Swing", description: "larger attack arc and range", rarity: "core", tag: "AREA" },
+  { id: "speed", title: "Clean Footwork", description: "+movement speed for kiting", rarity: "core", tag: "MOVE" },
+  { id: "dash", title: "Leak Step", description: "dodge cooldown reduced", rarity: "rare", tag: "DODGE" },
+  { id: "pulse", title: "Safe Pulse+", description: "pulse hits harder and wider", rarity: "rare", tag: "SKILL" },
+  { id: "shield_battery", title: "Shield Battery", description: "+1 shield block and longer shield", rarity: "survival", tag: "BLOCK" },
+  { id: "heart", title: "Wallet HP", description: "+max HP and heal now", rarity: "survival", tag: "HP" },
+  { id: "boss_breaker", title: "Boss Breaker", description: "skills hit harder for mini-boss waves", rarity: "rare", tag: "BOSS" },
 ];
 
 export class ArenaScene extends Phaser.Scene {
@@ -37,6 +45,9 @@ export class ArenaScene extends Phaser.Scene {
   private fightPaused = false;
   private lastShownWave = 1;
   private lastUpgradeWave = 1;
+  private upgradeChoicesTaken = 0;
+  private nextUpgradeDefeatedTarget = 7;
+  private upgradeOverlayActive = false;
   private contactDamageReadyAt = 0;
   private hazardDamageReadyAt = 0;
 
@@ -53,6 +64,9 @@ export class ArenaScene extends Phaser.Scene {
     this.fightPaused = false;
     this.lastShownWave = 1;
     this.lastUpgradeWave = 1;
+    this.upgradeChoicesTaken = 0;
+    this.nextUpgradeDefeatedTarget = 7;
+    this.upgradeOverlayActive = false;
     this.contactDamageReadyAt = 0;
     this.hazardDamageReadyAt = 0;
 
@@ -119,11 +133,12 @@ export class ArenaScene extends Phaser.Scene {
       this.showWaveBanner(this.lastShownWave);
 
       if (this.lastShownWave >= 2 && this.lastShownWave % 2 === 0 && this.lastUpgradeWave !== this.lastShownWave) {
-        this.time.delayedCall(450, () => this.showUpgradeChoice(this.lastShownWave));
+        this.time.delayedCall(450, () => this.showUpgradeChoice(`Wave ${this.lastShownWave} cleared`));
       }
     }
 
     this.score += Math.floor(delta / 120);
+    this.maybeOfferDefeatUpgrade();
     this.hud.update(this.getHudState());
   }
 
@@ -181,6 +196,8 @@ export class ArenaScene extends Phaser.Scene {
       survivedSeconds: Math.floor(this.activeElapsedMs / 1000),
       bossActive: Boolean(this.waves?.bossActive),
       comboStep: this.player?.getComboStep() ?? 0,
+      upgradeCount: this.upgradeChoicesTaken,
+      nextUpgradeIn: Math.max(0, this.nextUpgradeDefeatedTarget - (this.waves?.defeatedCount ?? 0)),
       ...cooldowns,
     };
   }
@@ -232,6 +249,7 @@ export class ArenaScene extends Phaser.Scene {
       this.player.sprite.y - 64,
       hitResult.bossHit ? "#b66cff" : "#39ff14",
     );
+    if (hitResult.defeated > 0) this.maybeOfferDefeatUpgrade();
   }
 
   private resolveDashSlash(attack: AttackSpec): void {
@@ -242,22 +260,24 @@ export class ArenaScene extends Phaser.Scene {
 
     this.cameras.main.shake(95, 0.004);
     this.showFloatingText(hitResult.hits > 0 ? `DASH SLASH +${points}` : "DASH SLASH", this.player.sprite.x, this.player.sprite.y - 80, "#39ff14");
+    if (hitResult.defeated > 0) this.maybeOfferDefeatUpgrade();
   }
 
   private resolveSafePulse(): void {
     this.showSafePulse();
     const damage = this.player.getPulsePower();
-    const hitResult = this.waves.hitEnemiesNear(this.player.sprite.x, this.player.sprite.y, 142, damage, 12);
+    const hitResult = this.waves.hitEnemiesNear(this.player.sprite.x, this.player.sprite.y, this.player.getPulseRadius(), damage, 12);
     const points = hitResult.score + hitResult.hits * 12 + (hitResult.bossHit ? 40 : 0);
     this.score += points;
 
     this.cameras.main.shake(90, 0.004);
     this.showFloatingText(hitResult.hits > 0 ? `SAFE PULSE +${points}` : "SAFE PULSE", this.player.sprite.x, this.player.sprite.y - 86, "#39ff14");
+    if (hitResult.defeated > 0) this.maybeOfferDefeatUpgrade();
   }
 
   private resolveLeakShield(): void {
     this.showLeakShield();
-    this.showFloatingText("LEAK SHIELD x2", this.player.sprite.x, this.player.sprite.y - 92, "#39ff14");
+    this.showFloatingText(`LEAK SHIELD x${this.player.getShieldCapacity()}`, this.player.sprite.x, this.player.sprite.y - 92, "#39ff14");
   }
 
   private onEnemyContact(enemy: Phaser.Physics.Arcade.Sprite): void {
@@ -369,7 +389,7 @@ export class ArenaScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: ring,
-      radius: 150,
+      radius: this.player.getPulseRadius() + 8,
       alpha: 0,
       duration: 270,
       onComplete: () => ring.destroy(),
@@ -385,7 +405,7 @@ export class ArenaScene extends Phaser.Scene {
       targets: shield,
       radius: 66,
       alpha: 0.18,
-      duration: 2600,
+      duration: 2850,
       onUpdate: () => {
         if (!this.player?.sprite.active) return;
         shield.setPosition(this.player.sprite.x, this.player.sprite.y);
@@ -429,9 +449,16 @@ export class ArenaScene extends Phaser.Scene {
     });
   }
 
-  private showUpgradeChoice(wave: number): void {
-    if (this.runFinished || this.fightPaused || wave === this.lastUpgradeWave) return;
-    this.lastUpgradeWave = wave;
+  private maybeOfferDefeatUpgrade(): void {
+    if (this.runFinished || this.fightPaused || this.upgradeOverlayActive) return;
+    if ((this.waves?.defeatedCount ?? 0) < this.nextUpgradeDefeatedTarget) return;
+    this.showUpgradeChoice(`${this.nextUpgradeDefeatedTarget} leaks defeated`);
+  }
+
+  private showUpgradeChoice(reason: string): void {
+    if (this.runFinished || this.fightPaused || this.upgradeOverlayActive) return;
+    if (this.waves?.currentWave) this.lastUpgradeWave = this.waves.currentWave;
+    this.upgradeOverlayActive = true;
     this.fightPaused = true;
     this.physics.pause();
 
@@ -441,44 +468,119 @@ export class ArenaScene extends Phaser.Scene {
       return obj;
     };
 
-    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.68).setDepth(150));
-    add(this.add.rectangle(GAME_WIDTH / 2, 264, GAME_WIDTH - 34, 300, 0x071107, 0.96).setStrokeStyle(2, 0x39ff14, 0.55).setDepth(151));
-    add(this.add.text(GAME_WIDTH / 2, 142, "CHOOSE UPGRADE", {
+    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.74).setDepth(150));
+    add(this.add.rectangle(GAME_WIDTH / 2, 296, GAME_WIDTH - 26, 386, 0x071107, 0.98)
+      .setStrokeStyle(2, 0x39ff14, 0.55)
+      .setDepth(151));
+
+    add(this.add.text(GAME_WIDTH / 2, 116, "ROGUELITE UPGRADE", {
       fontFamily: "Arial",
       fontSize: "24px",
       color: "#39ff14",
       fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
     }).setOrigin(0.5).setDepth(152));
 
-    const options = Phaser.Utils.Array.Shuffle([...UPGRADE_POOL]).slice(0, 3);
+    add(this.add.text(GAME_WIDTH / 2, 145, reason.toUpperCase(), {
+      fontFamily: "Arial",
+      fontSize: "12px",
+      color: "#9cff8a",
+      fontStyle: "bold",
+    }).setOrigin(0.5).setDepth(152));
+
+    add(this.add.text(GAME_WIDTH / 2, 170, "Choose one build path for this run", {
+      fontFamily: "Arial",
+      fontSize: "12px",
+      color: "#f5fff1",
+    }).setOrigin(0.5).setDepth(152));
+
+    const options = this.pickUpgradeOptions();
     options.forEach((option, index) => {
-      const y = 198 + index * 76;
-      const card = add(this.add.rectangle(GAME_WIDTH / 2, y, GAME_WIDTH - 72, 58, 0x123b10, 0.92)
-        .setStrokeStyle(2, option.id === "heart" ? 0xff3355 : 0x39ff14, 0.36)
+      const y = 224 + index * 94;
+      const stroke = option.rarity === "rare" ? 0xb66cff : option.rarity === "survival" ? 0xff3355 : 0x39ff14;
+      const fill = option.rarity === "rare" ? 0x130821 : option.rarity === "survival" ? 0x1a080b : 0x0d210d;
+
+      const card = add(this.add.rectangle(GAME_WIDTH / 2, y, GAME_WIDTH - 58, 76, fill, 0.96)
+        .setStrokeStyle(2, stroke, 0.62)
         .setDepth(152)
         .setInteractive({ useHandCursor: true }));
 
-      add(this.add.text(64, y - 18, option.title, {
+      add(this.add.text(58, y - 27, option.tag, {
         fontFamily: "Arial",
-        fontSize: "16px",
+        fontSize: "10px",
+        color: option.rarity === "rare" ? "#d6a8ff" : option.rarity === "survival" ? "#ff9aaa" : "#9cff8a",
+        fontStyle: "bold",
+      }).setDepth(153));
+
+      add(this.add.text(58, y - 8, option.title, {
+        fontFamily: "Arial",
+        fontSize: "17px",
         color: "#f5fff1",
         fontStyle: "bold",
       }).setDepth(153));
 
-      add(this.add.text(64, y + 5, option.description, {
+      add(this.add.text(58, y + 17, option.description, {
         fontFamily: "Arial",
-        fontSize: "13px",
+        fontSize: "12px",
         color: "#9cff8a",
       }).setDepth(153));
 
       card.on("pointerdown", () => {
         const message = this.player.applyUpgrade(option.id);
-        if (option.id === "heart") this.hp = Math.min(this.hp + 2, 5 + this.player.getMaxHpBonus());
+        this.upgradeChoicesTaken += 1;
+        this.nextUpgradeDefeatedTarget += 7 + Math.min(5, this.upgradeChoicesTaken * 2);
+
+        if (option.id === "heart") {
+          this.hp = Math.min(this.hp + 2, 5 + this.player.getMaxHpBonus());
+        }
+
         overlayObjects.forEach((obj) => obj.destroy());
         this.physics.resume();
+        this.upgradeOverlayActive = false;
         this.fightPaused = false;
-        this.showFloatingText(message, GAME_WIDTH / 2, 150, "#39ff14");
+        this.showUpgradeToast(option.title, message);
+        this.hud.update(this.getHudState());
       });
+    });
+  }
+
+  private pickUpgradeOptions(): UpgradeOption[] {
+    const pool = [...UPGRADE_POOL];
+    const rareCount = this.upgradeChoicesTaken >= 1 ? 1 : 0;
+    const rareOptions = Phaser.Utils.Array.Shuffle(pool.filter((option) => option.rarity === "rare")).slice(0, rareCount);
+    const remaining = Phaser.Utils.Array.Shuffle(pool.filter((option) => !rareOptions.includes(option)));
+    return Phaser.Utils.Array.Shuffle([...rareOptions, ...remaining]).slice(0, 3);
+  }
+
+  private showUpgradeToast(title: string, message: string): void {
+    const panel = this.add.rectangle(GAME_WIDTH / 2, 108, GAME_WIDTH - 50, 62, 0x071107, 0.94)
+      .setStrokeStyle(2, 0x39ff14, 0.45)
+      .setDepth(155);
+    const titleText = this.add.text(GAME_WIDTH / 2, 94, title.toUpperCase(), {
+      fontFamily: "Arial",
+      fontSize: "14px",
+      color: "#39ff14",
+      fontStyle: "bold",
+    }).setOrigin(0.5).setDepth(156);
+    const bodyText = this.add.text(GAME_WIDTH / 2, 117, message, {
+      fontFamily: "Arial",
+      fontSize: "11px",
+      color: "#f5fff1",
+      align: "center",
+    }).setOrigin(0.5).setDepth(156);
+
+    this.tweens.add({
+      targets: [panel, titleText, bodyText],
+      y: "-=18",
+      alpha: 0,
+      delay: 1050,
+      duration: 520,
+      onComplete: () => {
+        panel.destroy();
+        titleText.destroy();
+        bodyText.destroy();
+      },
     });
   }
 
@@ -513,6 +615,7 @@ export class ArenaScene extends Phaser.Scene {
       survivedSeconds: Math.floor(this.activeElapsedMs / 1000),
       bossDamage: Math.floor(this.score * 0.14),
       safePoints: Math.floor(this.score * 0.08),
+      upgradesChosen: this.upgradeChoicesTaken,
     };
 
     this.scene.start(SCENE_KEYS.result, result);

@@ -36,7 +36,7 @@ export class ResultScene extends Phaser.Scene {
       fontStyle: "bold",
     }).setOrigin(0.5);
 
-    this.add.rectangle(GAME_WIDTH / 2, 314, GAME_WIDTH - 52, 306, 0x050805, 0.8)
+    this.add.rectangle(GAME_WIDTH / 2, 324, GAME_WIDTH - 52, 344, 0x050805, 0.8)
       .setStrokeStyle(1, 0x39ff14, 0.28);
 
     const lines = [
@@ -45,10 +45,11 @@ export class ResultScene extends Phaser.Scene {
       ["Survived", `${this.result.survivedSeconds}s`],
       ["Safe Points", `+${this.result.safePoints}`],
       ["Boss Damage", `+${this.result.bossDamage}`],
+      ["Build Upgrades", this.result.upgradesChosen.toString()],
     ];
 
     lines.forEach(([label, value], index) => {
-      const y = 205 + index * 48;
+      const y = 190 + index * 46;
       this.add.text(72, y, label.toUpperCase(), {
         fontFamily: "Arial",
         fontSize: "13px",

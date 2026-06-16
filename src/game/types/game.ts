@@ -33,6 +33,7 @@ export interface RunResult {
   survivedSeconds: number;
   safePoints: number;
   bossDamage: number;
+  upgradesChosen: number;
 }
 
 export interface AttackSpec {
@@ -46,10 +47,28 @@ export interface AttackSpec {
   kind?: "combo" | "dash_slash" | "pulse";
 }
 
+export type PlayerUpgradeId =
+  | "damage"
+  | "speed"
+  | "dash"
+  | "pulse"
+  | "heart"
+  | "attack_speed"
+  | "wide_swing"
+  | "shield_battery"
+  | "boss_breaker";
+
 export interface PlayerUpgradeState {
   damageBonus: number;
   speedBonus: number;
   maxHpBonus: number;
   dodgeCooldownMultiplier: number;
   skillPowerBonus: number;
+  attackCooldownMultiplier: number;
+  attackRangeBonus: number;
+  attackArcBonus: number;
+  pulseRadiusBonus: number;
+  shieldChargeBonus: number;
+  shieldDurationBonusMs: number;
+  bossDamageBonus: number;
 }

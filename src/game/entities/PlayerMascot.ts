@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
-import type { AttackSpec, InputState, PlayerUpgradeState } from "../types/game";
+import type { AttackSpec, InputState, PlayerUpgradeId, PlayerUpgradeState } from "../types/game";
 
 export class PlayerMascot {
   public readonly sprite: Phaser.Physics.Arcade.Sprite;
@@ -46,6 +46,13 @@ export class PlayerMascot {
     maxHpBonus: 0,
     dodgeCooldownMultiplier: 1,
     skillPowerBonus: 0,
+    attackCooldownMultiplier: 1,
+    attackRangeBonus: 0,
+    attackArcBonus: 0,
+    pulseRadiusBonus: 0,
+    shieldChargeBonus: 0,
+    shieldDurationBonusMs: 0,
+    bossDamageBonus: 0,
   };
 
   constructor(private scene: Phaser.Scene, x: number, y: number) {
@@ -123,7 +130,7 @@ export class PlayerMascot {
   }
 
   canAttack(): boolean {
-    return !this.isAttacking && Date.now() - this.lastAttackAt >= this.attackCooldownMs;
+    return !this.isAttacking && Date.now() - this.lastAttackAt >= this.attackCooldownMs * this.upgrades.attackCooldownMultiplier;
   }
 
   canDodge(): boolean {
@@ -166,8 +173,20 @@ export class PlayerMascot {
     return 2 + this.upgrades.skillPowerBonus;
   }
 
+  getPulseRadius(): number {
+    return 142 + this.upgrades.pulseRadiusBonus;
+  }
+
   getSlashPower(): number {
     return 3 + this.upgrades.damageBonus + Math.floor(this.upgrades.skillPowerBonus / 2);
+  }
+
+  getBossDamageBonus(): number {
+    return this.upgrades.bossDamageBonus;
+  }
+
+  getShieldCapacity(): number {
+    return 2 + this.upgrades.shieldChargeBonus;
   }
 
   getMaxHpBonus(): number {
@@ -200,23 +219,39 @@ export class PlayerMascot {
     return true;
   }
 
-  applyUpgrade(id: string): string {
+  applyUpgrade(id: PlayerUpgradeId): string {
     switch (id) {
       case "damage":
         this.upgrades.damageBonus += 1;
-        return "Combo and Slash damage increased";
+        return "Razor Combo: attack damage increased";
       case "speed":
         this.upgrades.speedBonus += 18;
-        return "Movement speed increased";
+        return "Clean Footwork: movement speed increased";
       case "dash":
-        this.upgrades.dodgeCooldownMultiplier = Math.max(0.58, this.upgrades.dodgeCooldownMultiplier - 0.12);
-        return "Dodge cooldown reduced";
+        this.upgrades.dodgeCooldownMultiplier = Math.max(0.52, this.upgrades.dodgeCooldownMultiplier - 0.12);
+        return "Leak Step: dodge cooldown reduced";
       case "pulse":
         this.upgrades.skillPowerBonus += 1;
-        return "Skills damage increased";
+        this.upgrades.pulseRadiusBonus += 10;
+        return "Safe Pulse+: pulse damage and radius increased";
       case "heart":
         this.upgrades.maxHpBonus += 1;
-        return "Max HP increased";
+        return "Wallet HP: max HP increased";
+      case "attack_speed":
+        this.upgrades.attackCooldownMultiplier = Math.max(0.64, this.upgrades.attackCooldownMultiplier - 0.08);
+        return "Quick Hands: combo attacks faster";
+      case "wide_swing":
+        this.upgrades.attackRangeBonus += 12;
+        this.upgrades.attackArcBonus += 8;
+        return "Wide Swing: attack area increased";
+      case "shield_battery":
+        this.upgrades.shieldChargeBonus += 1;
+        this.upgrades.shieldDurationBonusMs += 450;
+        return "Shield Battery: shield lasts longer";
+      case "boss_breaker":
+        this.upgrades.bossDamageBonus += 1;
+        this.upgrades.skillPowerBonus += 1;
+        return "Boss Breaker: more damage to bosses";
       default:
         return "Upgrade applied";
     }
@@ -245,8 +280,8 @@ export class PlayerMascot {
 
     const comboStep = this.comboStep;
     const baseDamage = comboStep === 3 ? 3 : 1;
-    const range = comboStep === 1 ? 86 : comboStep === 2 ? 104 : 126;
-    const arcDegrees = comboStep === 3 ? 112 : 82;
+    const range = (comboStep === 1 ? 86 : comboStep === 2 ? 104 : 126) + this.upgrades.attackRangeBonus;
+    const arcDegrees = (comboStep === 3 ? 112 : 82) + this.upgrades.attackArcBonus;
 
     this.pendingAttackSpec = {
       comboStep,
@@ -342,8 +377,8 @@ export class PlayerMascot {
     this.lastShieldAt = Date.now();
     this.isShieldCasting = true;
     this.shieldStartedThisFrame = true;
-    this.shieldCharges = 2;
-    this.shieldUntil = Date.now() + 2600;
+    this.shieldCharges = this.getShieldCapacity();
+    this.shieldUntil = Date.now() + 2600 + this.upgrades.shieldDurationBonusMs;
     this.invincibleUntil = Math.max(this.invincibleUntil, Date.now() + 160);
     this.sprite.setTint(0x39ff14);
 

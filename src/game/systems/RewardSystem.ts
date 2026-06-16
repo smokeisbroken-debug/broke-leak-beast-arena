@@ -7,5 +7,6 @@ export function calculateBaseRewards(score: number): RunResult {
     survivedSeconds: 0,
     safePoints: Math.floor(score * 0.08),
     bossDamage: Math.floor(score * 0.12),
+    upgradesChosen: 0,
   };
 }
