@@ -13,18 +13,18 @@ export class MobileControls {
   private joystickBase: Phaser.GameObjects.Image;
   private joystickKnob: Phaser.GameObjects.Arc;
   private joystickPointerId: number | null = null;
-  private joystickCenter = new Phaser.Math.Vector2(76, GAME_HEIGHT - 82);
-  private joystickRadius = 46;
+  private joystickCenter = new Phaser.Math.Vector2(80, GAME_HEIGHT - 78);
+  private joystickRadius = 42;
 
   constructor(private scene: Phaser.Scene) {
     scene.input.addPointer(5);
 
     this.joystickBase = scene.add.image(this.joystickCenter.x, this.joystickCenter.y, "combat-joystick-base")
-      .setDisplaySize(100, 100)
+      .setDisplaySize(92, 92)
       .setAlpha(0.92)
       .setDepth(80);
 
-    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 16, 0x39ff14, 0.88)
+    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 14, 0x39ff14, 0.88)
       .setStrokeStyle(2, 0x071107, 0.65)
       .setDepth(81);
 
@@ -50,21 +50,21 @@ export class MobileControls {
   }
 
   private createButtons(): void {
-    this.createAttackToggleButton(GAME_WIDTH - 72, GAME_HEIGHT - 84, 76);
+    this.createAttackToggleButton(GAME_WIDTH - 70, GAME_HEIGHT - 78, 64);
 
-    this.createImageButton(GAME_WIDTH - 147, GAME_HEIGHT - 72, "combat-button-dash", 64, 64, () => {
+    this.createImageButton(GAME_WIDTH - 144, GAME_HEIGHT - 66, "combat-button-dash", 58, 58, () => {
       this.inputState.dodge = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 140, GAME_HEIGHT - 144, "combat-button-slash", 64, 64, () => {
+    this.createImageButton(GAME_WIDTH - 145, GAME_HEIGHT - 133, "combat-button-slash", 56, 56, () => {
       this.inputState.slash = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 82, GAME_HEIGHT - 150, "combat-button-shield", 56, 56, () => {
+    this.createImageButton(GAME_WIDTH - 84, GAME_HEIGHT - 141, "combat-button-shield", 48, 48, () => {
       this.inputState.shield = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 23, GAME_HEIGHT - 118, "combat-button-pulse", 56, 56, () => {
+    this.createImageButton(GAME_WIDTH - 24, GAME_HEIGHT - 108, "combat-button-pulse", 48, 48, () => {
       this.inputState.pulse = true;
     });
   }
@@ -95,10 +95,10 @@ export class MobileControls {
     this.attackButton = this.scene.add.image(x, y, "combat-button-auto")
       .setDisplaySize(size, size)
       .setDepth(80)
-      .setAlpha(0.82)
+      .setAlpha(0.88)
       .setInteractive({ useHandCursor: true });
 
-    this.attackIndicator = this.scene.add.circle(x + size * 0.25, y + size * 0.25, 7, 0xff3355, 0.9)
+    this.attackIndicator = this.scene.add.circle(x + size * 0.28, y + size * 0.28, 5, 0xff3355, 0.92)
       .setStrokeStyle(2, 0x050805, 0.75)
       .setDepth(81);
 
@@ -106,16 +106,23 @@ export class MobileControls {
       pointer.event?.preventDefault();
       this.attackToggled = !this.attackToggled;
       this.refreshAttackToggleVisual();
-      this.flashButton(this.attackButton!);
+      // no scaling here; just a short alpha blink so button never becomes huge
+      this.scene.tweens.add({
+        targets: this.attackButton,
+        alpha: this.attackToggled ? 1 : 0.88,
+        duration: 70,
+      });
     };
 
     this.attackButton.on("pointerdown", toggle);
+    this.refreshAttackToggleVisual();
   }
 
   private refreshAttackToggleVisual(): void {
     if (!this.attackButton || !this.attackIndicator) return;
-    this.attackButton.setAlpha(this.attackToggled ? 1 : 0.82);
-    this.attackButton.setScale(this.attackToggled ? 1.04 : 1);
+    this.attackButton.setDisplaySize(64, 64);
+    this.attackButton.setScale(1);
+    this.attackButton.setAlpha(this.attackToggled ? 1 : 0.88);
     this.attackIndicator.setFillStyle(this.attackToggled ? 0x39ff14 : 0xff3355, 0.92);
   }
 
@@ -197,12 +204,13 @@ export class MobileControls {
   }
 
   private flashButton(target: Phaser.GameObjects.Image): void {
+    const originalAlpha = target.alpha;
     this.scene.tweens.add({
       targets: target,
-      scaleX: target.scaleX * 1.06,
-      scaleY: target.scaleY * 1.06,
-      duration: 80,
+      alpha: Math.max(0.72, originalAlpha - 0.22),
+      duration: 70,
       yoyo: true,
+      onComplete: () => target.setAlpha(originalAlpha),
     });
   }
 }

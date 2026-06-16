@@ -31,40 +31,40 @@ export class Hud {
 
   constructor(scene: Phaser.Scene) {
     scene.add.image(GAME_WIDTH / 2, 42, "combat-hud-panel")
-      .setDisplaySize(360, 104)
+      .setDisplaySize(362, 106)
       .setDepth(70)
-      .setAlpha(0.98);
+      .setAlpha(0.99);
 
-    const baseStyle: Phaser.Types.GameObjects.Text.TextStyle = {
+    const valueStyle: Phaser.Types.GameObjects.Text.TextStyle = {
       fontFamily: "Arial",
-      fontSize: "18px",
+      fontSize: "17px",
       color: "#f5fff1",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 5,
     };
 
-    this.scoreValue = scene.add.text(72, 25, "0", { ...baseStyle, fontSize: "17px" })
+    this.scoreValue = scene.add.text(59, 23, "0", { ...valueStyle, fontSize: "16px" })
       .setOrigin(0.5)
       .setDepth(71);
 
-    this.leaksValue = scene.add.text(72, 49, "0", { ...baseStyle, fontSize: "17px", color: "#8bff7d" })
+    this.leaksValue = scene.add.text(61, 49, "0", { ...valueStyle, fontSize: "16px", color: "#8bff7d" })
       .setOrigin(0.5)
       .setDepth(71);
 
-    this.waveValue = scene.add.text(GAME_WIDTH / 2, 36, "1", {
-      ...baseStyle,
-      fontSize: "30px",
+    this.waveValue = scene.add.text(GAME_WIDTH / 2, 30, "1", {
+      ...valueStyle,
+      fontSize: "28px",
       color: "#39ff14",
       strokeThickness: 6,
     }).setOrigin(0.5).setDepth(71);
 
-    this.hpValue = scene.add.text(GAME_WIDTH - 76, 31, "5/5", { ...baseStyle, fontSize: "21px" })
+    this.hpValue = scene.add.text(334, 28, "5/5", { ...valueStyle, fontSize: "20px" })
       .setOrigin(0.5)
       .setDepth(71);
 
-    this.timeValue = scene.add.text(GAME_WIDTH - 78, 54, "0s", {
-      ...baseStyle,
+    this.timeValue = scene.add.text(335, 53, "0s", {
+      ...valueStyle,
       fontSize: "13px",
       color: "#cdb7ff",
       strokeThickness: 4,
@@ -72,18 +72,18 @@ export class Hud {
 
     this.statusText = scene.add.text(GAME_WIDTH / 2, 88, "", {
       fontFamily: "Arial",
-      fontSize: "14px",
+      fontSize: "12px",
       color: "#d9d0ff",
       fontStyle: "bold",
       stroke: "#050805",
-      strokeThickness: 5,
+      strokeThickness: 4,
       align: "center",
     }).setOrigin(0.5).setDepth(71);
 
-    this.progressText = scene.add.text(GAME_WIDTH / 2, 112, "", {
+    this.progressText = scene.add.text(GAME_WIDTH / 2, 109, "", {
       fontFamily: "Arial",
-      fontSize: "11px",
-      color: "#9fd39a",
+      fontSize: "10px",
+      color: "#d7ffd0",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 4,
