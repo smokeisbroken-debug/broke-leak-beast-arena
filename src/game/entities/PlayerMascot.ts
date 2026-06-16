@@ -38,6 +38,7 @@ export class PlayerMascot {
 
   private shieldUntil = -9999;
   private shieldCharges = 0;
+  private currentVisualKey = "";
 
   private facing = new Phaser.Math.Vector2(1, 0);
   private upgrades: PlayerUpgradeState = {
@@ -56,10 +57,12 @@ export class PlayerMascot {
   };
 
   constructor(private scene: Phaser.Scene, x: number, y: number) {
-    this.sprite = scene.physics.add.sprite(x, y, "mascot-placeholder");
+    this.sprite = scene.physics.add.sprite(x, y, "mascot-idle-front");
     this.sprite.setCollideWorldBounds(true);
-    this.sprite.setSize(46, 58);
+    this.sprite.setScale(0.1);
+    this.sprite.setSize(360, 520);
     this.sprite.setDepth(24);
+    this.playVisual("mascot-idle-front-anim");
   }
 
   update(input: InputState, _delta: number): void {
@@ -100,6 +103,8 @@ export class PlayerMascot {
     if (input.pulse) this.castPulse();
     if (input.shield) this.castShield();
     if (input.dodge) this.dodge();
+
+    this.updateVisualState(velocity);
   }
 
   consumeAttackStarted(): AttackSpec | null {
@@ -258,6 +263,7 @@ export class PlayerMascot {
   }
 
   flashHit(): void {
+    this.playVisual("mascot-hurt-anim");
     this.sprite.setTint(0xff3355);
     this.scene.time.delayedCall(110, () => {
       if (!this.sprite.active || this.isDodging || this.isPulseCasting || this.isSlashCasting || this.isShieldActive()) return;
@@ -297,13 +303,14 @@ export class PlayerMascot {
     this.isAttacking = true;
     this.attackStartedThisFrame = true;
     this.sprite.setTint(comboStep === 3 ? 0xb66cff : 0xffffff);
-    this.sprite.setScale(comboStep === 3 ? 1.14 : 1.07);
+    this.sprite.setScale(comboStep === 3 ? 0.108 : 0.102);
+    this.playVisual("mascot-attack-anim");
 
     this.scene.time.delayedCall(comboStep === 3 ? 210 : 145, () => {
       if (!this.sprite.active) return;
       this.isAttacking = false;
       if (!this.isDodging && !this.isPulseCasting && !this.isSlashCasting && !this.isShieldActive()) this.sprite.clearTint();
-      this.sprite.setScale(1);
+      this.sprite.setScale(0.1);
     });
   }
 
@@ -315,6 +322,7 @@ export class PlayerMascot {
     this.invincibleUntil = Date.now() + 360;
     this.sprite.setAlpha(0.52);
     this.sprite.setTint(0xb66cff);
+    this.playVisual("mascot-dash-anim");
 
     this.scene.time.delayedCall(260, () => {
       if (!this.sprite.active) return;
@@ -345,12 +353,13 @@ export class PlayerMascot {
     };
 
     this.sprite.setTint(0x39ff14);
-    this.sprite.setScale(1.18);
+    this.sprite.setScale(0.11);
+    this.playVisual("mascot-attack-anim");
 
     this.scene.time.delayedCall(285, () => {
       if (!this.sprite.active) return;
       this.isSlashCasting = false;
-      this.sprite.setScale(1);
+      this.sprite.setScale(0.1);
       if (!this.isAttacking && !this.isDodging && !this.isPulseCasting && !this.isShieldActive()) this.sprite.clearTint();
     });
   }
@@ -363,6 +372,7 @@ export class PlayerMascot {
     this.pulseStartedThisFrame = true;
     this.invincibleUntil = Math.max(this.invincibleUntil, Date.now() + 180);
     this.sprite.setTint(0x39ff14);
+    this.playVisual(this.shouldUseBackPose() ? "mascot-pulse-back-anim" : "mascot-pulse-front-anim");
 
     this.scene.time.delayedCall(250, () => {
       if (!this.sprite.active) return;
@@ -381,6 +391,7 @@ export class PlayerMascot {
     this.shieldUntil = Date.now() + 2600 + this.upgrades.shieldDurationBonusMs;
     this.invincibleUntil = Math.max(this.invincibleUntil, Date.now() + 160);
     this.sprite.setTint(0x39ff14);
+    this.playVisual(this.shouldUseBackPose() ? "mascot-pulse-back-anim" : "mascot-pulse-front-anim");
 
     this.scene.time.delayedCall(240, () => {
       if (!this.sprite.active) return;
@@ -391,5 +402,36 @@ export class PlayerMascot {
   keepInsideArena(): void {
     this.sprite.x = Phaser.Math.Clamp(this.sprite.x, 24, GAME_WIDTH - 24);
     this.sprite.y = Phaser.Math.Clamp(this.sprite.y, 96, GAME_HEIGHT - 132);
+  }
+
+  private updateVisualState(velocity: Phaser.Math.Vector2): void {
+    const moving = velocity.lengthSq() > 0.02;
+    const facingBack = this.shouldUseBackPose();
+
+    if (this.isPulseCasting || this.isShieldCasting) {
+      this.playVisual(facingBack ? "mascot-pulse-back-anim" : "mascot-pulse-front-anim");
+    } else if (this.isSlashCasting || this.isAttacking) {
+      this.playVisual("mascot-attack-anim");
+    } else if (this.isDodging) {
+      this.playVisual("mascot-dash-anim");
+    } else if (moving) {
+      this.playVisual(facingBack ? "mascot-run-back-anim" : "mascot-run-front-anim");
+    } else {
+      this.playVisual(facingBack ? "mascot-idle-back-anim" : "mascot-idle-front-anim");
+    }
+
+    if (Math.abs(this.facing.x) > 0.1) {
+      this.sprite.setFlipX(this.facing.x < 0);
+    }
+  }
+
+  private shouldUseBackPose(): boolean {
+    return this.facing.y < -0.55 && Math.abs(this.facing.x) < 0.4;
+  }
+
+  private playVisual(animationKey: string): void {
+    if (this.currentVisualKey === animationKey) return;
+    this.currentVisualKey = animationKey;
+    this.sprite.play(animationKey, true);
   }
 }

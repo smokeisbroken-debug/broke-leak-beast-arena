@@ -2,21 +2,152 @@ import Phaser from "phaser";
 import { SCENE_KEYS } from "../../config/routes";
 import { COLORS } from "../../config/theme";
 
+const ARENA_BACKGROUND_KEYS = Array.from({ length: 10 }, (_, index) => `arena-bg-${String(index + 1).padStart(2, "0")}`);
+
+const MASCOT_TEXTURES = [
+  ["mascot-idle-front", "assets/mascot/frog-idle-front.png"],
+  ["mascot-idle-back", "assets/mascot/frog-idle-back.png"],
+  ["mascot-run-01", "assets/mascot/frog-run-01.png"],
+  ["mascot-run-back", "assets/mascot/frog-run-back.png"],
+  ["mascot-run-02", "assets/mascot/frog-run-02.png"],
+  ["mascot-run-03", "assets/mascot/frog-run-03.png"],
+  ["mascot-slash-01", "assets/mascot/frog-slash-01.png"],
+  ["mascot-dash-01", "assets/mascot/frog-dash-01.png"],
+  ["mascot-slash-02", "assets/mascot/frog-slash-02.png"],
+  ["mascot-cast-pulse-01", "assets/mascot/frog-cast-pulse-01.png"],
+  ["mascot-run-04", "assets/mascot/frog-run-04.png"],
+  ["mascot-back-step-01", "assets/mascot/frog-back-step-01.png"],
+  ["mascot-run-05", "assets/mascot/frog-run-05.png"],
+  ["mascot-run-06", "assets/mascot/frog-run-06.png"],
+  ["mascot-cast-pulse-02", "assets/mascot/frog-cast-pulse-02.png"],
+  ["mascot-slash-03", "assets/mascot/frog-slash-03.png"],
+  ["mascot-hurt-01", "assets/mascot/frog-hurt-01.png"],
+  ["mascot-cast-pulse-back", "assets/mascot/frog-cast-pulse-back.png"],
+  ["mascot-cast-pulse-03", "assets/mascot/frog-cast-pulse-03.png"],
+  ["mascot-dash-02", "assets/mascot/frog-dash-02.png"],
+] as const;
+
 export class PreloadScene extends Phaser.Scene {
   constructor() {
     super(SCENE_KEYS.preload);
   }
 
   preload(): void {
+    this.loadVisualAssets();
     this.createGeneratedPlaceholderTextures();
   }
 
   create(): void {
+    this.createMascotAnimations();
     this.scene.start(SCENE_KEYS.menu);
   }
 
+  private loadVisualAssets(): void {
+    ARENA_BACKGROUND_KEYS.forEach((key, index) => {
+      this.load.image(key, `assets/backgrounds/arena-level-${String(index + 1).padStart(2, "0")}.png`);
+    });
+
+    this.load.image("menu-start-screen", "assets/backgrounds/menu-start-screen.png");
+    this.load.image("result-screen", "assets/backgrounds/result-screen.png");
+    this.load.spritesheet("arena-vfx-sheet", "assets/vfx/arena-vfx-sheet.png", {
+      frameWidth: 418,
+      frameHeight: 418,
+    });
+
+    MASCOT_TEXTURES.forEach(([key, path]) => {
+      this.load.image(key, path);
+    });
+  }
+
+  private createMascotAnimations(): void {
+    if (!this.anims.exists("mascot-idle-front-anim")) {
+      this.anims.create({
+        key: "mascot-idle-front-anim",
+        frames: [{ key: "mascot-idle-front" }, { key: "mascot-run-04" }],
+        frameRate: 3,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists("mascot-idle-back-anim")) {
+      this.anims.create({
+        key: "mascot-idle-back-anim",
+        frames: [{ key: "mascot-idle-back" }, { key: "mascot-back-step-01" }],
+        frameRate: 3,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists("mascot-run-front-anim")) {
+      this.anims.create({
+        key: "mascot-run-front-anim",
+        frames: [
+          { key: "mascot-run-01" },
+          { key: "mascot-run-02" },
+          { key: "mascot-run-03" },
+          { key: "mascot-run-05" },
+        ],
+        frameRate: 11,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists("mascot-run-back-anim")) {
+      this.anims.create({
+        key: "mascot-run-back-anim",
+        frames: [{ key: "mascot-run-back" }, { key: "mascot-back-step-01" }],
+        frameRate: 7,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists("mascot-attack-anim")) {
+      this.anims.create({
+        key: "mascot-attack-anim",
+        frames: [{ key: "mascot-slash-01" }, { key: "mascot-slash-02" }, { key: "mascot-slash-03" }],
+        frameRate: 14,
+        repeat: 0,
+      });
+    }
+
+    if (!this.anims.exists("mascot-dash-anim")) {
+      this.anims.create({
+        key: "mascot-dash-anim",
+        frames: [{ key: "mascot-dash-01" }, { key: "mascot-dash-02" }],
+        frameRate: 18,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists("mascot-pulse-front-anim")) {
+      this.anims.create({
+        key: "mascot-pulse-front-anim",
+        frames: [{ key: "mascot-cast-pulse-01" }, { key: "mascot-cast-pulse-02" }, { key: "mascot-cast-pulse-03" }],
+        frameRate: 10,
+        repeat: 0,
+      });
+    }
+
+    if (!this.anims.exists("mascot-pulse-back-anim")) {
+      this.anims.create({
+        key: "mascot-pulse-back-anim",
+        frames: [{ key: "mascot-cast-pulse-back" }, { key: "mascot-cast-pulse-back" }],
+        frameRate: 8,
+        repeat: 0,
+      });
+    }
+
+    if (!this.anims.exists("mascot-hurt-anim")) {
+      this.anims.create({
+        key: "mascot-hurt-anim",
+        frames: [{ key: "mascot-hurt-01" }],
+        frameRate: 1,
+        repeat: 0,
+      });
+    }
+  }
+
   private createGeneratedPlaceholderTextures(): void {
-    this.createMascot();
     this.createBeastTexture("beast-bad-habit", COLORS.purple, 0xff3355);
     this.createBeastTexture("beast-fomo", 0x42ff2f, 0x050805);
     this.createBeastTexture("beast-scam", 0xff3b30, 0xffffff);
@@ -25,26 +156,6 @@ export class PreloadScene extends Phaser.Scene {
     this.createProjectile("scam-bolt", 0xff3355);
     this.createProjectile("boss-bolt", 0xb66cff);
     this.createSpark();
-  }
-
-  private createMascot(): void {
-    const mascot = this.add.graphics();
-    mascot.fillStyle(COLORS.green, 1);
-    mascot.fillCircle(32, 24, 24);
-    mascot.fillStyle(COLORS.black, 1);
-    mascot.fillRoundedRect(8, 39, 48, 42, 12);
-    mascot.fillStyle(0x1c1c1c, 1);
-    mascot.fillRoundedRect(13, 48, 38, 26, 8);
-    mascot.fillStyle(COLORS.white, 1);
-    mascot.fillCircle(23, 18, 7);
-    mascot.fillCircle(41, 18, 7);
-    mascot.fillStyle(COLORS.black, 1);
-    mascot.fillCircle(23, 18, 3);
-    mascot.fillCircle(41, 18, 3);
-    mascot.lineStyle(3, 0x8a00ff, 1);
-    mascot.lineBetween(8, 26, 56, 26);
-    mascot.generateTexture("mascot-placeholder", 64, 88);
-    mascot.destroy();
   }
 
   private createBeastTexture(key: string, color: number, mouthColor: number): void {

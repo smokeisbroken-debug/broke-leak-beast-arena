@@ -1,7 +1,6 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
-import { COLORS } from "../../config/theme";
 import type { RunResult } from "../types/game";
 
 export class ResultScene extends Phaser.Scene {
@@ -16,9 +15,10 @@ export class ResultScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.bg);
-    this.add.circle(80, 115, 190, 0x123b10, 0.28);
-    this.add.circle(GAME_WIDTH - 30, 90, 170, 0x40106b, 0.25);
+    this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "result-screen")
+      .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
+      .setDepth(0);
+    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x040507, 0.52).setDepth(1);
 
     const grade = this.getGrade();
 
@@ -27,17 +27,22 @@ export class ResultScene extends Phaser.Scene {
       fontSize: "34px",
       color: "#39ff14",
       fontStyle: "bold",
-    }).setOrigin(0.5);
+      stroke: "#050805",
+      strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(3);
 
     this.add.text(GAME_WIDTH / 2, 120, `Arena Grade: ${grade}`, {
       fontFamily: "Arial",
       fontSize: "16px",
       color: "#b66cff",
       fontStyle: "bold",
-    }).setOrigin(0.5);
+      stroke: "#050805",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(3);
 
-    this.add.rectangle(GAME_WIDTH / 2, 324, GAME_WIDTH - 52, 344, 0x050805, 0.8)
-      .setStrokeStyle(1, 0x39ff14, 0.28);
+    this.add.rectangle(GAME_WIDTH / 2, 324, GAME_WIDTH - 52, 344, 0x050805, 0.78)
+      .setStrokeStyle(1, 0x39ff14, 0.28)
+      .setDepth(2);
 
     const lines = [
       ["Leaks defeated", this.result.leaksDefeated.toString()],
@@ -55,22 +60,24 @@ export class ResultScene extends Phaser.Scene {
         fontSize: "13px",
         color: "#9cff8a",
         fontStyle: "bold",
-      });
+      }).setDepth(3);
 
       this.add.text(GAME_WIDTH - 72, y - 4, value, {
         fontFamily: "Arial",
         fontSize: "24px",
         color: "#f5fff1",
         fontStyle: "bold",
-      }).setOrigin(1, 0);
+      }).setOrigin(1, 0).setDepth(3);
     });
 
     this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 230, "Prototype only. No backend rewards yet.", {
       fontFamily: "Arial",
       fontSize: "13px",
-      color: "#88aa88",
+      color: "#d8e9d6",
       align: "center",
-    }).setOrigin(0.5);
+      stroke: "#050805",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(3);
 
     const again = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 162, "PLAY AGAIN", {
       fontFamily: "Arial",
@@ -79,7 +86,7 @@ export class ResultScene extends Phaser.Scene {
       backgroundColor: "#39ff14",
       padding: { x: 48, y: 16 },
       fontStyle: "bold",
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(4);
 
     again.setInteractive({ useHandCursor: true });
     again.on("pointerdown", () => this.scene.start(SCENE_KEYS.arena));
@@ -89,7 +96,9 @@ export class ResultScene extends Phaser.Scene {
       fontSize: "15px",
       color: "#f5fff1",
       fontStyle: "bold",
-    }).setOrigin(0.5);
+      stroke: "#050805",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(4);
 
     menu.setInteractive({ useHandCursor: true });
     menu.on("pointerdown", () => this.scene.start(SCENE_KEYS.menu));

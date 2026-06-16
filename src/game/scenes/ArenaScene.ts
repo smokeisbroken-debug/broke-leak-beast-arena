@@ -1,7 +1,6 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
-import { COLORS } from "../../config/theme";
 import { PlayerMascot } from "../entities/PlayerMascot";
 import { WaveSystem } from "../systems/WaveSystem";
 import { MobileControls } from "../ui/MobileControls";
@@ -36,6 +35,9 @@ export class ArenaScene extends Phaser.Scene {
   private controls!: MobileControls;
   private hud!: Hud;
   private countdownText!: Phaser.GameObjects.Text;
+  private arenaBackground!: Phaser.GameObjects.Image;
+  private arenaShade!: Phaser.GameObjects.Rectangle;
+  private currentArenaBackgroundKey = "";
 
   private score = 0;
   private hp = 5;
@@ -69,6 +71,7 @@ export class ArenaScene extends Phaser.Scene {
     this.upgradeOverlayActive = false;
     this.contactDamageReadyAt = 0;
     this.hazardDamageReadyAt = 0;
+    this.currentArenaBackgroundKey = "";
 
     this.createArenaBackground();
 
@@ -130,6 +133,7 @@ export class ArenaScene extends Phaser.Scene {
 
     if (this.waves.currentWave !== this.lastShownWave) {
       this.lastShownWave = this.waves.currentWave;
+      this.updateArenaBackgroundForWave(this.lastShownWave);
       this.showWaveBanner(this.lastShownWave);
 
       if (this.lastShownWave >= 2 && this.lastShownWave % 2 === 0 && this.lastUpgradeWave !== this.lastShownWave) {
@@ -143,27 +147,40 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private createArenaBackground(): void {
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.bg);
-    this.add.circle(62, 145, 170, 0x123b10, 0.18);
-    this.add.circle(GAME_WIDTH + 8, 105, 150, 0x40106b, 0.19);
+    this.arenaBackground = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "arena-bg-01")
+      .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
+      .setDepth(0);
 
-    for (let x = 30; x < GAME_WIDTH; x += 48) {
-      this.add.line(0, 0, x, 92, x - 22, GAME_HEIGHT - 132, 0x123b10, 0.15).setOrigin(0, 0).setDepth(1);
-    }
-    for (let y = 125; y < GAME_HEIGHT - 125; y += 58) {
-      this.add.line(0, 0, 12, y, GAME_WIDTH - 12, y + 6, 0x123b10, 0.14).setOrigin(0, 0).setDepth(1);
-    }
+    this.arenaShade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x030406, 0.36)
+      .setDepth(1);
 
-    this.add.rectangle(GAME_WIDTH / 2, (GAME_HEIGHT - 88) / 2 + 72, GAME_WIDTH - 16, GAME_HEIGHT - 170, 0x000000, 0)
+    this.add.rectangle(GAME_WIDTH / 2, (GAME_HEIGHT - 88) / 2 + 72, GAME_WIDTH - 16, GAME_HEIGHT - 170, 0x000000, 0.15)
       .setStrokeStyle(1, 0x39ff14, 0.12)
       .setDepth(4);
+
+    this.add.rectangle(GAME_WIDTH / 2, 74, GAME_WIDTH - 20, 34, 0x030406, 0.58).setDepth(4);
 
     this.add.text(18, 70, "MOVE LEFT SIDE  ·  HOLD ATTACK  ·  TIME SKILLS", {
       fontFamily: "Arial",
       fontSize: "10px",
-      color: "#88aa88",
+      color: "#d6e6d2",
       fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 3,
     }).setDepth(5);
+
+    this.updateArenaBackgroundForWave(1);
+  }
+
+  private updateArenaBackgroundForWave(wave: number): void {
+    const index = Phaser.Math.Clamp(Math.floor((wave - 1) / 2) + 1, 1, 10);
+    const nextKey = `arena-bg-${String(index).padStart(2, "0")}`;
+    if (this.currentArenaBackgroundKey === nextKey) return;
+    this.currentArenaBackgroundKey = nextKey;
+    this.arenaBackground.setTexture(nextKey);
+
+    const shadeAlpha = wave % 3 === 0 ? 0.44 : 0.36;
+    this.arenaShade.setFillStyle(0x030406, shadeAlpha);
   }
 
   private createCountdown(): void {
@@ -337,73 +354,79 @@ export class ArenaScene extends Phaser.Scene {
 
   private showAttackArc(attack: AttackSpec): void {
     const direction = attack.direction.clone().normalize();
-    const centerX = this.player.sprite.x + direction.x * (attack.range * 0.46);
-    const centerY = this.player.sprite.y + direction.y * (attack.range * 0.46);
-    const color = attack.comboStep === 3 ? 0xb66cff : 0x39ff14;
-
-    const arc = this.add.ellipse(centerX, centerY, attack.range * 1.05, attack.range * 0.62)
-      .setStrokeStyle(4, color, 0.88)
-      .setDepth(30);
-    arc.rotation = direction.angle();
+    const centerX = this.player.sprite.x + direction.x * (attack.range * 0.48);
+    const centerY = this.player.sprite.y + direction.y * (attack.range * 0.42);
+    const frame = attack.comboStep === 3 ? 2 : 1;
+    const fx = this.add.image(centerX, centerY, "arena-vfx-sheet", frame)
+      .setScale(attack.comboStep === 3 ? 0.24 : 0.2)
+      .setRotation(direction.angle())
+      .setDepth(30)
+      .setAlpha(0.95);
 
     this.tweens.add({
-      targets: arc,
-      scaleX: 1.25,
-      scaleY: 1.25,
+      targets: fx,
+      scaleX: fx.scaleX * 1.18,
+      scaleY: fx.scaleY * 1.18,
       alpha: 0,
       duration: 170,
-      onComplete: () => arc.destroy(),
+      onComplete: () => fx.destroy(),
     });
   }
 
   private showDashSlash(attack: AttackSpec): void {
     const direction = attack.direction.clone().normalize();
-    const startX = this.player.sprite.x;
-    const startY = this.player.sprite.y;
-    const endX = startX + direction.x * 170;
-    const endY = startY + direction.y * 170;
+    const midX = this.player.sprite.x + direction.x * 86;
+    const midY = this.player.sprite.y + direction.y * 86;
+    const endX = this.player.sprite.x + direction.x * 170;
+    const endY = this.player.sprite.y + direction.y * 170;
 
-    const slash = this.add.line(0, 0, startX, startY, endX, endY, 0x39ff14, 0.95)
-      .setLineWidth(10)
+    const trail = this.add.image(midX, midY, "arena-vfx-sheet", 5)
+      .setScale(0.26)
+      .setRotation(direction.angle())
+      .setDepth(37)
+      .setAlpha(0.92);
+    const impact = this.add.image(endX, endY, "arena-vfx-sheet", 2)
+      .setScale(0.24)
+      .setRotation(direction.angle())
       .setDepth(38);
-    const glow = this.add.ellipse(endX, endY, 82, 34)
-      .setStrokeStyle(4, 0x39ff14, 0.72)
-      .setDepth(37);
-    glow.rotation = direction.angle();
 
     this.tweens.add({
-      targets: [slash, glow],
+      targets: [trail, impact],
       alpha: 0,
       duration: 230,
       onComplete: () => {
-        slash.destroy();
-        glow.destroy();
+        trail.destroy();
+        impact.destroy();
       },
     });
   }
 
   private showSafePulse(): void {
-    const ring = this.add.circle(this.player.sprite.x, this.player.sprite.y, 35)
-      .setStrokeStyle(5, 0x39ff14, 0.95)
-      .setDepth(35);
+    const pulse = this.add.image(this.player.sprite.x, this.player.sprite.y, "arena-vfx-sheet", 4)
+      .setScale(0.15)
+      .setDepth(35)
+      .setAlpha(0.95);
 
     this.tweens.add({
-      targets: ring,
-      radius: this.player.getPulseRadius() + 8,
+      targets: pulse,
+      scaleX: this.player.getPulseRadius() / 180,
+      scaleY: this.player.getPulseRadius() / 180,
       alpha: 0,
       duration: 270,
-      onComplete: () => ring.destroy(),
+      onComplete: () => pulse.destroy(),
     });
   }
 
   private showLeakShield(): void {
-    const shield = this.add.circle(this.player.sprite.x, this.player.sprite.y, 34)
-      .setStrokeStyle(5, 0x39ff14, 0.72)
-      .setDepth(34);
+    const shield = this.add.image(this.player.sprite.x, this.player.sprite.y, "arena-vfx-sheet", 11)
+      .setScale(0.13)
+      .setDepth(34)
+      .setAlpha(0.52);
 
     this.tweens.add({
       targets: shield,
-      radius: 66,
+      scaleX: 0.19,
+      scaleY: 0.19,
       alpha: 0.18,
       duration: 2850,
       onUpdate: () => {
@@ -415,13 +438,15 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private showBlockFlash(): void {
-    const block = this.add.circle(this.player.sprite.x, this.player.sprite.y, 42)
-      .setStrokeStyle(6, 0x39ff14, 0.9)
-      .setDepth(36);
+    const block = this.add.image(this.player.sprite.x, this.player.sprite.y, "arena-vfx-sheet", 8)
+      .setScale(0.18)
+      .setDepth(36)
+      .setAlpha(0.9);
 
     this.tweens.add({
       targets: block,
-      radius: 82,
+      scaleX: 0.28,
+      scaleY: 0.28,
       alpha: 0,
       duration: 220,
       onComplete: () => block.destroy(),

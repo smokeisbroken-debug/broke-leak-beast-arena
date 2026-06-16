@@ -62,10 +62,7 @@ export function createLeakBeast(
   sprite.setData("nextChargeAt", Date.now() + Phaser.Math.Between(500, 1800));
   sprite.setSize(isBoss ? 76 : 42, isBoss ? 76 : 42);
   sprite.setDepth(isBoss ? 18 : 12);
-
-  if (isBoss) {
-    sprite.setScale(1.2);
-  }
+  sprite.setScale(isBoss ? 1.08 : 0.92);
 
   return sprite;
 }
