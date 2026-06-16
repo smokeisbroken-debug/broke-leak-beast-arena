@@ -16,29 +16,75 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private createGeneratedPlaceholderTextures(): void {
+    this.createMascot();
+    this.createBeastTexture("beast-bad-habit", COLORS.purple, 0xff3355);
+    this.createBeastTexture("beast-fomo", 0x42ff2f, 0x050805);
+    this.createBeastTexture("beast-scam", 0xff3b30, 0xffffff);
+    this.createBeastTexture("beast-smoke-brute", 0x666666, 0x39ff14);
+    this.createMiniBoss();
+    this.createSpark();
+  }
+
+  private createMascot(): void {
     const mascot = this.add.graphics();
     mascot.fillStyle(COLORS.green, 1);
-    mascot.fillCircle(32, 26, 24);
+    mascot.fillCircle(32, 24, 24);
     mascot.fillStyle(COLORS.black, 1);
-    mascot.fillRoundedRect(8, 42, 48, 40, 12);
+    mascot.fillRoundedRect(8, 39, 48, 42, 12);
+    mascot.fillStyle(0x1c1c1c, 1);
+    mascot.fillRoundedRect(13, 48, 38, 26, 8);
     mascot.fillStyle(COLORS.white, 1);
-    mascot.fillCircle(23, 20, 7);
-    mascot.fillCircle(41, 20, 7);
+    mascot.fillCircle(23, 18, 7);
+    mascot.fillCircle(41, 18, 7);
     mascot.fillStyle(COLORS.black, 1);
-    mascot.fillCircle(23, 20, 3);
-    mascot.fillCircle(41, 20, 3);
+    mascot.fillCircle(23, 18, 3);
+    mascot.fillCircle(41, 18, 3);
+    mascot.lineStyle(3, 0x8a00ff, 1);
+    mascot.lineBetween(8, 26, 56, 26);
     mascot.generateTexture("mascot-placeholder", 64, 88);
     mascot.destroy();
+  }
 
+  private createBeastTexture(key: string, color: number, mouthColor: number): void {
     const beast = this.add.graphics();
-    beast.fillStyle(COLORS.purple, 1);
+    beast.fillStyle(color, 1);
     beast.fillCircle(28, 28, 24);
-    beast.fillStyle(COLORS.white, 1);
-    beast.fillCircle(20, 22, 4);
-    beast.fillCircle(36, 22, 4);
-    beast.fillStyle(COLORS.red, 1);
-    beast.fillRect(18, 38, 22, 5);
-    beast.generateTexture("leak-beast-placeholder", 56, 56);
+    beast.fillStyle(0x101010, 0.45);
+    beast.fillCircle(20, 19, 7);
+    beast.fillCircle(36, 19, 7);
+    beast.fillStyle(0xffffff, 1);
+    beast.fillCircle(20, 19, 4);
+    beast.fillCircle(36, 19, 4);
+    beast.fillStyle(mouthColor, 1);
+    beast.fillRoundedRect(17, 37, 22, 6, 2);
+    beast.generateTexture(key, 56, 56);
     beast.destroy();
+  }
+
+  private createMiniBoss(): void {
+    const boss = this.add.graphics();
+    boss.fillStyle(0x8a00ff, 1);
+    boss.fillCircle(48, 50, 42);
+    boss.fillStyle(0x050805, 0.62);
+    boss.fillCircle(34, 39, 10);
+    boss.fillCircle(62, 39, 10);
+    boss.fillStyle(0x39ff14, 1);
+    boss.fillCircle(34, 39, 5);
+    boss.fillCircle(62, 39, 5);
+    boss.fillStyle(0xff3355, 1);
+    boss.fillRoundedRect(30, 66, 36, 8, 3);
+    boss.lineStyle(6, 0x39ff14, 1);
+    boss.lineBetween(17, 17, 2, 0);
+    boss.lineBetween(79, 17, 94, 0);
+    boss.generateTexture("mini-boss-placeholder", 96, 100);
+    boss.destroy();
+  }
+
+  private createSpark(): void {
+    const spark = this.add.graphics();
+    spark.fillStyle(0x39ff14, 1);
+    spark.fillCircle(8, 8, 8);
+    spark.generateTexture("hit-spark", 16, 16);
+    spark.destroy();
   }
 }
