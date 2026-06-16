@@ -154,24 +154,13 @@ export class ArenaScene extends Phaser.Scene {
     this.arenaShade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x030406, 0.36)
       .setDepth(1);
 
-    this.add.rectangle(GAME_WIDTH / 2, (GAME_HEIGHT - 88) / 2 + 72, GAME_WIDTH - 16, GAME_HEIGHT - 170, 0x000000, 0.15)
-      .setStrokeStyle(1, 0x39ff14, 0.12)
+    this.add.rectangle(GAME_WIDTH / 2, (GAME_HEIGHT - 88) / 2 + 74, GAME_WIDTH - 18, GAME_HEIGHT - 176, 0x000000, 0.1)
+      .setStrokeStyle(1, 0x39ff14, 0.08)
       .setDepth(4);
 
-    this.add.rectangle(GAME_WIDTH / 2, 74, GAME_WIDTH - 20, 34, 0x030406, 0.58).setDepth(4);
-
-    this.add.text(18, 70, "MOVE LEFT SIDE  ·  AUTO ATTACK  ·  TIME SKILLS", {
-      fontFamily: "Arial",
-      fontSize: "10px",
-      color: "#d6e6d2",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 3,
-    }).setDepth(5);
-
-    this.add.image(GAME_WIDTH / 2, 103, "combat-control-strip")
-      .setDisplaySize(280, 70)
-      .setAlpha(0.7)
+    this.add.image(GAME_WIDTH / 2, 132, "combat-control-strip")
+      .setDisplaySize(286, 72)
+      .setAlpha(0.94)
       .setDepth(5);
 
     this.updateArenaBackgroundForWave(1);

@@ -21,124 +21,117 @@ interface HudState {
 }
 
 export class Hud {
-  private scoreText: Phaser.GameObjects.Text;
-  private hpText: Phaser.GameObjects.Text;
-  private waveText: Phaser.GameObjects.Text;
-  private defeatedText: Phaser.GameObjects.Text;
-  private timeText: Phaser.GameObjects.Text;
-  private bossText: Phaser.GameObjects.Text;
-  private comboText: Phaser.GameObjects.Text;
-  private upgradeText: Phaser.GameObjects.Text;
+  private scoreValue: Phaser.GameObjects.Text;
+  private leaksValue: Phaser.GameObjects.Text;
+  private waveValue: Phaser.GameObjects.Text;
+  private hpValue: Phaser.GameObjects.Text;
+  private timeValue: Phaser.GameObjects.Text;
+  private statusText: Phaser.GameObjects.Text;
+  private progressText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene) {
-    scene.add.image(GAME_WIDTH / 2, 43, "combat-hud-panel")
-      .setDisplaySize(GAME_WIDTH - 12, 126)
+    scene.add.image(GAME_WIDTH / 2, 44, "combat-hud-panel")
+      .setDisplaySize(360, 120)
       .setDepth(70)
-      .setAlpha(0.96);
+      .setAlpha(0.98);
 
-    this.waveText = scene.add.text(GAME_WIDTH / 2, 14, "WAVE 1", {
+    this.scoreValue = scene.add.text(82, 30, "0", {
       fontFamily: "Arial",
-      fontSize: "16px",
+      fontSize: "18px",
+      color: "#f5fff1",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(71);
+
+    this.leaksValue = scene.add.text(82, 65, "0", {
+      fontFamily: "Arial",
+      fontSize: "18px",
+      color: "#8bff7d",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(71);
+
+    this.waveValue = scene.add.text(GAME_WIDTH / 2, 42, "1", {
+      fontFamily: "Arial",
+      fontSize: "34px",
       color: "#39ff14",
       fontStyle: "bold",
       stroke: "#050805",
-      strokeThickness: 3,
+      strokeThickness: 5,
     }).setOrigin(0.5).setDepth(71);
 
-    this.scoreText = scene.add.text(23, 18, "Score 0", {
+    this.hpValue = scene.add.text(GAME_WIDTH - 98, 34, "5/5", {
       fontFamily: "Arial",
-      fontSize: "12px",
+      fontSize: "20px",
       color: "#f5fff1",
       fontStyle: "bold",
       stroke: "#050805",
-      strokeThickness: 2,
-    }).setDepth(71);
-
-    this.hpText = scene.add.text(GAME_WIDTH - 22, 18, "HP ♥♥♥♥♥", {
-      fontFamily: "Arial",
-      fontSize: "12px",
-      color: "#f5fff1",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 2,
-    }).setOrigin(1, 0).setDepth(71);
-
-    this.defeatedText = scene.add.text(23, 42, "Leaks 0", {
-      fontFamily: "Arial",
-      fontSize: "11px",
-      color: "#9cff8a",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 2,
-    }).setDepth(71);
-
-    this.timeText = scene.add.text(GAME_WIDTH - 22, 42, "0s", {
-      fontFamily: "Arial",
-      fontSize: "11px",
-      color: "#9cff8a",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 2,
-    }).setOrigin(1, 0).setDepth(71);
-
-    this.bossText = scene.add.text(GAME_WIDTH / 2, 43, "", {
-      fontFamily: "Arial",
-      fontSize: "11px",
-      color: "#b66cff",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 3,
+      strokeThickness: 4,
     }).setOrigin(0.5).setDepth(71);
 
-    this.comboText = scene.add.text(GAME_WIDTH / 2, 65, "", {
+    this.timeValue = scene.add.text(GAME_WIDTH - 98, 66, "0s", {
+      fontFamily: "Arial",
+      fontSize: "14px",
+      color: "#cdb7ff",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(71);
+
+    this.statusText = scene.add.text(GAME_WIDTH / 2, 88, "", {
+      fontFamily: "Arial",
+      fontSize: "11px",
+      color: "#d9d0ff",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
+      align: "center",
+    }).setOrigin(0.5).setDepth(71);
+
+    this.progressText = scene.add.text(GAME_WIDTH / 2, 109, "", {
       fontFamily: "Arial",
       fontSize: "10px",
-      color: "#39ff14",
+      color: "#9fd39a",
       fontStyle: "bold",
       stroke: "#050805",
-      strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(71);
-
-    this.upgradeText = scene.add.text(GAME_WIDTH / 2, 82, "BUILD 0", {
-      fontFamily: "Arial",
-      fontSize: "9px",
-      color: "#88aa88",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 3,
+      strokeThickness: 4,
+      align: "center",
     }).setOrigin(0.5).setDepth(71);
   }
 
   update(state: HudState): void {
-    this.scoreText.setText(`Score ${state.score}`);
-    this.hpText.setText(`HP ${"♥".repeat(Math.max(0, state.hp))}`);
-    this.waveText.setText(`WAVE ${state.wave}`);
-    this.defeatedText.setText(`Leaks ${state.defeated}`);
-    this.timeText.setText(`${state.survivedSeconds}s`);
+    this.scoreValue.setText(String(state.score));
+    this.leaksValue.setText(String(state.defeated));
+    this.waveValue.setText(String(state.wave));
+    this.hpValue.setText(`${Math.max(0, state.hp)}/5`);
+    this.timeValue.setText(`${state.survivedSeconds}s`);
 
     if (state.bossActive) {
-      this.bossText.setText("MINI-BOSS ACTIVE");
-      this.bossText.setColor("#b66cff");
+      this.statusText.setText("MINI-BOSS ACTIVE");
+      this.statusText.setColor("#c98bff");
     } else if (state.shieldActive) {
-      this.bossText.setText(`SHIELD x${state.shieldCharges}`);
-      this.bossText.setColor("#39ff14");
+      this.statusText.setText(`SHIELD READY x${state.shieldCharges}`);
+      this.statusText.setColor("#39ff14");
+    } else if (state.comboStep > 0) {
+      this.statusText.setText(`COMBO ${state.comboStep}/3`);
+      this.statusText.setColor("#39ff14");
     } else {
-      this.bossText.setText("");
+      const ready: string[] = [];
+      if (state.slashReady) ready.push("SLASH");
+      if (state.dodgeReady) ready.push("DASH");
+      if (state.pulseReady) ready.push("PULSE");
+      if (state.shieldReady) ready.push("SHIELD");
+      this.statusText.setText(ready.length ? ready.join(" · ") : "RECOVERING");
+      this.statusText.setColor(ready.length ? "#d9d0ff" : "#90a890");
     }
 
-    const combo = state.comboStep > 0 ? `COMBO ${state.comboStep}/3` : "";
-    const ready = [
-      state.slashReady ? "SLASH" : "",
-      state.pulseReady ? "PULSE" : "",
-      state.shieldReady || state.shieldActive ? "SHIELD" : "",
-    ].filter(Boolean).join(" · ");
-
-    this.comboText.setText(combo || ready);
-    this.comboText.setColor(combo ? "#39ff14" : "#d9d0ff");
-
-    this.upgradeText.setText(state.nextUpgradeIn > 0
-      ? `BUILD ${state.upgradeCount} · NEXT UPGRADE IN ${state.nextUpgradeIn}`
-      : `BUILD ${state.upgradeCount} · UPGRADE READY`);
-    this.upgradeText.setColor(state.nextUpgradeIn > 0 ? "#b7d2b6" : "#39ff14");
+    this.progressText.setText(
+      state.nextUpgradeIn > 0
+        ? `BUILD ${state.upgradeCount} · NEXT UPGRADE IN ${state.nextUpgradeIn}`
+        : `BUILD ${state.upgradeCount} · UPGRADE READY`
+    );
+    this.progressText.setColor(state.nextUpgradeIn > 0 ? "#9fd39a" : "#39ff14");
   }
 }

@@ -6,26 +6,26 @@ export class MobileControls {
   private inputState: InputState = { x: 0, y: 0, attack: false, dodge: false, pulse: false, shield: false, slash: false };
   private attackToggled = false;
   private attackButton?: Phaser.GameObjects.Image;
-  private attackLabel?: Phaser.GameObjects.Text;
+  private attackIndicator?: Phaser.GameObjects.Arc;
   private keys?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd?: Record<"left" | "right" | "up" | "down", Phaser.Input.Keyboard.Key>;
   private keyboardAttack?: Phaser.Input.Keyboard.Key;
   private joystickBase: Phaser.GameObjects.Image;
   private joystickKnob: Phaser.GameObjects.Arc;
   private joystickPointerId: number | null = null;
-  private joystickCenter = new Phaser.Math.Vector2(72, GAME_HEIGHT - 76);
-  private joystickRadius = 48;
+  private joystickCenter = new Phaser.Math.Vector2(76, GAME_HEIGHT - 82);
+  private joystickRadius = 46;
 
   constructor(private scene: Phaser.Scene) {
     scene.input.addPointer(5);
 
     this.joystickBase = scene.add.image(this.joystickCenter.x, this.joystickCenter.y, "combat-joystick-base")
-      .setDisplaySize(96, 96)
-      .setAlpha(0.86)
+      .setDisplaySize(100, 100)
+      .setAlpha(0.92)
       .setDepth(80);
 
-    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 17, 0x39ff14, 0.82)
-      .setStrokeStyle(2, 0x071107, 0.6)
+    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 16, 0x39ff14, 0.88)
+      .setStrokeStyle(2, 0x071107, 0.65)
       .setDepth(81);
 
     this.createButtons();
@@ -50,21 +50,21 @@ export class MobileControls {
   }
 
   private createButtons(): void {
-    this.createAttackToggleButton(GAME_WIDTH - 62, GAME_HEIGHT - 68, 94);
+    this.createAttackToggleButton(GAME_WIDTH - 72, GAME_HEIGHT - 84, 76);
 
-    this.createImageButton(GAME_WIDTH - 146, GAME_HEIGHT - 62, "combat-button-dash", 78, 78, () => {
+    this.createImageButton(GAME_WIDTH - 147, GAME_HEIGHT - 72, "combat-button-dash", 64, 64, () => {
       this.inputState.dodge = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 139, GAME_HEIGHT - 138, "combat-button-slash", 74, 74, () => {
+    this.createImageButton(GAME_WIDTH - 140, GAME_HEIGHT - 144, "combat-button-slash", 64, 64, () => {
       this.inputState.slash = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 60, GAME_HEIGHT - 145, "combat-button-shield", 72, 72, () => {
+    this.createImageButton(GAME_WIDTH - 82, GAME_HEIGHT - 150, "combat-button-shield", 56, 56, () => {
       this.inputState.shield = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 29, GAME_HEIGHT - 92, "combat-button-pulse", 72, 72, () => {
+    this.createImageButton(GAME_WIDTH - 23, GAME_HEIGHT - 118, "combat-button-pulse", 56, 56, () => {
       this.inputState.pulse = true;
     });
   }
@@ -95,33 +95,28 @@ export class MobileControls {
     this.attackButton = this.scene.add.image(x, y, "combat-button-auto")
       .setDisplaySize(size, size)
       .setDepth(80)
+      .setAlpha(0.82)
       .setInteractive({ useHandCursor: true });
 
-    this.attackLabel = this.scene.add.text(x, y + 23, "AUTO\nOFF", {
-      fontFamily: "Arial",
-      fontSize: "12px",
-      color: "#39ff14",
-      fontStyle: "bold",
-      align: "center",
-      stroke: "#050805",
-      strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(81).setInteractive({ useHandCursor: true });
+    this.attackIndicator = this.scene.add.circle(x + size * 0.25, y + size * 0.25, 7, 0xff3355, 0.9)
+      .setStrokeStyle(2, 0x050805, 0.75)
+      .setDepth(81);
 
     const toggle = (pointer: Phaser.Input.Pointer) => {
       pointer.event?.preventDefault();
       this.attackToggled = !this.attackToggled;
       this.refreshAttackToggleVisual();
+      this.flashButton(this.attackButton!);
     };
 
     this.attackButton.on("pointerdown", toggle);
-    this.attackLabel.on("pointerdown", toggle);
   }
 
   private refreshAttackToggleVisual(): void {
-    if (!this.attackButton || !this.attackLabel) return;
-    this.attackLabel.setText(this.attackToggled ? "AUTO\nON" : "AUTO\nOFF");
-    this.attackButton.setAlpha(this.attackToggled ? 1 : 0.78);
-    this.attackButton.setScale(this.attackToggled ? 1.05 : 1);
+    if (!this.attackButton || !this.attackIndicator) return;
+    this.attackButton.setAlpha(this.attackToggled ? 1 : 0.82);
+    this.attackButton.setScale(this.attackToggled ? 1.04 : 1);
+    this.attackIndicator.setFillStyle(this.attackToggled ? 0x39ff14 : 0xff3355, 0.92);
   }
 
   private createPointerControls(): void {
@@ -144,7 +139,7 @@ export class MobileControls {
     };
 
     this.scene.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (pointer.x > GAME_WIDTH * 0.55) return;
+      if (pointer.x > GAME_WIDTH * 0.5) return;
       this.joystickPointerId = pointer.id;
       updateJoystick(pointer);
     });
@@ -204,8 +199,8 @@ export class MobileControls {
   private flashButton(target: Phaser.GameObjects.Image): void {
     this.scene.tweens.add({
       targets: target,
-      scaleX: target.scaleX * 1.07,
-      scaleY: target.scaleY * 1.07,
+      scaleX: target.scaleX * 1.06,
+      scaleY: target.scaleY * 1.06,
       duration: 80,
       yoyo: true,
     });
