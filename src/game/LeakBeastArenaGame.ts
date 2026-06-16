@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+﻿import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config/game";
 import { COLORS } from "../config/theme";
 import { BootScene } from "./scenes/BootScene";
@@ -17,7 +17,7 @@ export function createLeakBeastArenaGame(parent: string): Phaser.Game {
     physics: {
       default: "arcade",
       arcade: {
-        gravity: { y: 0 },
+        gravity: { x: 0, y: 0 },
         debug: false,
       },
     },
@@ -28,3 +28,4 @@ export function createLeakBeastArenaGame(parent: string): Phaser.Game {
     scene: [BootScene, PreloadScene, MainMenuScene, ArenaScene, ResultScene],
   });
 }
+
