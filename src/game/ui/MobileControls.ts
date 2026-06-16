@@ -17,10 +17,10 @@ export class MobileControls {
     // Extra pointers are required so the player can hold movement and tap attack/dodge at the same time.
     scene.input.addPointer(3);
 
-    this.joystickBase = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, this.joystickRadius, 0x112211, 0.88)
-      .setStrokeStyle(2, 0x39ff14, 0.72)
+    this.joystickBase = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, this.joystickRadius, 0x112211, 0.82)
+      .setStrokeStyle(2, 0x39ff14, 0.55)
       .setDepth(80);
-    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 22, 0x39ff14, 0.9)
+    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 22, 0x39ff14, 0.82)
       .setDepth(81);
 
     this.createButtons();
@@ -39,12 +39,16 @@ export class MobileControls {
   }
 
   private createButtons(): void {
-    this.createButton(GAME_WIDTH - 74, GAME_HEIGHT - 88, "ATTACK", 62, 0x39ff14, () => {
+    this.createButton(GAME_WIDTH - 72, GAME_HEIGHT - 96, "ATTACK", 58, 0x39ff14, () => {
       this.inputState.attack = true;
     });
 
-    this.createButton(GAME_WIDTH - 164, GAME_HEIGHT - 62, "DODGE", 48, 0x8a00ff, () => {
+    this.createButton(GAME_WIDTH - 166, GAME_HEIGHT - 70, "DODGE", 45, 0x8a00ff, () => {
       this.inputState.dodge = true;
+    });
+
+    this.createButton(GAME_WIDTH - 72, GAME_HEIGHT - 205, "PULSE", 43, 0xb66cff, () => {
+      this.inputState.skill = true;
     });
   }
 
@@ -130,6 +134,7 @@ export class MobileControls {
 
     keyboard.on("keydown-SPACE", () => (this.inputState.attack = true));
     keyboard.on("keydown-SHIFT", () => (this.inputState.dodge = true));
+    keyboard.on("keydown-E", () => (this.inputState.skill = true));
   }
 
   private applyKeyboardState(): void {

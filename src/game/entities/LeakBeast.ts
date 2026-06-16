@@ -15,24 +15,24 @@ const KIND_TEXTURE: Record<EnemyKind, string> = {
 };
 
 const KIND_HP: Record<EnemyKind, number> = {
-  bad_habit: 1,
-  fomo: 1,
-  scam: 2,
-  smoke_brute: 3,
+  bad_habit: 2,
+  fomo: 2,
+  scam: 3,
+  smoke_brute: 5,
 };
 
 const KIND_SPEED: Record<EnemyKind, number> = {
-  bad_habit: 76,
-  fomo: 116,
-  scam: 88,
-  smoke_brute: 62,
+  bad_habit: 72,
+  fomo: 96,
+  scam: 70,
+  smoke_brute: 54,
 };
 
 const KIND_SCORE: Record<EnemyKind, number> = {
-  bad_habit: 30,
-  fomo: 45,
-  scam: 60,
-  smoke_brute: 90,
+  bad_habit: 35,
+  fomo: 50,
+  scam: 75,
+  smoke_brute: 105,
 };
 
 export function createLeakBeast(
@@ -45,20 +45,26 @@ export function createLeakBeast(
   const isBoss = Boolean(options.boss);
   const wave = options.wave ?? 1;
   const texture = isBoss ? "mini-boss-placeholder" : KIND_TEXTURE[kind];
+  const waveHpBonus = Math.floor(wave / 3);
 
   const sprite = scene.physics.add.sprite(x, y, texture);
+  const hp = isBoss ? 18 + wave * 3 : KIND_HP[kind] + waveHpBonus;
   sprite.setData("kind", kind);
   sprite.setData("boss", isBoss);
-  sprite.setData("hp", isBoss ? 7 + wave : KIND_HP[kind]);
-  sprite.setData("maxHp", isBoss ? 7 + wave : KIND_HP[kind]);
-  sprite.setData("speed", isBoss ? 58 + wave * 2 : KIND_SPEED[kind] + wave * 6);
-  sprite.setData("score", isBoss ? 350 + wave * 40 : KIND_SCORE[kind] + wave * 5);
+  sprite.setData("hp", hp);
+  sprite.setData("maxHp", hp);
+  sprite.setData("speed", isBoss ? 50 + wave * 2 : KIND_SPEED[kind] + wave * 4);
+  sprite.setData("score", isBoss ? 520 + wave * 55 : KIND_SCORE[kind] + wave * 7);
   sprite.setData("lastContactAt", -9999);
-  sprite.setSize(isBoss ? 72 : 42, isBoss ? 72 : 42);
+  sprite.setData("hitStunUntil", -9999);
+  sprite.setData("nextShotAt", Date.now() + Phaser.Math.Between(1000, 2200));
+  sprite.setData("nextSmokeAt", Date.now() + Phaser.Math.Between(1400, 2800));
+  sprite.setData("nextChargeAt", Date.now() + Phaser.Math.Between(500, 1800));
+  sprite.setSize(isBoss ? 76 : 42, isBoss ? 76 : 42);
   sprite.setDepth(isBoss ? 18 : 12);
 
   if (isBoss) {
-    sprite.setScale(1.15);
+    sprite.setScale(1.2);
   }
 
   return sprite;

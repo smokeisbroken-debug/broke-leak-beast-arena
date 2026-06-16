@@ -1,3 +1,5 @@
+import Phaser from "phaser";
+
 export interface InputState {
   x: number;
   y: number;
@@ -29,4 +31,22 @@ export interface RunResult {
   survivedSeconds: number;
   safePoints: number;
   bossDamage: number;
+}
+
+export interface AttackSpec {
+  comboStep: number;
+  damage: number;
+  range: number;
+  arcDegrees: number;
+  knockback: number;
+  maxTargets: number;
+  direction: Phaser.Math.Vector2;
+}
+
+export interface PlayerUpgradeState {
+  damageBonus: number;
+  speedBonus: number;
+  maxHpBonus: number;
+  dodgeCooldownMultiplier: number;
+  skillPowerBonus: number;
 }

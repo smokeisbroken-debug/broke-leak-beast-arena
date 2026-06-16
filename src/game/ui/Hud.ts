@@ -10,6 +10,8 @@ interface HudState {
   bossActive: boolean;
   attackReady: boolean;
   dodgeReady: boolean;
+  skillReady: boolean;
+  comboStep: number;
 }
 
 export class Hud {
@@ -20,10 +22,11 @@ export class Hud {
   private timeText: Phaser.GameObjects.Text;
   private bossText: Phaser.GameObjects.Text;
   private cooldownText: Phaser.GameObjects.Text;
+  private comboText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene) {
-    scene.add.rectangle(GAME_WIDTH / 2, 38, GAME_WIDTH - 24, 60, 0x050805, 0.82)
-      .setStrokeStyle(1, 0x39ff14, 0.34)
+    scene.add.rectangle(GAME_WIDTH / 2, 38, GAME_WIDTH - 24, 60, 0x050805, 0.74)
+      .setStrokeStyle(1, 0x39ff14, 0.25)
       .setDepth(70);
 
     this.waveText = scene.add.text(GAME_WIDTH / 2, 18, "WAVE 1", {
@@ -74,6 +77,13 @@ export class Hud {
       color: "#88aa88",
       fontStyle: "bold",
     }).setOrigin(0.5).setDepth(71);
+
+    this.comboText = scene.add.text(GAME_WIDTH / 2, 116, "", {
+      fontFamily: "Arial",
+      fontSize: "12px",
+      color: "#39ff14",
+      fontStyle: "bold",
+    }).setOrigin(0.5).setDepth(71);
   }
 
   update(state: HudState): void {
@@ -82,11 +92,13 @@ export class Hud {
     this.waveText.setText(`WAVE ${state.wave}`);
     this.defeatedText.setText(`Leaks ${state.defeated}`);
     this.timeText.setText(`${state.survivedSeconds}s`);
-    this.bossText.setText(state.bossActive ? "MINI-BOSS ACTIVE" : "Find the leak. Fight the leak.");
+    this.bossText.setText(state.bossActive ? "MINI-BOSS ACTIVE" : "Move. Aim. Combo. Survive.");
 
-    const attack = state.attackReady ? "⚔ ATK READY" : "⚔ ATK WAIT";
-    const dodge = state.dodgeReady ? "⬡ DODGE READY" : "⬡ DODGE WAIT";
-    this.cooldownText.setText(`${attack}  ·  ${dodge}`);
-    this.cooldownText.setColor(state.attackReady && state.dodgeReady ? "#9cff8a" : "#88aa88");
+    const attack = state.attackReady ? "ATK" : "ATK…";
+    const dodge = state.dodgeReady ? "DASH" : "DASH…";
+    const skill = state.skillReady ? "PULSE" : "PULSE…";
+    this.cooldownText.setText(`${attack}  ·  ${dodge}  ·  ${skill}`);
+    this.cooldownText.setColor(state.attackReady && state.dodgeReady && state.skillReady ? "#9cff8a" : "#88aa88");
+    this.comboText.setText(state.comboStep > 0 ? `COMBO ${state.comboStep}/3` : "3-hit combo · third hit knocks back");
   }
 }
