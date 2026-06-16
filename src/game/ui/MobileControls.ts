@@ -13,6 +13,10 @@ export class MobileControls {
   private joystickRadius = 52;
 
   constructor(private scene: Phaser.Scene) {
+    // Phaser keeps only one active touch pointer by default in some mobile browsers.
+    // Extra pointers are required so the player can hold movement and tap attack/dodge at the same time.
+    scene.input.addPointer(3);
+
     this.joystickBase = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, this.joystickRadius, 0x112211, 0.82)
       .setStrokeStyle(2, 0x39ff14, 0.55)
       .setDepth(80);
@@ -57,7 +61,7 @@ export class MobileControls {
       .setDepth(80)
       .setInteractive({ useHandCursor: true });
 
-    this.scene.add.text(x, y, label, {
+    const text = this.scene.add.text(x, y, label, {
       fontFamily: "Arial",
       fontSize: "13px",
       color: color === 0x39ff14 ? "#050505" : "#ffffff",
@@ -65,7 +69,14 @@ export class MobileControls {
       align: "center",
     }).setOrigin(0.5).setDepth(81);
 
-    circle.on("pointerdown", callback);
+    const press = (pointer: Phaser.Input.Pointer) => {
+      pointer.event?.preventDefault();
+      callback();
+    };
+
+    circle.on("pointerdown", press);
+    text.setInteractive({ useHandCursor: true });
+    text.on("pointerdown", press);
   }
 
   private createPointerControls(): void {

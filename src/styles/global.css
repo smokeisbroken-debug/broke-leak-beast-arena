@@ -21,11 +21,22 @@ body,
     linear-gradient(180deg, #050805 0%, #071007 100%);
   color: var(--broke-white);
   font-family: Arial, Helvetica, sans-serif;
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 #game-root {
   width: 100vw;
   height: 100vh;
+  touch-action: none;
+}
+
+canvas {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .broke-loading {
