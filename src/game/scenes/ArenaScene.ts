@@ -159,7 +159,7 @@ export class ArenaScene extends Phaser.Scene {
       .setDepth(4);
 
     this.add.image(GAME_WIDTH / 2, 132, "combat-control-strip")
-       .setDisplaySize(300, 75)
+             .setDisplaySize(304, 35)
       .setAlpha(0.97)
       .setDepth(5);
 
@@ -396,41 +396,42 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private showSafePulse(): void {
-    const radius = this.player.getPulseRadius();
-    const ring = this.add.circle(this.player.sprite.x, this.player.sprite.y, 12, 0x39ff14, 0.12)
-      .setStrokeStyle(6, 0x78ff62, 0.9)
+    const logicRadius = this.player.getPulseRadius();
+    const visualRadius = Math.min(76, Math.max(44, logicRadius * 0.34));
+    const ring = this.add.circle(this.player.sprite.x, this.player.sprite.y, 10, 0x39ff14, 0.08)
+      .setStrokeStyle(4, 0x78ff62, 0.72)
       .setDepth(35);
-    const glow = this.add.circle(this.player.sprite.x, this.player.sprite.y, 6, 0xc6ff8d, 0.45)
+    const glow = this.add.circle(this.player.sprite.x, this.player.sprite.y, 8, 0xbfff8d, 0.22)
       .setDepth(34);
 
     this.tweens.add({
       targets: ring,
-      radius,
+      radius: visualRadius,
       alpha: 0,
-      duration: 260,
+      duration: 220,
       ease: "Cubic.easeOut",
       onComplete: () => ring.destroy(),
     });
 
     this.tweens.add({
       targets: glow,
-      radius: radius * 0.72,
+      radius: visualRadius * 0.55,
       alpha: 0,
-      duration: 240,
+      duration: 210,
       ease: "Cubic.easeOut",
       onComplete: () => glow.destroy(),
     });
   }
 
   private showLeakShield(): void {
-    const shield = this.add.circle(this.player.sprite.x, this.player.sprite.y, 26, 0x39ff14, 0.08)
-      .setStrokeStyle(4, 0x39ff14, 0.55)
+    const shield = this.add.circle(this.player.sprite.x, this.player.sprite.y, 20, 0x39ff14, 0.04)
+      .setStrokeStyle(3, 0x39ff14, 0.42)
       .setDepth(34);
 
     this.tweens.add({
       targets: shield,
-      radius: 34,
-      alpha: 0.18,
+      radius: 26,
+      alpha: 0.12,
       duration: 2850,
       onUpdate: () => {
         if (!this.player?.sprite.active) return;

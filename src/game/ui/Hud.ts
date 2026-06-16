@@ -30,47 +30,50 @@ export class Hud {
   private progressText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene) {
-    scene.add.image(GAME_WIDTH / 2, 42, "combat-hud-panel")
-      .setDisplaySize(362, 106)
+    scene.add.image(GAME_WIDTH / 2, 40, "combat-hud-panel")
+      .setDisplaySize(376, 69)
       .setDepth(70)
-      .setAlpha(0.99);
+      .setAlpha(1);
 
     const valueStyle: Phaser.Types.GameObjects.Text.TextStyle = {
       fontFamily: "Arial",
-      fontSize: "17px",
+      fontSize: "18px",
       color: "#f5fff1",
       fontStyle: "bold",
-      stroke: "#050805",
+      stroke: "#040604",
       strokeThickness: 5,
+      shadow: { offsetX: 0, offsetY: 1, color: "#000000", blur: 0, fill: true },
+      align: "center",
     };
 
-    this.scoreValue = scene.add.text(59, 23, "0", { ...valueStyle, fontSize: "16px" })
+    // Put values directly under / near the printed labels on the art.
+    this.scoreValue = scene.add.text(48, 20, "0", { ...valueStyle, fontSize: "17px" })
       .setOrigin(0.5)
       .setDepth(71);
 
-    this.leaksValue = scene.add.text(61, 49, "0", { ...valueStyle, fontSize: "16px", color: "#8bff7d" })
+    this.leaksValue = scene.add.text(48, 47, "0", { ...valueStyle, fontSize: "17px", color: "#8bff7d" })
       .setOrigin(0.5)
       .setDepth(71);
 
-    this.waveValue = scene.add.text(GAME_WIDTH / 2, 30, "1", {
+    this.waveValue = scene.add.text(GAME_WIDTH / 2, 27, "1", {
       ...valueStyle,
-      fontSize: "28px",
+      fontSize: "27px",
       color: "#39ff14",
       strokeThickness: 6,
     }).setOrigin(0.5).setDepth(71);
 
-    this.hpValue = scene.add.text(334, 28, "5/5", { ...valueStyle, fontSize: "20px" })
+    this.hpValue = scene.add.text(353, 23, "5/5", { ...valueStyle, fontSize: "20px" })
       .setOrigin(0.5)
       .setDepth(71);
 
-    this.timeValue = scene.add.text(335, 53, "0s", {
+    this.timeValue = scene.add.text(353, 49, "0s", {
       ...valueStyle,
       fontSize: "13px",
-      color: "#cdb7ff",
+      color: "#d9c8ff",
       strokeThickness: 4,
     }).setOrigin(0.5).setDepth(71);
 
-    this.statusText = scene.add.text(GAME_WIDTH / 2, 88, "", {
+    this.statusText = scene.add.text(GAME_WIDTH / 2, 83, "", {
       fontFamily: "Arial",
       fontSize: "12px",
       color: "#d9d0ff",
@@ -80,9 +83,9 @@ export class Hud {
       align: "center",
     }).setOrigin(0.5).setDepth(71);
 
-    this.progressText = scene.add.text(GAME_WIDTH / 2, 109, "", {
+    this.progressText = scene.add.text(GAME_WIDTH / 2, 101, "", {
       fontFamily: "Arial",
-      fontSize: "10px",
+      fontSize: "11px",
       color: "#d7ffd0",
       fontStyle: "bold",
       stroke: "#050805",

@@ -13,19 +13,19 @@ export class MobileControls {
   private joystickBase: Phaser.GameObjects.Image;
   private joystickKnob: Phaser.GameObjects.Arc;
   private joystickPointerId: number | null = null;
-  private joystickCenter = new Phaser.Math.Vector2(80, GAME_HEIGHT - 78);
-  private joystickRadius = 42;
+  private joystickCenter = new Phaser.Math.Vector2(66, GAME_HEIGHT - 72);
+  private joystickRadius = 34;
 
   constructor(private scene: Phaser.Scene) {
     scene.input.addPointer(5);
 
     this.joystickBase = scene.add.image(this.joystickCenter.x, this.joystickCenter.y, "combat-joystick-base")
-      .setDisplaySize(92, 92)
-      .setAlpha(0.92)
+      .setDisplaySize(78, 78)
+      .setAlpha(0.96)
       .setDepth(80);
 
-    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 14, 0x39ff14, 0.88)
-      .setStrokeStyle(2, 0x071107, 0.65)
+    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 12, 0x39ff14, 0.95)
+      .setStrokeStyle(2, 0x071107, 0.7)
       .setDepth(81);
 
     this.createButtons();
@@ -50,91 +50,64 @@ export class MobileControls {
   }
 
   private createButtons(): void {
-    this.createAttackToggleButton(GAME_WIDTH - 70, GAME_HEIGHT - 78, 64);
-
-    this.createImageButton(GAME_WIDTH - 144, GAME_HEIGHT - 66, "combat-button-dash", 58, 58, () => {
-      this.inputState.dodge = true;
-    });
-
-    this.createImageButton(GAME_WIDTH - 145, GAME_HEIGHT - 133, "combat-button-slash", 56, 56, () => {
-      this.inputState.slash = true;
-    });
-
-    this.createImageButton(GAME_WIDTH - 84, GAME_HEIGHT - 141, "combat-button-shield", 48, 48, () => {
-      this.inputState.shield = true;
-    });
-
-    this.createImageButton(GAME_WIDTH - 24, GAME_HEIGHT - 108, "combat-button-pulse", 48, 48, () => {
-      this.inputState.pulse = true;
-    });
+    this.createAttackToggleButton(GAME_WIDTH - 61, GAME_HEIGHT - 74, 58);
+    this.createImageButton(GAME_WIDTH - 120, GAME_HEIGHT - 60, "combat-button-dash", 48, 48, () => { this.inputState.dodge = true; });
+    this.createImageButton(GAME_WIDTH - 117, GAME_HEIGHT - 116, "combat-button-slash", 50, 50, () => { this.inputState.slash = true; });
+    this.createImageButton(GAME_WIDTH - 61, GAME_HEIGHT - 118, "combat-button-shield", 40, 40, () => { this.inputState.shield = true; });
+    this.createImageButton(GAME_WIDTH - 22, GAME_HEIGHT - 82, "combat-button-pulse", 42, 42, () => { this.inputState.pulse = true; });
   }
 
-  private createImageButton(
-    x: number,
-    y: number,
-    texture: string,
-    width: number,
-    height: number,
-    callback: () => void,
-  ): void {
+  private createImageButton(x: number, y: number, texture: string, width: number, height: number, callback: () => void): void {
     const image = this.scene.add.image(x, y, texture)
       .setDisplaySize(width, height)
       .setDepth(80)
       .setInteractive({ useHandCursor: true });
 
-    const press = (pointer: Phaser.Input.Pointer) => {
+    image.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       pointer.event?.preventDefault();
       callback();
       this.flashButton(image);
-    };
-
-    image.on("pointerdown", press);
+    });
   }
 
   private createAttackToggleButton(x: number, y: number, size: number): void {
     this.attackButton = this.scene.add.image(x, y, "combat-button-auto")
       .setDisplaySize(size, size)
       .setDepth(80)
-      .setAlpha(0.88)
+      .setAlpha(0.9)
       .setInteractive({ useHandCursor: true });
 
-    this.attackIndicator = this.scene.add.circle(x + size * 0.28, y + size * 0.28, 5, 0xff3355, 0.92)
+    this.attackIndicator = this.scene.add.circle(x + size * 0.31, y + size * 0.31, 4, 0xff3355, 0.95)
       .setStrokeStyle(2, 0x050805, 0.75)
       .setDepth(81);
 
-    const toggle = (pointer: Phaser.Input.Pointer) => {
+    this.attackButton.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       pointer.event?.preventDefault();
       this.attackToggled = !this.attackToggled;
       this.refreshAttackToggleVisual();
-      // no scaling here; just a short alpha blink so button never becomes huge
       this.scene.tweens.add({
         targets: this.attackButton,
-        alpha: this.attackToggled ? 1 : 0.88,
-        duration: 70,
+        alpha: this.attackToggled ? 1 : 0.9,
+        duration: 60,
       });
-    };
+    });
 
-    this.attackButton.on("pointerdown", toggle);
     this.refreshAttackToggleVisual();
   }
 
   private refreshAttackToggleVisual(): void {
     if (!this.attackButton || !this.attackIndicator) return;
-    this.attackButton.setDisplaySize(64, 64);
     this.attackButton.setScale(1);
-    this.attackButton.setAlpha(this.attackToggled ? 1 : 0.88);
-    this.attackIndicator.setFillStyle(this.attackToggled ? 0x39ff14 : 0xff3355, 0.92);
+    this.attackButton.setDisplaySize(58, 58);
+    this.attackButton.setAlpha(this.attackToggled ? 1 : 0.9);
+    this.attackIndicator.setFillStyle(this.attackToggled ? 0x39ff14 : 0xff3355, 0.95);
   }
 
   private createPointerControls(): void {
     const updateJoystick = (pointer: Phaser.Input.Pointer) => {
       const vector = new Phaser.Math.Vector2(pointer.x - this.joystickCenter.x, pointer.y - this.joystickCenter.y);
-      if (vector.length() > this.joystickRadius) {
-        vector.setLength(this.joystickRadius);
-      }
-
+      if (vector.length() > this.joystickRadius) vector.setLength(this.joystickRadius);
       this.joystickKnob.setPosition(this.joystickCenter.x + vector.x, this.joystickCenter.y + vector.y);
-
       if (vector.length() < 5) {
         this.inputState.x = 0;
         this.inputState.y = 0;
@@ -192,10 +165,8 @@ export class MobileControls {
     const right = Boolean(this.keys?.right?.isDown || this.wasd?.right.isDown);
     const up = Boolean(this.keys?.up?.isDown || this.wasd?.up.isDown);
     const down = Boolean(this.keys?.down?.isDown || this.wasd?.down.isDown);
-
     const x = (right ? 1 : 0) - (left ? 1 : 0);
     const y = (down ? 1 : 0) - (up ? 1 : 0);
-
     if (x !== 0 || y !== 0) {
       const vector = new Phaser.Math.Vector2(x, y).normalize();
       this.inputState.x = vector.x;
@@ -207,8 +178,8 @@ export class MobileControls {
     const originalAlpha = target.alpha;
     this.scene.tweens.add({
       targets: target,
-      alpha: Math.max(0.72, originalAlpha - 0.22),
-      duration: 70,
+      alpha: Math.max(0.74, originalAlpha - 0.18),
+      duration: 60,
       yoyo: true,
       onComplete: () => target.setAlpha(originalAlpha),
     });
