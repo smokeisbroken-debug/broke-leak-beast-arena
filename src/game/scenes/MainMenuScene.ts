@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_CONFIG, GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
+import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 
 export class MainMenuScene extends Phaser.Scene {
@@ -12,89 +12,61 @@ export class MainMenuScene extends Phaser.Scene {
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
       .setDepth(0);
 
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x040507, 0.45).setDepth(1);
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH - 20, GAME_HEIGHT - 24, 0x020304, 0.22)
-      .setStrokeStyle(1, 0x39ff14, 0.22)
-      .setDepth(2);
+    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x020304, 0.3).setDepth(1);
 
-    this.add.text(GAME_WIDTH / 2, 66, "LEAK BEAST", {
-      fontFamily: "Arial",
-      fontSize: "38px",
-      color: "#f5fff1",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 5,
-    }).setOrigin(0.5).setDepth(3);
+    this.add.image(GAME_WIDTH / 2, 112, "start-logo")
+      .setDisplaySize(300, 176)
+      .setDepth(3);
 
-    this.add.text(GAME_WIDTH / 2, 112, "ARENA", {
-      fontFamily: "Arial",
-      fontSize: "56px",
-      color: "#39ff14",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 6,
-    }).setOrigin(0.5).setDepth(3);
-
-    this.add.text(GAME_WIDTH / 2, 163, GAME_CONFIG.tagline, {
-      fontFamily: "Arial",
-      fontSize: "15px",
-      color: "#f5fff1",
-      align: "center",
-      stroke: "#050805",
-      strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(3);
-
-    const hero = this.add.sprite(GAME_WIDTH / 2, 305, "mascot-idle-front")
-      .setScale(0.18)
+    const hero = this.add.image(GAME_WIDTH / 2, 292, "start-hero-frog")
+      .setDisplaySize(172, 215)
       .setDepth(4);
-    hero.play("mascot-idle-front-anim");
 
     this.tweens.add({
       targets: hero,
-      y: 297,
-      duration: 1200,
+      y: 282,
+      duration: 1250,
       yoyo: true,
       repeat: -1,
       ease: "Sine.easeInOut",
     });
 
-    this.add.text(GAME_WIDTH / 2, 425, "Real asset visual base", {
-      fontFamily: "Arial",
-      fontSize: "15px",
-      color: "#b66cff",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(3);
+    const play = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT - 210, "start-play-button")
+      .setDisplaySize(278, 92)
+      .setDepth(5)
+      .setInteractive({ useHandCursor: true });
 
-    this.add.text(GAME_WIDTH / 2, 454, "New mascot art, VFX and arena backgrounds integrated.", {
-      fontFamily: "Arial",
-      fontSize: "12px",
-      color: "#f5fff1",
-      align: "center",
-      stroke: "#050805",
-      strokeThickness: 3,
-      wordWrap: { width: GAME_WIDTH - 58 },
-    }).setOrigin(0.5).setDepth(3);
+    play.on("pointerdown", () => this.scene.start(SCENE_KEYS.arena));
+    play.on("pointerover", () => play.setScale(1.025));
+    play.on("pointerout", () => play.setScale(1));
 
-    const button = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 142, "PLAY ARENA", {
-      fontFamily: "Arial",
-      fontSize: "22px",
-      color: "#050505",
-      backgroundColor: "#39ff14",
-      padding: { x: 52, y: 18 },
-      fontStyle: "bold",
-    }).setOrigin(0.5).setDepth(4);
+    this.add.image(GAME_WIDTH / 2, GAME_HEIGHT - 142, "start-tagline")
+      .setDisplaySize(300, 75)
+      .setDepth(4);
 
-    button.setInteractive({ useHandCursor: true });
-    button.on("pointerdown", () => this.scene.start(SCENE_KEYS.arena));
+    this.add.image(GAME_WIDTH / 2, GAME_HEIGHT - 76, "start-feature-strip")
+      .setDisplaySize(340, 85)
+      .setDepth(4);
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 70, "v0.3.0 real asset integration / arena visual base", {
+    const how = this.add.image(118, GAME_HEIGHT - 18, "start-how-to-play-button")
+      .setDisplaySize(126, 42)
+      .setDepth(4)
+      .setAlpha(0.76);
+
+    const rewards = this.add.image(272, GAME_HEIGHT - 18, "start-rewards-button")
+      .setDisplaySize(126, 42)
+      .setDepth(4)
+      .setAlpha(0.76);
+
+    how.setInteractive({ useHandCursor: true });
+    rewards.setInteractive({ useHandCursor: true });
+
+    this.add.text(GAME_WIDTH / 2, 30, "v0.3.1 visual base", {
       fontFamily: "Arial",
-      fontSize: "12px",
+      fontSize: "11px",
       color: "#b7d2b6",
       stroke: "#050805",
       strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(3);
+    }).setOrigin(0.5).setDepth(6);
   }
 }

@@ -31,64 +31,77 @@ export class Hud {
   private upgradeText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene) {
-    scene.add.rectangle(GAME_WIDTH / 2, 34, GAME_WIDTH - 18, 56, 0x050805, 0.66)
-      .setStrokeStyle(1, 0x39ff14, 0.18)
-      .setDepth(70);
+    scene.add.image(GAME_WIDTH / 2, 43, "combat-hud-panel")
+      .setDisplaySize(GAME_WIDTH - 12, 126)
+      .setDepth(70)
+      .setAlpha(0.96);
 
-    this.waveText = scene.add.text(GAME_WIDTH / 2, 9, "WAVE 1", {
+    this.waveText = scene.add.text(GAME_WIDTH / 2, 14, "WAVE 1", {
       fontFamily: "Arial",
-      fontSize: "17px",
-      color: "#39ff14",
-      fontStyle: "bold",
-    }).setOrigin(0.5).setDepth(71);
-
-    this.scoreText = scene.add.text(14, 12, "Score 0", {
-      fontFamily: "Arial",
-      fontSize: "13px",
-      color: "#f5fff1",
-      fontStyle: "bold",
-    }).setDepth(71);
-
-    this.hpText = scene.add.text(GAME_WIDTH - 14, 12, "HP ♥♥♥♥♥", {
-      fontFamily: "Arial",
-      fontSize: "13px",
-      color: "#f5fff1",
-      fontStyle: "bold",
-    }).setOrigin(1, 0).setDepth(71);
-
-    this.defeatedText = scene.add.text(14, 35, "Leaks 0", {
-      fontFamily: "Arial",
-      fontSize: "12px",
-      color: "#9cff8a",
-      fontStyle: "bold",
-    }).setDepth(71);
-
-    this.timeText = scene.add.text(GAME_WIDTH - 14, 35, "0s", {
-      fontFamily: "Arial",
-      fontSize: "12px",
-      color: "#9cff8a",
-      fontStyle: "bold",
-    }).setOrigin(1, 0).setDepth(71);
-
-    this.bossText = scene.add.text(GAME_WIDTH / 2, 34, "", {
-      fontFamily: "Arial",
-      fontSize: "11px",
-      color: "#b66cff",
-      fontStyle: "bold",
-    }).setOrigin(0.5).setDepth(71);
-
-    this.comboText = scene.add.text(GAME_WIDTH / 2, 58, "", {
-      fontFamily: "Arial",
-      fontSize: "11px",
+      fontSize: "16px",
       color: "#39ff14",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 3,
     }).setOrigin(0.5).setDepth(71);
 
-    this.upgradeText = scene.add.text(GAME_WIDTH / 2, 75, "BUILD 0", {
+    this.scoreText = scene.add.text(23, 18, "Score 0", {
+      fontFamily: "Arial",
+      fontSize: "12px",
+      color: "#f5fff1",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 2,
+    }).setDepth(71);
+
+    this.hpText = scene.add.text(GAME_WIDTH - 22, 18, "HP ♥♥♥♥♥", {
+      fontFamily: "Arial",
+      fontSize: "12px",
+      color: "#f5fff1",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 2,
+    }).setOrigin(1, 0).setDepth(71);
+
+    this.defeatedText = scene.add.text(23, 42, "Leaks 0", {
+      fontFamily: "Arial",
+      fontSize: "11px",
+      color: "#9cff8a",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 2,
+    }).setDepth(71);
+
+    this.timeText = scene.add.text(GAME_WIDTH - 22, 42, "0s", {
+      fontFamily: "Arial",
+      fontSize: "11px",
+      color: "#9cff8a",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 2,
+    }).setOrigin(1, 0).setDepth(71);
+
+    this.bossText = scene.add.text(GAME_WIDTH / 2, 43, "", {
+      fontFamily: "Arial",
+      fontSize: "11px",
+      color: "#b66cff",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(71);
+
+    this.comboText = scene.add.text(GAME_WIDTH / 2, 65, "", {
       fontFamily: "Arial",
       fontSize: "10px",
+      color: "#39ff14",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(71);
+
+    this.upgradeText = scene.add.text(GAME_WIDTH / 2, 82, "BUILD 0", {
+      fontFamily: "Arial",
+      fontSize: "9px",
       color: "#88aa88",
       fontStyle: "bold",
       stroke: "#050805",
@@ -121,11 +134,11 @@ export class Hud {
     ].filter(Boolean).join(" · ");
 
     this.comboText.setText(combo || ready);
-    this.comboText.setColor(combo ? "#39ff14" : "#88aa88");
+    this.comboText.setColor(combo ? "#39ff14" : "#d9d0ff");
 
     this.upgradeText.setText(state.nextUpgradeIn > 0
       ? `BUILD ${state.upgradeCount} · NEXT UPGRADE IN ${state.nextUpgradeIn}`
       : `BUILD ${state.upgradeCount} · UPGRADE READY`);
-    this.upgradeText.setColor(state.nextUpgradeIn > 0 ? "#88aa88" : "#39ff14");
+    this.upgradeText.setColor(state.nextUpgradeIn > 0 ? "#b7d2b6" : "#39ff14");
   }
 }

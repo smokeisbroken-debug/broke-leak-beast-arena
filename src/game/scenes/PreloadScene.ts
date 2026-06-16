@@ -49,6 +49,24 @@ export class PreloadScene extends Phaser.Scene {
 
     this.load.image("menu-start-screen", "assets/backgrounds/menu-start-screen.png");
     this.load.image("result-screen", "assets/backgrounds/result-screen.png");
+
+    this.load.image("start-page-full", "assets/ui/start-page-full.png");
+    this.load.image("start-logo", "assets/ui/start-logo.png");
+    this.load.image("start-hero-frog", "assets/ui/start-hero-frog.png");
+    this.load.image("start-play-button", "assets/ui/start-play-button.png");
+    this.load.image("start-how-to-play-button", "assets/ui/start-how-to-play-button.png");
+    this.load.image("start-rewards-button", "assets/ui/start-rewards-button.png");
+    this.load.image("start-tagline", "assets/ui/start-tagline.png");
+    this.load.image("start-feature-strip", "assets/ui/start-feature-strip.png");
+
+    this.load.image("combat-hud-panel", "assets/ui/combat-hud-panel.png");
+    this.load.image("combat-joystick-base", "assets/ui/combat-joystick-base.png");
+    this.load.image("combat-button-slash", "assets/ui/combat-button-slash.png");
+    this.load.image("combat-button-dash", "assets/ui/combat-button-dash.png");
+    this.load.image("combat-button-pulse", "assets/ui/combat-button-pulse.png");
+    this.load.image("combat-button-shield", "assets/ui/combat-button-shield.png");
+    this.load.image("combat-button-auto", "assets/ui/combat-button-auto.png");
+    this.load.image("combat-control-strip", "assets/ui/combat-control-strip.png");
     this.load.spritesheet("arena-vfx-sheet", "assets/vfx/arena-vfx-sheet.png", {
       frameWidth: 418,
       frameHeight: 418,

@@ -160,7 +160,7 @@ export class ArenaScene extends Phaser.Scene {
 
     this.add.rectangle(GAME_WIDTH / 2, 74, GAME_WIDTH - 20, 34, 0x030406, 0.58).setDepth(4);
 
-    this.add.text(18, 70, "MOVE LEFT SIDE  ·  HOLD ATTACK  ·  TIME SKILLS", {
+    this.add.text(18, 70, "MOVE LEFT SIDE  ·  AUTO ATTACK  ·  TIME SKILLS", {
       fontFamily: "Arial",
       fontSize: "10px",
       color: "#d6e6d2",
@@ -168,6 +168,11 @@ export class ArenaScene extends Phaser.Scene {
       stroke: "#050805",
       strokeThickness: 3,
     }).setDepth(5);
+
+    this.add.image(GAME_WIDTH / 2, 103, "combat-control-strip")
+      .setDisplaySize(280, 70)
+      .setAlpha(0.7)
+      .setDepth(5);
 
     this.updateArenaBackgroundForWave(1);
   }
