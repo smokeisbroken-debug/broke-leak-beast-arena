@@ -1,0 +1,40 @@
+:root {
+  --broke-bg: #050805;
+  --broke-panel: rgba(5, 12, 6, 0.86);
+  --broke-green: #39ff14;
+  --broke-purple: #8a00ff;
+  --broke-white: #f5fff1;
+  --broke-muted: rgba(245, 255, 241, 0.72);
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(57, 255, 20, 0.16), transparent 28%),
+    radial-gradient(circle at 86% 12%, rgba(138, 0, 255, 0.22), transparent 30%),
+    linear-gradient(180deg, #050805 0%, #071007 100%);
+  color: var(--broke-white);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+#game-root {
+  width: 100vw;
+  height: 100vh;
+}
+
+.broke-loading {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--broke-green);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
