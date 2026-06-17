@@ -27,7 +27,7 @@ interface BossAura {
 type BossPattern = "charge" | "bolt_spread" | "shockwave" | "summon" | "rage_charge" | "smoke_ring";
 type BossPhase = 1 | 2;
 
-const ENEMY_ROTATION: EnemyKind[] = ["bad_habit", "bad_habit", "fomo", "scam", "smoke_brute"];
+const ENEMY_ROTATION: EnemyKind[] = ["bad_habit", "bad_habit", "fomo", "scam", "smoke_brute", "bad_habit"];
 
 export class WaveSystem {
   public readonly group: Phaser.Physics.Arcade.Group;
@@ -43,6 +43,7 @@ export class WaveSystem {
   private bossHpBars = new Map<Phaser.Physics.Arcade.Sprite, BossHpBar>();
   private bossAuras = new Map<Phaser.Physics.Arcade.Sprite, BossAura>();
   private pendingBossRewardWave = 0;
+  private lastMegaLeakSpawnMs = -99999;
 
   constructor(private scene: Phaser.Scene) {
     this.group = scene.physics.add.group();
@@ -52,7 +53,7 @@ export class WaveSystem {
   update(runElapsedMs: number, delta: number, targetX: number, targetY: number, paused = false): void {
     if (paused) return;
 
-    const nextWave = Math.max(1, Math.floor(runElapsedMs / 18000) + 1);
+    const nextWave = Math.max(1, Math.floor(runElapsedMs / 22000) + 1);
     this.currentWave = nextWave;
     this.bossActive = this.hasActiveBoss();
 
@@ -80,8 +81,7 @@ export class WaveSystem {
     // Landscape opening pack: enemies appear around the central arena, not under controls.
     this.spawn(targetX, targetY, 99999, "bad_habit");
     this.spawn(targetX, targetY, 99999, "bad_habit");
-    this.spawn(targetX, targetY, 99999, "fomo");
-    this.spawnTimer = 620;
+    this.spawnTimer = 980;
   }
 
   defeatEnemy(enemy: Phaser.Physics.Arcade.Sprite): boolean {
@@ -298,6 +298,11 @@ export class WaveSystem {
         return true;
       }
 
+      if (kind === "mega_leak") {
+        this.updateMegaLeak(beast, targetX, targetY, now, speed);
+        return true;
+      }
+
       this.updateBadHabitPressure(beast, targetX, targetY, speed);
       return true;
     });
@@ -418,6 +423,36 @@ export class WaveSystem {
     }
 
     this.scene.physics.moveTo(beast, targetX, targetY, speed * 0.82);
+  }
+
+
+  private updateMegaLeak(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, now: number, speed: number): void {
+    const slamAt = Number(beast.getData("slamAt") ?? 0);
+
+    if (slamAt > 0) {
+      beast.setVelocity(0, 0);
+      beast.setTint(0xffdd66);
+      if (now >= slamAt) {
+        this.spawnHazard(beast.x, beast.y, 58, 1250);
+        this.spawnDeathBurst(beast.x, beast.y, 0xffdd66, true);
+        beast.setData("slamAt", 0);
+        beast.clearTint();
+      }
+      return;
+    }
+
+    const nextSlamAt = Number(beast.getData("nextSlamAt") ?? 0);
+    const distance = Phaser.Math.Distance.Between(beast.x, beast.y, targetX, targetY);
+
+    if (nextSlamAt <= now && distance < 176) {
+      beast.setData("nextSlamAt", now + Phaser.Math.Between(3600, 4800));
+      beast.setData("slamAt", now + 560);
+      this.showTelegraphCircle(beast.x, beast.y, 58, 0xffdd66, 560);
+      this.showEnemyWarning("BIG LEAK", beast.x, beast.y - 60, "#fff17d");
+      return;
+    }
+
+    this.scene.physics.moveTo(beast, targetX, targetY, speed * 0.68);
   }
 
   private updateBossPattern(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, now: number, speed: number): void {
@@ -637,9 +672,9 @@ export class WaveSystem {
   }
 
   private getSpawnInterval(runElapsedMs: number): number {
-    const earlySafetyMs = runElapsedMs < 9000 ? 220 : 0;
-    const bossSafetyMs = this.bossActive ? 360 : 0;
-    return Math.max(620, 1320 - this.currentWave * 68 + earlySafetyMs + bossSafetyMs);
+    const earlySafetyMs = runElapsedMs < 12000 ? 420 : 0;
+    const bossSafetyMs = this.bossActive ? 440 : 0;
+    return Math.max(700, 1460 - this.currentWave * 58 + earlySafetyMs + bossSafetyMs);
   }
 
   private shouldSpawnMiniBoss(): boolean {
@@ -675,7 +710,7 @@ export class WaveSystem {
     const now = Date.now();
 
     boss.setData("bossPhase", 1);
-    boss.setData("nextPatternAt", now + 1250);
+    boss.setData("nextPatternAt", now + 1550);
     boss.setData("spawnInvulnerableUntil", now + 520);
     this.scene.physics.moveTo(boss, targetX, targetY, Number(boss.getData("speed") ?? 70));
     this.group.add(boss);
@@ -1147,7 +1182,39 @@ export class WaveSystem {
   private pickEnemyKind(runElapsedMs: number): EnemyKind {
     if (runElapsedMs < 13000) return "bad_habit";
     if (this.currentWave < 2) return Phaser.Math.RND.pick(["bad_habit", "fomo"] as EnemyKind[]);
+
+    const canSpawnMegaLeak = this.currentWave >= 2 && runElapsedMs > 18000 && runElapsedMs - this.lastMegaLeakSpawnMs > 15000;
+    if (canSpawnMegaLeak && Phaser.Math.FloatBetween(0, 1) < 0.18) {
+      this.lastMegaLeakSpawnMs = runElapsedMs;
+      return "mega_leak";
+    }
+
     return Phaser.Math.RND.pick(ENEMY_ROTATION);
+  }
+
+  getNearestEnemyDirection(originX: number, originY: number, maxDistance = 310): Phaser.Math.Vector2 | null {
+    let bestX = 0;
+    let bestY = 0;
+    let bestDistance = maxDistance;
+    let found = false;
+
+    this.group.children.iterate((child) => {
+      const beast = child as Phaser.Physics.Arcade.Sprite | null;
+      if (!beast || !beast.active || !beast.body) return true;
+      const distance = Phaser.Math.Distance.Between(originX, originY, beast.x, beast.y);
+      if (distance < bestDistance) {
+        bestX = beast.x;
+        bestY = beast.y;
+        bestDistance = distance;
+        found = true;
+      }
+      return true;
+    });
+
+    if (!found) return null;
+    const direction = new Phaser.Math.Vector2(bestX - originX, bestY - originY);
+    if (direction.lengthSq() <= 0) return null;
+    return direction.normalize();
   }
 
   private hasActiveBoss(): boolean {

@@ -146,10 +146,12 @@ function createMobileAccessOverlay(root: HTMLElement): void {
 }
 
 function syncViewportHeight(): void {
-  const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-  const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+  const viewportHeight = Math.max(1, window.visualViewport?.height ?? window.innerHeight);
+  const viewportWidth = Math.max(1, window.visualViewport?.width ?? window.innerWidth);
   document.documentElement.style.setProperty("--app-height", `${Math.round(viewportHeight)}px`);
   document.documentElement.style.setProperty("--app-width", `${Math.round(viewportWidth)}px`);
+  document.documentElement.classList.toggle("broke-landscape", viewportWidth >= viewportHeight);
+  document.documentElement.classList.toggle("broke-portrait", viewportWidth < viewportHeight);
   window.dispatchEvent(new Event(VIEWPORT_SYNC_EVENT));
 }
 

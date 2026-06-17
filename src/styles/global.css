@@ -66,15 +66,34 @@ body {
 
 #game-root canvas {
   display: block !important;
-  min-width: 100vw;
-  min-width: var(--app-width);
-  min-height: 100vh;
-  min-height: var(--app-height);
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  width: 100dvw !important;
+  width: var(--app-width) !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  height: var(--app-height) !important;
+  min-width: 100vw !important;
+  min-width: var(--app-width) !important;
+  min-height: 100vh !important;
+  min-height: var(--app-height) !important;
   max-width: none !important;
   max-height: none !important;
+  object-fit: fill;
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+html.broke-landscape #game-root,
+html.broke-landscape #game-root canvas {
+  width: 100vw !important;
+  width: 100dvw !important;
+  width: var(--app-width) !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  height: var(--app-height) !important;
 }
 
 .broke-loading {

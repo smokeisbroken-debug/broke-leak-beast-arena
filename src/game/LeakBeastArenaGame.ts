@@ -28,7 +28,9 @@ export function createLeakBeastArenaGame(parent: string): Phaser.Game {
       },
     },
     scale: {
-      mode: Phaser.Scale.ENVELOP,
+      // The canvas is stretched by CSS to the real mobile viewport.
+      // This avoids Telegram/browser landscape windows becoming a small letterboxed box.
+      mode: Phaser.Scale.NONE,
       autoCenter: Phaser.Scale.CENTER_BOTH,
       expandParent: true,
     },

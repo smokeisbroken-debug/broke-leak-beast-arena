@@ -199,6 +199,7 @@ export class PreloadScene extends Phaser.Scene {
     create("enemy-fomo-move", "enemy-runner", 12);
     create("enemy-scam-move", "enemy-beast", 9);
     create("enemy-smoke-brute-move", "enemy-brute", 6);
+    create("enemy-mega-leak-move", "enemy-brute", 5);
     create("boss-thorn-move", "boss-thorn", 6);
     create("boss-smoke-move", "boss-smoke", 6);
   }

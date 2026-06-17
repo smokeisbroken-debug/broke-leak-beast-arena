@@ -10,7 +10,7 @@ export interface InputState {
   slash: boolean;
 }
 
-export type EnemyKind = "bad_habit" | "fomo" | "scam" | "smoke_brute";
+export type EnemyKind = "bad_habit" | "fomo" | "scam" | "smoke_brute" | "mega_leak";
 export type PickupType = "safe_point" | "heart" | "shield" | "cooldown" | "speed";
 
 export interface EnemyDefinition {
@@ -35,6 +35,8 @@ export interface RunResult {
   safePoints: number;
   bossDamage: number;
   upgradesChosen: number;
+  pickupsCollected?: number;
+  bossesBroken?: number;
 }
 
 export interface AttackSpec {

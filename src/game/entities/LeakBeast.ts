@@ -79,6 +79,20 @@ const KIND_TUNING: Record<EnemyKind, VisualTuning> = {
     shadowW: 50,
     shadowH: 14,
   },
+  mega_leak: {
+    texture: "enemy-brute-01",
+    animation: "enemy-mega-leak-move",
+    hp: 9,
+    speed: 38,
+    score: 190,
+    width: 96,
+    height: 90,
+    bodyW: 52,
+    bodyH: 48,
+    bodyOffsetY: 15,
+    shadowW: 76,
+    shadowH: 19,
+  },
 };
 
 const BOSS_TUNING: Record<"thorn" | "smoke", Omit<VisualTuning, "hp" | "speed" | "score">> = {
@@ -137,6 +151,8 @@ export function createLeakBeast(
   sprite.setData("nextShotAt", Date.now() + Phaser.Math.Between(1100, 2300));
   sprite.setData("nextSmokeAt", Date.now() + Phaser.Math.Between(1500, 3000));
   sprite.setData("nextChargeAt", Date.now() + Phaser.Math.Between(700, 1900));
+  sprite.setData("nextSlamAt", Date.now() + Phaser.Math.Between(1900, 3300));
+  sprite.setData("contactDamage", kind === "mega_leak" ? 2 : 1);
   sprite.setData("displayW", tuning.width);
   sprite.setData("displayH", tuning.height);
   sprite.setData("bodyW", tuning.bodyW);

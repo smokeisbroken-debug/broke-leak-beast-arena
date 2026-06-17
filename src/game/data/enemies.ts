@@ -29,4 +29,11 @@ export const ENEMIES: EnemyDefinition[] = [
     speed: 45,
     behavior: "tank",
   },
+  {
+    id: "mega_leak",
+    name: "Mega Leak Beast",
+    hp: 8,
+    speed: 36,
+    behavior: "tank",
+  },
 ];

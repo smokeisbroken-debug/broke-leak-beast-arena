@@ -5,6 +5,7 @@ import { requestAppFullscreen, toggleAppFullscreen } from "../../app/AppShell";
 import { PlayerMascot } from "../entities/PlayerMascot";
 import { createCollectible } from "../entities/Collectible";
 import { WaveSystem } from "../systems/WaveSystem";
+import { SfxSystem } from "../systems/SfxSystem";
 import { MobileControls } from "../ui/MobileControls";
 import { Hud } from "../ui/Hud";
 import type { AttackSpec, PickupType, PlayerUpgradeId, RunResult } from "../types/game";
@@ -52,6 +53,7 @@ export class ArenaScene extends Phaser.Scene {
   private pauseOverlay?: Phaser.GameObjects.Container;
   private currentArenaBackgroundKey = "";
   private pickups!: Phaser.Physics.Arcade.Group;
+  private sfx!: SfxSystem;
 
   private score = 0;
   private hp = 5;
@@ -93,6 +95,7 @@ export class ArenaScene extends Phaser.Scene {
 
     this.createArenaBackground();
     this.pickups = this.physics.add.group();
+    this.sfx = new SfxSystem();
 
     this.player = new PlayerMascot(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 18);
     this.waves = new WaveSystem(this);
@@ -100,6 +103,7 @@ export class ArenaScene extends Phaser.Scene {
     this.hud = new Hud(this);
     this.createPauseButton();
     this.input.once("pointerdown", () => {
+      this.sfx.unlock();
       void requestAppFullscreen(document.documentElement);
     });
 
@@ -144,6 +148,10 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     const input = this.controls.getInputState();
+    if (input.attack || input.slash) {
+      const aimDirection = this.waves.getNearestEnemyDirection(this.player.sprite.x, this.player.sprite.y);
+      if (aimDirection) this.player.setFacing(aimDirection);
+    }
     this.player.update(input, delta);
     this.player.keepInsideArena();
 
@@ -464,6 +472,7 @@ export class ArenaScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(174));
 
     start.on("pointerdown", () => {
+      this.sfx.unlock();
       this.markTutorialSeen();
       objects.forEach((obj) => obj.destroy());
       this.fightPaused = false;
@@ -525,6 +534,8 @@ export class ArenaScene extends Phaser.Scene {
     collectible.disableBody(true, true);
     this.pickupsCollected += 1;
 
+    this.sfx.playPickup();
+
     switch (type) {
       case "safe_point":
         this.score += value;
@@ -580,6 +591,7 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private resolvePlayerAttack(attack: AttackSpec): void {
+    this.sfx.playSword(attack.comboStep >= 3);
     this.showAttackArc(attack);
 
     const hitResult = this.waves.hitEnemiesInArc(this.player.sprite.x, this.player.sprite.y, attack);
@@ -601,6 +613,7 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private resolveDashSlash(attack: AttackSpec): void {
+    this.sfx.playDashSlash();
     this.showDashSlash(attack);
     const hitResult = this.waves.hitEnemiesInArc(this.player.sprite.x, this.player.sprite.y, attack);
     const points = hitResult.score + hitResult.hits * 18 + (hitResult.bossHit ? 55 : 0);
@@ -614,6 +627,7 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private resolveSafePulse(): void {
+    this.sfx.playPulse();
     this.showSafePulse();
     const damage = this.player.getPulsePower();
     const hitResult = this.waves.hitEnemiesNear(this.player.sprite.x, this.player.sprite.y, this.player.getPulseRadius(), damage, 12);
@@ -628,6 +642,7 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private resolveLeakShield(): void {
+    this.sfx.playShield();
     this.showLeakShield();
     this.showFloatingText(`SHIELD x${this.player.getShieldCapacity()}`, this.player.sprite.x, this.player.sprite.y - 70, "#39ff14");
   }
@@ -640,8 +655,8 @@ export class ArenaScene extends Phaser.Scene {
     if (now < this.contactDamageReadyAt) return;
     this.contactDamageReadyAt = now + 620;
 
-    const damage = Boolean(enemy.getData("boss")) ? 2 : 1;
-    this.damagePlayer(damage, "HIT");
+    const damage = Boolean(enemy.getData("boss")) ? 2 : Number(enemy.getData("contactDamage") ?? 1);
+    this.damagePlayer(damage, damage > 1 ? "BIG HIT" : "HIT");
 
     const push = new Phaser.Math.Vector2(this.player.sprite.x - enemy.x, this.player.sprite.y - enemy.y);
     if (push.lengthSq() <= 0) push.set(1, 0);
@@ -671,6 +686,7 @@ export class ArenaScene extends Phaser.Scene {
 
   private damagePlayer(amount: number, label: string): void {
     if (this.player.tryBlockDamage()) {
+      this.sfx.playBlock();
       this.cameras.main.shake(70, 0.003);
       this.showBlockFlash();
       this.showFloatingText("BLOCK", this.player.sprite.x, this.player.sprite.y - 62, "#39ff14");
@@ -678,6 +694,7 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     this.hp -= amount;
+    this.sfx.playHit(amount > 1);
     this.player.flashHit();
     this.cameras.main.flash(70, 255, 51, 85, false);
     this.cameras.main.shake(105, 0.0042);
@@ -1107,6 +1124,7 @@ export class ArenaScene extends Phaser.Scene {
   private finishRun(): void {
     if (this.runFinished) return;
     this.runFinished = true;
+    this.sfx.playGameOver();
     this.pauseOverlay?.destroy(true);
     this.waves.clearAll();
     this.physics.pause();

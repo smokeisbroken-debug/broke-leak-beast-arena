@@ -2,9 +2,9 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import type { AttackSpec, InputState, PlayerUpgradeId, PlayerUpgradeState } from "../types/game";
 
-const PLAYER_BASE_SCALE = 0.058;
-const PLAYER_ATTACK_SCALE = 0.061;
-const PLAYER_HEAVY_ATTACK_SCALE = 0.064;
+const PLAYER_BASE_SCALE = 0.075;
+const PLAYER_ATTACK_SCALE = 0.077;
+const PLAYER_HEAVY_ATTACK_SCALE = 0.079;
 
 export class PlayerMascot {
   public readonly sprite: Phaser.Physics.Arcade.Sprite;
@@ -182,6 +182,11 @@ export class PlayerMascot {
 
   getFacing(): Phaser.Math.Vector2 {
     return this.facing.clone();
+  }
+
+  setFacing(direction: Phaser.Math.Vector2): void {
+    if (direction.lengthSq() <= 0) return;
+    this.facing.copy(direction.clone().normalize());
   }
 
   getPulsePower(): number {
@@ -440,8 +445,8 @@ export class PlayerMascot {
   }
 
   keepInsideArena(): void {
-    this.sprite.x = Phaser.Math.Clamp(this.sprite.x, 58, GAME_WIDTH - 58);
-    this.sprite.y = Phaser.Math.Clamp(this.sprite.y, 88, GAME_HEIGHT - 74);
+    this.sprite.x = Phaser.Math.Clamp(this.sprite.x, 70, GAME_WIDTH - 70);
+    this.sprite.y = Phaser.Math.Clamp(this.sprite.y, 96, GAME_HEIGHT - 82);
   }
 
   private updateVisualState(velocity: Phaser.Math.Vector2): void {
