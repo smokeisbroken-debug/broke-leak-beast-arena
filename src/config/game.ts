@@ -1,9 +1,9 @@
-export const GAME_WIDTH = 800;
-export const GAME_HEIGHT = 450;
+export const GAME_WIDTH = 920;
+export const GAME_HEIGHT = 430;
 
 export const GAME_CONFIG = {
   title: "$BROKE Leak Beast Arena",
   shortTitle: "Leak Beast Arena",
   tagline: "Track the leak. Fight the leak. Defeat the leak.",
-  version: "0.4.8-public-access-telegram-mobile-qa",
+  version: "0.5.1-bright-fullscreen-responsive-fix",
 };

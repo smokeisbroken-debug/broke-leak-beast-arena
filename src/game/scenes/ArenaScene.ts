@@ -66,6 +66,8 @@ export class ArenaScene extends Phaser.Scene {
   private upgradeOverlayActive = false;
   private contactDamageReadyAt = 0;
   private hazardDamageReadyAt = 0;
+  private pickupsCollected = 0;
+  private bossesBroken = 0;
 
   constructor() {
     super(SCENE_KEYS.arena);
@@ -85,6 +87,8 @@ export class ArenaScene extends Phaser.Scene {
     this.upgradeOverlayActive = false;
     this.contactDamageReadyAt = 0;
     this.hazardDamageReadyAt = 0;
+    this.pickupsCollected = 0;
+    this.bossesBroken = 0;
     this.currentArenaBackgroundKey = "";
 
     this.createArenaBackground();
@@ -100,8 +104,12 @@ export class ArenaScene extends Phaser.Scene {
     });
 
     this.hud.update(this.getHudState());
-    this.createCountdown();
-    this.startCountdown();
+    if (this.shouldShowFirstRunTutorial()) {
+      this.showFirstRunTutorial();
+    } else {
+      this.createCountdown();
+      this.startCountdown();
+    }
 
     this.physics.add.overlap(
       this.player.sprite,
@@ -189,7 +197,7 @@ export class ArenaScene extends Phaser.Scene {
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
       .setDepth(0);
 
-    this.arenaShade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x030406, 0.36)
+    this.arenaShade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x061306, 0.18)
       .setDepth(1);
 
     // Wide landscape arena: readable center, controls stay outside the main fight focus.
@@ -215,9 +223,9 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     // Soft masks behind thumb zones so buttons are readable without covering the arena.
-    this.add.rectangle(116, GAME_HEIGHT - 78, 226, 154, 0x020402, 0.22)
+    this.add.rectangle(116, GAME_HEIGHT - 78, 226, 154, 0x061306, 0.12)
       .setDepth(5);
-    this.add.rectangle(GAME_WIDTH - 130, GAME_HEIGHT - 82, 286, 176, 0x020402, 0.22)
+    this.add.rectangle(GAME_WIDTH - 130, GAME_HEIGHT - 82, 286, 176, 0x061306, 0.12)
       .setDepth(5);
 
     this.updateArenaBackgroundForWave(1);
@@ -288,8 +296,8 @@ export class ArenaScene extends Phaser.Scene {
     this.currentArenaBackgroundKey = nextKey;
     this.arenaBackground.setTexture(nextKey);
 
-    const shadeAlpha = wave % 3 === 0 ? 0.44 : 0.36;
-    this.arenaShade.setFillStyle(0x030406, shadeAlpha);
+    const shadeAlpha = wave % 3 === 0 ? 0.24 : 0.18;
+    this.arenaShade.setFillStyle(0x061306, shadeAlpha);
   }
 
   private createCountdown(): void {
@@ -359,12 +367,118 @@ export class ArenaScene extends Phaser.Scene {
   }
 
 
+
+  private shouldShowFirstRunTutorial(): boolean {
+    try {
+      return window.localStorage.getItem("lba-playtest-tutorial-seen") !== "yes";
+    } catch {
+      return true;
+    }
+  }
+
+  private markTutorialSeen(): void {
+    try {
+      window.localStorage.setItem("lba-playtest-tutorial-seen", "yes");
+    } catch {
+      // Local storage can be blocked in some WebViews. The tutorial can still start normally.
+    }
+  }
+
+  private showFirstRunTutorial(): void {
+    this.fightStarted = false;
+    this.fightPaused = true;
+
+    const objects: Phaser.GameObjects.GameObject[] = [];
+    const add = <T extends Phaser.GameObjects.GameObject>(obj: T): T => {
+      objects.push(obj);
+      return obj;
+    };
+
+    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.62).setDepth(170));
+    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH - 90, GAME_HEIGHT - 74, 0x061006, 0.96)
+      .setStrokeStyle(2, 0x39ff14, 0.46)
+      .setDepth(171));
+
+    add(this.add.text(GAME_WIDTH / 2, 64, "SURVIVE THE LEAK", {
+      fontFamily: "Arial",
+      fontSize: "28px",
+      color: "#39ff14",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 6,
+    }).setOrigin(0.5).setDepth(172));
+
+    add(this.add.text(GAME_WIDTH / 2, 95, "First public playtest", {
+      fontFamily: "Arial",
+      fontSize: "13px",
+      color: "#d7ffd0",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(172));
+
+    const cards = [
+      { title: "MOVE", body: "Use the left joystick\nto kite enemies", color: 0x39ff14 },
+      { title: "FIGHT", body: "SLASH hits forward\nPULSE clears space", color: 0xb66cff },
+      { title: "SURVIVE", body: "DASH avoids danger\nSHIELD blocks hits", color: 0x7dffb5 },
+      { title: "COLLECT", body: "Pick up drops\nand break the boss", color: 0xfff17d },
+    ];
+
+    cards.forEach((card, index) => {
+      const x = 146 + index * 170;
+      const y = 206;
+      add(this.add.rectangle(x, y, 148, 126, 0x050805, 0.9)
+        .setStrokeStyle(2, card.color, 0.48)
+        .setDepth(172));
+      add(this.add.circle(x, y - 38, 18, card.color, 0.18)
+        .setStrokeStyle(2, card.color, 0.7)
+        .setDepth(173));
+      add(this.add.text(x, y - 4, card.title, {
+        fontFamily: "Arial",
+        fontSize: "16px",
+        color: "#f5fff1",
+        fontStyle: "bold",
+        stroke: "#050805",
+        strokeThickness: 4,
+      }).setOrigin(0.5).setDepth(173));
+      add(this.add.text(x, y + 35, card.body, {
+        fontFamily: "Arial",
+        fontSize: "12px",
+        color: "#d7ffd0",
+        align: "center",
+        lineSpacing: 3,
+        stroke: "#050805",
+        strokeThickness: 3,
+      }).setOrigin(0.5).setDepth(173));
+    });
+
+    const start = add(this.add.rectangle(GAME_WIDTH / 2, 365, 240, 48, 0x39ff14, 0.96)
+      .setStrokeStyle(2, 0xf5fff1, 0.35)
+      .setDepth(173)
+      .setInteractive({ useHandCursor: true }));
+    add(this.add.text(GAME_WIDTH / 2, 365, "START RUN", {
+      fontFamily: "Arial",
+      fontSize: "19px",
+      color: "#050805",
+      fontStyle: "bold",
+    }).setOrigin(0.5).setDepth(174));
+
+    start.on("pointerdown", () => {
+      this.markTutorialSeen();
+      objects.forEach((obj) => obj.destroy());
+      this.fightPaused = false;
+      this.createCountdown();
+      this.startCountdown();
+    });
+  }
+
   private handleEnemyDefeated(event: EnemyDefeatEvent): void {
     const dropRoll = Phaser.Math.FloatBetween(0, 1);
     const maxHp = 5 + this.player.getMaxHpBonus();
     const missingHp = maxHp - this.hp;
 
     if (event.boss) {
+      this.bossesBroken += 1;
       this.spawnPickup("safe_point", event.x - 18, event.y - 8, 110);
       this.spawnPickup("cooldown", event.x + 18, event.y - 6);
       this.spawnPickup(missingHp >= 2 ? "heart" : "speed", event.x, event.y + 10);
@@ -409,6 +523,7 @@ export class ArenaScene extends Phaser.Scene {
     shadow?.destroy();
 
     collectible.disableBody(true, true);
+    this.pickupsCollected += 1;
 
     switch (type) {
       case "safe_point":
@@ -759,7 +874,7 @@ export class ArenaScene extends Phaser.Scene {
       return obj;
     };
 
-    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.76).setDepth(150));
+    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.66).setDepth(150));
     add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH - 74, GAME_HEIGHT - 70, 0x061006, 0.98)
       .setStrokeStyle(2, 0x39ff14, 0.52)
       .setDepth(151));
@@ -1003,6 +1118,8 @@ export class ArenaScene extends Phaser.Scene {
       bossDamage: Math.floor(this.score * 0.14),
       safePoints: Math.floor(this.score * 0.08),
       upgradesChosen: this.upgradeChoicesTaken,
+      pickupsCollected: this.pickupsCollected,
+      bossesBroken: this.bossesBroken,
     };
 
     this.scene.start(SCENE_KEYS.result, result);

@@ -2,9 +2,9 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import type { AttackSpec, InputState, PlayerUpgradeId, PlayerUpgradeState } from "../types/game";
 
-const PLAYER_BASE_SCALE = 0.052;
-const PLAYER_ATTACK_SCALE = 0.058;
-const PLAYER_HEAVY_ATTACK_SCALE = 0.062;
+const PLAYER_BASE_SCALE = 0.058;
+const PLAYER_ATTACK_SCALE = 0.061;
+const PLAYER_HEAVY_ATTACK_SCALE = 0.064;
 
 export class PlayerMascot {
   public readonly sprite: Phaser.Physics.Arcade.Sprite;

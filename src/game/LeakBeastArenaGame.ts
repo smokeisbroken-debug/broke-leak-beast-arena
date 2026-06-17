@@ -28,7 +28,7 @@ export function createLeakBeastArenaGame(parent: string): Phaser.Game {
       },
     },
     scale: {
-      mode: Phaser.Scale.FIT,
+      mode: Phaser.Scale.ENVELOP,
       autoCenter: Phaser.Scale.CENTER_BOTH,
       expandParent: true,
     },

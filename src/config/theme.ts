@@ -1,6 +1,6 @@
 export const COLORS = {
-  bg: 0x050805,
-  panel: 0x061006,
+  bg: 0x081208,
+  panel: 0x071807,
   green: 0x39ff14,
   purple: 0x8a00ff,
   red: 0xff173d,
