@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
+import { GAME_HEIGHT, GAME_WIDTH, WORLD_HEIGHT, WORLD_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import { requestAppFullscreen, toggleAppFullscreen } from "../../app/AppShell";
 import { PlayerMascot } from "../entities/PlayerMascot";
@@ -48,8 +48,6 @@ export class ArenaScene extends Phaser.Scene {
   private countdownText!: Phaser.GameObjects.Text;
   private arenaBackground!: Phaser.GameObjects.Image;
   private arenaShade!: Phaser.GameObjects.Rectangle;
-  private mascotGlowOuter!: Phaser.GameObjects.Arc;
-  private mascotGlowInner!: Phaser.GameObjects.Arc;
   private pauseButton!: Phaser.GameObjects.Container;
   private fullscreenButton!: Phaser.GameObjects.Container;
   private pauseOverlay?: Phaser.GameObjects.Container;
@@ -101,8 +99,10 @@ export class ArenaScene extends Phaser.Scene {
     this.pickups = this.physics.add.group();
     this.sfx = new SfxSystem();
 
-    this.player = new PlayerMascot(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 18);
-    this.createMascotSpotlight();
+    this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    this.player = new PlayerMascot(this, WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
+    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    this.cameras.main.startFollow(this.player.sprite, true, 0.14, 0.14);
     this.waves = new WaveSystem(this);
     this.controls = new MobileControls(this);
     this.hud = new Hud(this);
@@ -160,8 +160,9 @@ export class ArenaScene extends Phaser.Scene {
       if (aimDirection) this.player.setFacing(aimDirection);
     }
     this.player.update(input, delta);
-    this.player.keepInsideArena();
-    this.updateMascotSpotlight();
+    if (this.player.keepInsideArena()) {
+      this.cameras.main.centerOn(this.player.sprite.x, this.player.sprite.y);
+    }
 
     const attack = this.player.consumeAttackStarted();
     if (attack) {
@@ -209,116 +210,57 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private createArenaBackground(): void {
-    this.arenaBackground = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "arena-bg-01")
-      .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
+    this.arenaBackground = this.add.image(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, "arena-bg-01")
+      .setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT)
       .setDepth(0);
 
-    this.arenaShade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x103010, 0.1)
+    this.arenaShade = this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0x103010, 0.08)
       .setDepth(1);
 
-    this.add.circle(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 4, 210, 0x72ff57, 0.065)
+    // Clean battlefield: no big guide circles over the arena.
+    // The world is now 2 screens wide and 2 screens tall; camera follows the mascot.
+    this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0x72ff57, 0.018)
       .setDepth(2);
-    this.add.circle(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 12, 132, 0xfcfff7, 0.03)
-      .setDepth(2);
-    this.add.circle(136, 86, 90, 0x72ff57, 0.035).setDepth(2);
-    this.add.circle(GAME_WIDTH - 136, 86, 90, 0xa45cff, 0.03).setDepth(2);
-
-    // Wide landscape arena: brighter readable center, controls stay outside the main fight focus.
-    this.add.ellipse(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 12, 600, 308, 0x133413, 0.14)
-      .setStrokeStyle(3, 0x72ff57, 0.24)
-      .setDepth(4);
-    this.add.ellipse(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 12, 510, 246, 0x071707, 0.05)
-      .setStrokeStyle(2, 0xa45cff, 0.16)
-      .setDepth(4);
-
-    for (let i = -2; i <= 2; i += 1) {
-      const y = GAME_HEIGHT / 2 + 12 + i * 38;
-      this.add.line(0, 0, 188, y, GAME_WIDTH - 188, y, 0x72ff57, 0.075)
-        .setOrigin(0, 0)
-        .setDepth(4);
-    }
-
-    for (let i = -2; i <= 2; i += 1) {
-      const x = GAME_WIDTH / 2 + i * 72;
-      this.add.line(0, 0, x, 105, x, GAME_HEIGHT - 88, 0xa45cff, 0.06)
-        .setOrigin(0, 0)
-        .setDepth(4);
-    }
-
-    // Soft masks behind thumb zones so buttons are readable without covering the arena.
-    this.add.rectangle(116, GAME_HEIGHT - 78, 232, 160, 0x103010, 0.09)
-      .setDepth(5);
-    this.add.rectangle(GAME_WIDTH - 130, GAME_HEIGHT - 82, 296, 184, 0x103010, 0.09)
-      .setDepth(5);
 
     this.updateArenaBackgroundForWave(1);
   }
 
-  private createMascotSpotlight(): void {
-    this.mascotGlowOuter = this.add.circle(this.player.sprite.x, this.player.sprite.y + 2, 42, 0x72ff57, 0.08)
-      .setDepth(22);
-    this.mascotGlowInner = this.add.circle(this.player.sprite.x, this.player.sprite.y + 2, 24, 0xfcfff7, 0.07)
-      .setDepth(23);
-
-    this.tweens.add({
-      targets: this.mascotGlowOuter,
-      scaleX: 1.14,
-      scaleY: 1.14,
-      alpha: 0.12,
-      duration: 520,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
-
-    this.tweens.add({
-      targets: this.mascotGlowInner,
-      scaleX: 1.08,
-      scaleY: 1.08,
-      alpha: 0.11,
-      duration: 420,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
-  }
-
-  private updateMascotSpotlight(): void {
-    if (!this.player?.sprite.active) return;
-    this.mascotGlowOuter.setPosition(this.player.sprite.x, this.player.sprite.y + 4);
-    this.mascotGlowInner.setPosition(this.player.sprite.x, this.player.sprite.y + 2);
+  private fixed<T extends Phaser.GameObjects.GameObject>(obj: T): T {
+    const fixedObj = obj as T & { setScrollFactor?: (x: number, y?: number) => T };
+    fixedObj.setScrollFactor?.(0);
+    return obj;
   }
 
   private createPauseButton(): void {
-    const fullBg = this.add.circle(GAME_WIDTH - 86, 34, 18, 0x050805, 0.72)
+    const fullBg = this.fixed(this.add.circle(GAME_WIDTH - 86, 34, 18, 0x050805, 0.72))
       .setStrokeStyle(2, 0xb66cff, 0.3);
-    const fullIcon = this.add.text(GAME_WIDTH - 86, 34, "⛶", {
+    const fullIcon = this.fixed(this.add.text(GAME_WIDTH - 86, 34, "⛶", {
       fontFamily: "Arial",
       fontSize: "18px",
       color: "#f5fff1",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 4,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
 
-    this.fullscreenButton = this.add.container(0, 0, [fullBg, fullIcon]).setDepth(85);
+    this.fullscreenButton = this.fixed(this.add.container(0, 0, [fullBg, fullIcon])).setDepth(85);
     fullBg.setInteractive({ useHandCursor: true });
     fullBg.on("pointerdown", () => {
       void toggleAppFullscreen(document.documentElement);
     });
 
-    const bg = this.add.circle(GAME_WIDTH - 34, 34, 20, 0x050805, 0.72)
+    const bg = this.fixed(this.add.circle(GAME_WIDTH - 34, 34, 20, 0x050805, 0.72))
       .setStrokeStyle(2, 0x39ff14, 0.3);
-    const bars = this.add.text(GAME_WIDTH - 34, 34, "II", {
+    const bars = this.fixed(this.add.text(GAME_WIDTH - 34, 34, "II", {
       fontFamily: "Arial",
       fontSize: "20px",
       color: "#f5fff1",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 4,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
 
-    this.pauseButton = this.add.container(0, 0, [bg, bars]).setDepth(85);
+    this.pauseButton = this.fixed(this.add.container(0, 0, [bg, bars])).setDepth(85);
     bg.setInteractive({ useHandCursor: true });
     bg.on("pointerdown", () => this.togglePauseState());
   }
@@ -330,16 +272,16 @@ export class ArenaScene extends Phaser.Scene {
 
     if (this.fightPaused) {
       this.physics.pause();
-      const dim = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.45);
-      const panel = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 260, 118, 0x050805, 0.9)
+      const dim = this.fixed(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.45));
+      const panel = this.fixed(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 260, 118, 0x050805, 0.9))
         .setStrokeStyle(2, 0x39ff14, 0.35);
-      const title = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 18, "PAUSED", {
+      const title = this.fixed(this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 18, "PAUSED", {
         fontFamily: "Arial", fontSize: "28px", color: "#39ff14", fontStyle: "bold", stroke: "#050805", strokeThickness: 5,
-      }).setOrigin(0.5);
-      const hint = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 20, "Tap pause again to continue", {
+      })).setOrigin(0.5);
+      const hint = this.fixed(this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 20, "Tap pause again to continue", {
         fontFamily: "Arial", fontSize: "14px", color: "#f5fff1", stroke: "#050805", strokeThickness: 3,
-      }).setOrigin(0.5);
-      this.pauseOverlay = this.add.container(0, 0, [dim, panel, title, hint]).setDepth(149);
+      })).setOrigin(0.5);
+      this.pauseOverlay = this.fixed(this.add.container(0, 0, [dim, panel, title, hint])).setDepth(149);
     } else {
       this.physics.resume();
       this.pauseOverlay?.destroy(true);
@@ -354,19 +296,19 @@ export class ArenaScene extends Phaser.Scene {
     this.currentArenaBackgroundKey = nextKey;
     this.arenaBackground.setTexture(nextKey);
 
-    const shadeAlpha = wave % 3 === 0 ? 0.14 : 0.1;
+    const shadeAlpha = wave % 3 === 0 ? 0.12 : 0.08;
     this.arenaShade.setFillStyle(0x103010, shadeAlpha);
   }
 
   private createCountdown(): void {
-    this.countdownText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 18, "3", {
+    this.countdownText = this.fixed(this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 18, "3", {
       fontFamily: "Arial",
       fontSize: "72px",
       color: "#39ff14",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 8,
-    }).setOrigin(0.5).setDepth(120);
+    })).setOrigin(0.5).setDepth(120);
   }
 
   private getHudState() {
@@ -448,6 +390,7 @@ export class ArenaScene extends Phaser.Scene {
 
     const objects: Phaser.GameObjects.GameObject[] = [];
     const add = <T extends Phaser.GameObjects.GameObject>(obj: T): T => {
+      this.fixed(obj);
       objects.push(obj);
       return obj;
     };
@@ -911,14 +854,14 @@ export class ArenaScene extends Phaser.Scene {
 
   private showWaveBanner(wave: number): void {
     const isBossWave = wave % 3 === 0;
-    const text = this.add.text(GAME_WIDTH / 2, 86, isBossWave ? `WAVE ${wave}: BOSS` : `WAVE ${wave}`, {
+    const text = this.fixed(this.add.text(GAME_WIDTH / 2, 86, isBossWave ? `WAVE ${wave}: BOSS` : `WAVE ${wave}`, {
       fontFamily: "Arial",
       fontSize: isBossWave ? "20px" : "20px",
       color: isBossWave ? "#b66cff" : "#39ff14",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 5,
-    }).setOrigin(0.5).setDepth(100);
+    })).setOrigin(0.5).setDepth(100);
 
     this.tweens.add({
       targets: text,
@@ -945,6 +888,7 @@ export class ArenaScene extends Phaser.Scene {
 
     const overlayObjects: Phaser.GameObjects.GameObject[] = [];
     const add = <T extends Phaser.GameObjects.GameObject>(obj: T): T => {
+      this.fixed(obj);
       overlayObjects.push(obj);
       return obj;
     };
@@ -1114,35 +1058,35 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private showUpgradeToast(title: string, message: string): void {
-    const panel = this.add.rectangle(GAME_WIDTH / 2, 86, 426, 60, 0x071107, 0.95)
+    const panel = this.fixed(this.add.rectangle(GAME_WIDTH / 2, 86, 426, 60, 0x071107, 0.95))
       .setStrokeStyle(2, 0x39ff14, 0.5)
       .setDepth(155);
-    const icon = this.add.circle(GAME_WIDTH / 2 - 178, 86, 19, 0x39ff14, 0.14)
+    const icon = this.fixed(this.add.circle(GAME_WIDTH / 2 - 178, 86, 19, 0x39ff14, 0.14))
       .setStrokeStyle(2, 0x39ff14, 0.6)
       .setDepth(156);
-    const iconText = this.add.text(GAME_WIDTH / 2 - 178, 86, "UP", {
+    const iconText = this.fixed(this.add.text(GAME_WIDTH / 2 - 178, 86, "UP", {
       fontFamily: "Arial",
       fontSize: "10px",
       color: "#39ff14",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(157);
-    const titleText = this.add.text(GAME_WIDTH / 2 - 144, 76, title.toUpperCase(), {
+    })).setOrigin(0.5).setDepth(157);
+    const titleText = this.fixed(this.add.text(GAME_WIDTH / 2 - 144, 76, title.toUpperCase(), {
       fontFamily: "Arial",
       fontSize: "14px",
       color: "#39ff14",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 3,
-    }).setOrigin(0, 0.5).setDepth(156);
-    const bodyText = this.add.text(GAME_WIDTH / 2 - 144, 98, message, {
+    })).setOrigin(0, 0.5).setDepth(156);
+    const bodyText = this.fixed(this.add.text(GAME_WIDTH / 2 - 144, 98, message, {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#f5fff1",
       align: "left",
       wordWrap: { width: 320 },
-    }).setOrigin(0, 0.5).setDepth(156);
+    })).setOrigin(0, 0.5).setDepth(156);
 
     this.tweens.add({
       targets: [panel, icon, iconText, titleText, bodyText],

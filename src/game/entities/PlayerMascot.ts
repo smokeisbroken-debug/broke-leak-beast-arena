@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
+import { WORLD_HEIGHT, WORLD_WIDTH } from "../../config/game";
 import type { AttackSpec, InputState, PlayerUpgradeId, PlayerUpgradeState } from "../types/game";
 
 const PLAYER_BASE_SCALE = 0.096;
@@ -64,7 +64,7 @@ export class PlayerMascot {
 
   constructor(private scene: Phaser.Scene, x: number, y: number) {
     this.sprite = scene.physics.add.sprite(x, y, "mascot-idle-front");
-    this.sprite.setCollideWorldBounds(true);
+    this.sprite.setCollideWorldBounds(false);
     this.sprite.setScale(PLAYER_BASE_SCALE);
     this.sprite.setSize(360, 520);
     this.sprite.setDepth(26);
@@ -444,9 +444,26 @@ export class PlayerMascot {
     });
   }
 
-  keepInsideArena(): void {
-    this.sprite.x = Phaser.Math.Clamp(this.sprite.x, 70, GAME_WIDTH - 70);
-    this.sprite.y = Phaser.Math.Clamp(this.sprite.y, 96, GAME_HEIGHT - 82);
+  keepInsideArena(): boolean {
+    let wrapped = false;
+
+    if (this.sprite.x < 0) {
+      this.sprite.x += WORLD_WIDTH;
+      wrapped = true;
+    } else if (this.sprite.x > WORLD_WIDTH) {
+      this.sprite.x -= WORLD_WIDTH;
+      wrapped = true;
+    }
+
+    if (this.sprite.y < 0) {
+      this.sprite.y += WORLD_HEIGHT;
+      wrapped = true;
+    } else if (this.sprite.y > WORLD_HEIGHT) {
+      this.sprite.y -= WORLD_HEIGHT;
+      wrapped = true;
+    }
+
+    return wrapped;
   }
 
   private updateVisualState(velocity: Phaser.Math.Vector2): void {

@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
+import { GAME_HEIGHT, GAME_WIDTH, WORLD_HEIGHT, WORLD_WIDTH } from "../../config/game";
 import { applyLeakBeastBody, createLeakBeast } from "../entities/LeakBeast";
 import type { AttackSpec, EnemyKind } from "../types/game";
 
@@ -40,7 +40,6 @@ export class WaveSystem {
   private lastBossWave = 0;
   private hazards: Phaser.GameObjects.Arc[] = [];
   private shadows = new Map<Phaser.Physics.Arcade.Sprite, Phaser.GameObjects.Ellipse>();
-  private glows = new Map<Phaser.Physics.Arcade.Sprite, Phaser.GameObjects.Ellipse>();
   private bossHpBars = new Map<Phaser.Physics.Arcade.Sprite, BossHpBar>();
   private bossAuras = new Map<Phaser.Physics.Arcade.Sprite, BossAura>();
   private pendingBossRewardWave = 0;
@@ -99,7 +98,6 @@ export class WaveSystem {
     this.spawnDeathPop(enemy.x, enemy.y, wasBoss ? 0xb66cff : 0x72ff57);
     this.spawnDeathBurst(enemy.x, enemy.y, wasBoss ? 0xb66cff : 0x72ff57, wasBoss);
     this.removeShadow(enemy);
-    this.removeGlow(enemy);
     this.removeBossHpBar(enemy);
     this.removeBossAura(enemy);
     enemy.disableBody(true, true);
@@ -136,7 +134,7 @@ export class WaveSystem {
       const beast = child as Phaser.Physics.Arcade.Sprite | null;
       if (!beast || !beast.active || !beast.body) return true;
 
-      const toEnemy = new Phaser.Math.Vector2(beast.x - originX, beast.y - originY);
+      const toEnemy = this.getWrappedVector(originX, originY, beast.x, beast.y);
       const distance = toEnemy.length();
       if (distance > attack.range || distance <= 0) return true;
 
@@ -165,10 +163,9 @@ export class WaveSystem {
       const beast = child as Phaser.Physics.Arcade.Sprite | null;
       if (!beast || !beast.active || !beast.body) return true;
 
-      const distance = Phaser.Math.Distance.Between(x, y, beast.x, beast.y);
+      const dir = this.getWrappedVector(x, y, beast.x, beast.y);
+      const distance = dir.length();
       if (distance > radius) return true;
-
-      const dir = new Phaser.Math.Vector2(beast.x - x, beast.y - y);
       if (dir.lengthSq() <= 0) dir.set(1, 0);
       dir.normalize();
 
@@ -191,8 +188,6 @@ export class WaveSystem {
   clearAll(): void {
     this.shadows.forEach((shadow) => shadow.destroy());
     this.shadows.clear();
-    this.glows.forEach((glow) => glow.destroy());
-    this.glows.clear();
     this.bossHpBars.forEach((bar) => {
       bar.bg.destroy();
       bar.fill.destroy();
@@ -278,7 +273,9 @@ export class WaveSystem {
       const beast = child as Phaser.Physics.Arcade.Sprite | null;
       if (!beast || !beast.active || !beast.body) return true;
 
+      this.wrapSpritePosition(beast);
       applyLeakBeastBody(beast);
+      this.wrapSpritePosition(beast);
       this.updateEnemyPresentation(beast);
 
       if (Number(beast.getData("hitStunUntil") ?? 0) > now) return true;
@@ -319,7 +316,7 @@ export class WaveSystem {
 
   private updateBadHabitPressure(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, speed: number): void {
     // Bad Habit Beast is the pressure unit. It is predictable but keeps walking into the player's space.
-    this.scene.physics.moveTo(beast, targetX, targetY, speed);
+    this.moveToWrapped(beast, targetX, targetY, speed);
   }
 
   private updateFomoCharge(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, now: number, speed: number): void {
@@ -340,10 +337,10 @@ export class WaveSystem {
     }
 
     const nextChargeAt = Number(beast.getData("nextChargeAt") ?? 0);
-    const distance = Phaser.Math.Distance.Between(beast.x, beast.y, targetX, targetY);
+    const distance = this.getWrappedVector(beast.x, beast.y, targetX, targetY).length();
 
     if (nextChargeAt <= now && distance < 238) {
-      const dir = new Phaser.Math.Vector2(targetX - beast.x, targetY - beast.y);
+      const dir = this.getWrappedVector(beast.x, beast.y, targetX, targetY);
       if (dir.lengthSq() <= 0) dir.set(1, 0);
       dir.normalize();
 
@@ -360,7 +357,7 @@ export class WaveSystem {
     }
 
     beast.clearTint();
-    this.scene.physics.moveTo(beast, targetX, targetY, speed * 0.78);
+    this.moveToWrapped(beast, targetX, targetY, speed * 0.78);
   }
 
   private updateScamShooter(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, now: number, speed: number): void {
@@ -381,12 +378,12 @@ export class WaveSystem {
     }
 
     const nextShotAt = Number(beast.getData("nextShotAt") ?? 0);
-    const distance = Phaser.Math.Distance.Between(beast.x, beast.y, targetX, targetY);
+    const distance = this.getWrappedVector(beast.x, beast.y, targetX, targetY).length();
 
     if (distance > 178) {
-      this.scene.physics.moveTo(beast, targetX, targetY, speed * 0.64);
+      this.moveToWrapped(beast, targetX, targetY, speed * 0.64);
     } else if (distance < 104) {
-      const away = new Phaser.Math.Vector2(beast.x - targetX, beast.y - targetY);
+      const away = this.getWrappedVector(targetX, targetY, beast.x, beast.y);
       if (away.lengthSq() <= 0) away.set(1, 0);
       away.normalize().scale(speed * 0.62);
       beast.setVelocity(away.x, away.y);
@@ -431,7 +428,7 @@ export class WaveSystem {
       return;
     }
 
-    this.scene.physics.moveTo(beast, targetX, targetY, speed * 0.82);
+    this.moveToWrapped(beast, targetX, targetY, speed * 0.82);
   }
 
 
@@ -451,7 +448,7 @@ export class WaveSystem {
     }
 
     const nextSlamAt = Number(beast.getData("nextSlamAt") ?? 0);
-    const distance = Phaser.Math.Distance.Between(beast.x, beast.y, targetX, targetY);
+    const distance = this.getWrappedVector(beast.x, beast.y, targetX, targetY).length();
 
     if (nextSlamAt <= now && distance < 176) {
       beast.setData("nextSlamAt", now + Phaser.Math.Between(3600, 4800));
@@ -461,7 +458,7 @@ export class WaveSystem {
       return;
     }
 
-    this.scene.physics.moveTo(beast, targetX, targetY, speed * 0.68);
+    this.moveToWrapped(beast, targetX, targetY, speed * 0.68);
   }
 
   private updateBossPattern(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, now: number, speed: number): void {
@@ -505,14 +502,14 @@ export class WaveSystem {
       return;
     }
 
-    const orbit = new Phaser.Math.Vector2(targetX - beast.x, targetY - beast.y);
+    const orbit = this.getWrappedVector(beast.x, beast.y, targetX, targetY);
     if (orbit.lengthSq() > 0) orbit.normalize();
-    const distance = Phaser.Math.Distance.Between(beast.x, beast.y, targetX, targetY);
+    const distance = this.getWrappedVector(beast.x, beast.y, targetX, targetY).length();
 
     if (distance < 112 && phase === 1) {
       beast.setVelocity(-orbit.x * phaseSpeed * 0.42, -orbit.y * phaseSpeed * 0.42);
     } else {
-      this.scene.physics.moveTo(beast, targetX, targetY, phaseSpeed * (phase === 2 ? 0.78 : 0.62));
+      this.moveToWrapped(beast, targetX, targetY, phaseSpeed * (phase === 2 ? 0.78 : 0.62));
     }
   }
 
@@ -562,7 +559,7 @@ export class WaveSystem {
     durationMs: number,
   ): void {
     if (pattern === "charge" || pattern === "rage_charge") {
-      const dir = new Phaser.Math.Vector2(targetX - beast.x, targetY - beast.y);
+      const dir = this.getWrappedVector(beast.x, beast.y, targetX, targetY);
       if (dir.lengthSq() <= 0) dir.set(1, 0);
       dir.normalize();
       beast.setData("chargeDirX", dir.x);
@@ -658,15 +655,7 @@ export class WaveSystem {
       const projectile = child as Phaser.Physics.Arcade.Sprite | null;
       if (!projectile || !projectile.active || !projectile.body) return true;
 
-      if (
-        projectile.x < -40 ||
-        projectile.x > GAME_WIDTH + 40 ||
-        projectile.y < 60 ||
-        projectile.y > GAME_HEIGHT + 40
-      ) {
-        projectile.disableBody(true, true);
-      }
-
+      this.wrapSpritePosition(projectile);
       return true;
     });
   }
@@ -692,36 +681,34 @@ export class WaveSystem {
 
   private spawn(targetX: number, targetY: number, runElapsedMs: number, forcedKind?: EnemyKind): void {
     const side = Phaser.Math.Between(0, 3);
-    const margin = 34;
-    const topY = 96;
-    const bottomY = GAME_HEIGHT - 126;
-    const leftX = 128;
-    const rightX = GAME_WIDTH - 128;
+    const margin = 54;
+    const halfW = GAME_WIDTH * 0.52;
+    const halfH = GAME_HEIGHT * 0.5;
 
-    const positions = [
-      { x: Phaser.Math.Between(leftX, rightX), y: topY - margin },
-      { x: rightX + margin, y: Phaser.Math.Between(topY, bottomY) },
-      { x: Phaser.Math.Between(leftX, rightX), y: bottomY + margin },
-      { x: leftX - margin, y: Phaser.Math.Between(topY, bottomY) },
+    const rawPositions = [
+      { x: targetX + Phaser.Math.Between(-halfW, halfW), y: targetY - halfH - margin },
+      { x: targetX + halfW + margin, y: targetY + Phaser.Math.Between(-halfH, halfH) },
+      { x: targetX + Phaser.Math.Between(-halfW, halfW), y: targetY + halfH + margin },
+      { x: targetX - halfW - margin, y: targetY + Phaser.Math.Between(-halfH, halfH) },
     ];
 
-    const position = positions[side];
+    const position = this.wrapPoint(rawPositions[side].x, rawPositions[side].y);
     const kind = forcedKind ?? this.pickEnemyKind(runElapsedMs);
     const beast = createLeakBeast(this.scene, position.x, position.y, { kind, wave: this.currentWave });
-    this.scene.physics.moveTo(beast, targetX, targetY, Number(beast.getData("speed") ?? 90));
+    this.moveToWrapped(beast, targetX, targetY, Number(beast.getData("speed") ?? 90));
     this.group.add(beast);
   }
 
   private spawnBoss(targetX: number, targetY: number): void {
     const side = Phaser.Math.Between(0, 1);
-    const y = Phaser.Math.Between(132, GAME_HEIGHT - 138);
-    const boss = createLeakBeast(this.scene, side === 0 ? 72 : GAME_WIDTH - 72, y, { boss: true, kind: "smoke_brute", wave: this.currentWave });
+    const raw = this.wrapPoint(targetX + (side === 0 ? -GAME_WIDTH * 0.5 : GAME_WIDTH * 0.5), targetY + Phaser.Math.Between(-120, 120));
+    const boss = createLeakBeast(this.scene, raw.x, raw.y, { boss: true, kind: "smoke_brute", wave: this.currentWave });
     const now = Date.now();
 
     boss.setData("bossPhase", 1);
     boss.setData("nextPatternAt", now + 1550);
     boss.setData("spawnInvulnerableUntil", now + 520);
-    this.scene.physics.moveTo(boss, targetX, targetY, Number(boss.getData("speed") ?? 70));
+    this.moveToWrapped(boss, targetX, targetY, Number(boss.getData("speed") ?? 70));
     this.group.add(boss);
     this.showBossIntro(boss);
   }
@@ -729,6 +716,8 @@ export class WaveSystem {
   private spawnProjectile(x: number, y: number, targetX: number, targetY: number, speed = 165, boss = false): void {
     const projectile = this.scene.physics.add.sprite(x, y, boss ? "boss-bolt" : "scam-bolt");
     projectile.setData("damage", boss ? 2 : 1);
+    projectile.setData("bornAt", Date.now());
+    projectile.setData("ttl", boss ? 5200 : 3600);
     projectile.setSize(boss ? 26 : 18, boss ? 26 : 18);
     projectile.setDepth(30);
     if (boss) {
@@ -738,7 +727,10 @@ export class WaveSystem {
       projectile.setScale(1.08);
       projectile.setTint(0xd9a7ff);
     }
-    this.scene.physics.moveTo(projectile, targetX, targetY, speed);
+    const target = this.getWrappedVector(x, y, targetX, targetY);
+    if (target.lengthSq() <= 0) target.set(1, 0);
+    target.normalize().scale(speed);
+    projectile.setVelocity(target.x, target.y);
     this.projectiles.add(projectile);
   }
 
@@ -779,7 +771,6 @@ export class WaveSystem {
 
   private updateEnemyPresentation(beast: Phaser.Physics.Arcade.Sprite): void {
     const isBoss = Boolean(beast.getData("boss"));
-    const displayW = Number(beast.getData("displayW") ?? 60);
     const displayH = Number(beast.getData("displayH") ?? 52);
     beast.setDepth((isBoss ? 18 : 12) + beast.y / 1000);
 
@@ -799,18 +790,6 @@ export class WaveSystem {
     shadow.setPosition(beast.x, beast.y + displayH * 0.38);
     shadow.setDisplaySize(Number(beast.getData("shadowW") ?? 40), Number(beast.getData("shadowH") ?? 12));
     shadow.setAlpha(isBoss ? 0.34 : 0.25);
-
-    const glowStyle = this.getEnemyGlowStyle(beast);
-    let glow = this.glows.get(beast);
-    if (!glow) {
-      glow = this.scene.add.ellipse(beast.x, beast.y + displayH * 0.06, displayW * 0.86, displayH * 0.62, glowStyle.color, glowStyle.alpha)
-        .setDepth(6);
-      this.glows.set(beast, glow);
-    }
-
-    glow.setPosition(beast.x, beast.y + displayH * 0.06);
-    glow.setDisplaySize(displayW * (isBoss ? 0.92 : 0.84), displayH * (isBoss ? 0.82 : 0.62));
-    glow.setFillStyle(glowStyle.color, glowStyle.alpha);
 
     if (isBoss) {
       this.updateBossAura(beast);
@@ -1001,15 +980,19 @@ export class WaveSystem {
   }
 
   private fireScamShot(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number): void {
-    this.spawnBeamFlash(beast.x, beast.y, targetX, targetY, 0xd9a7ff);
+    const beam = this.getWrappedVector(beast.x, beast.y, targetX, targetY);
+    if (beam.lengthSq() <= 0) beam.set(1, 0);
+    const endX = beast.x + beam.x;
+    const endY = beast.y + beam.y;
+    this.spawnBeamFlash(beast.x, beast.y, endX, endY, 0xd9a7ff);
 
-    if (this.isPointNearLine(this.latestTargetX, this.latestTargetY, beast.x, beast.y, targetX, targetY, 26)) {
+    if (this.isWrappedPointNearLine(this.latestTargetX, this.latestTargetY, beast.x, beast.y, endX, endY, 28)) {
       this.spawnHitSpark(this.latestTargetX, this.latestTargetY, 0xd9a7ff, false);
       this.scene.events.emit("player-ranged-hit", { damage: 1, label: "SCAM SHOT" });
       return;
     }
 
-    const impact = this.scene.add.circle(targetX, targetY, 10, 0xd9a7ff, 0.14)
+    const impact = this.scene.add.circle(this.wrapValue(endX, WORLD_WIDTH), this.wrapValue(endY, WORLD_HEIGHT), 10, 0xd9a7ff, 0.14)
       .setStrokeStyle(2, 0xf5fff1, 0.5)
       .setDepth(44);
     this.scene.tweens.add({
@@ -1058,30 +1041,6 @@ export class WaveSystem {
     const closestX = x1 + dx * t;
     const closestY = y1 + dy * t;
     return Phaser.Math.Distance.Between(pointX, pointY, closestX, closestY) <= radius;
-  }
-
-  private getEnemyGlowStyle(beast: Phaser.Physics.Arcade.Sprite): { color: number; alpha: number } {
-    if (Boolean(beast.getData("boss"))) return { color: 0xa45cff, alpha: 0.12 };
-    const kind = String(beast.getData("kind") ?? "bad_habit") as EnemyKind;
-    switch (kind) {
-      case "fomo":
-        return { color: 0xffeb72, alpha: 0.09 };
-      case "scam":
-        return { color: 0xa45cff, alpha: 0.1 };
-      case "smoke_brute":
-        return { color: 0xff8f6a, alpha: 0.09 };
-      case "mega_leak":
-        return { color: 0xffc857, alpha: 0.11 };
-      default:
-        return { color: 0x72ff57, alpha: 0.08 };
-    }
-  }
-
-  private removeGlow(beast: Phaser.Physics.Arcade.Sprite): void {
-    const glow = this.glows.get(beast);
-    if (!glow) return;
-    glow.destroy();
-    this.glows.delete(beast);
   }
 
   private removeShadow(beast: Phaser.Physics.Arcade.Sprite): void {
@@ -1311,10 +1270,11 @@ export class WaveSystem {
     this.group.children.iterate((child) => {
       const beast = child as Phaser.Physics.Arcade.Sprite | null;
       if (!beast || !beast.active || !beast.body) return true;
-      const distance = Phaser.Math.Distance.Between(originX, originY, beast.x, beast.y);
+      const vector = this.getWrappedVector(originX, originY, beast.x, beast.y);
+      const distance = vector.length();
       if (distance < bestDistance) {
-        bestX = beast.x;
-        bestY = beast.y;
+        bestX = originX + vector.x;
+        bestY = originY + vector.y;
         bestDistance = distance;
         found = true;
       }
@@ -1326,6 +1286,53 @@ export class WaveSystem {
     if (direction.lengthSq() <= 0) return null;
     return direction.normalize();
   }
+
+  private moveToWrapped(sprite: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, speed: number): void {
+    const direction = this.getWrappedVector(sprite.x, sprite.y, targetX, targetY);
+    if (direction.lengthSq() <= 0.0001) {
+      sprite.setVelocity(0, 0);
+      return;
+    }
+    direction.normalize().scale(speed);
+    sprite.setVelocity(direction.x, direction.y);
+  }
+
+  private getWrappedVector(fromX: number, fromY: number, toX: number, toY: number): Phaser.Math.Vector2 {
+    let dx = toX - fromX;
+    let dy = toY - fromY;
+
+    if (dx > WORLD_WIDTH / 2) dx -= WORLD_WIDTH;
+    if (dx < -WORLD_WIDTH / 2) dx += WORLD_WIDTH;
+    if (dy > WORLD_HEIGHT / 2) dy -= WORLD_HEIGHT;
+    if (dy < -WORLD_HEIGHT / 2) dy += WORLD_HEIGHT;
+
+    return new Phaser.Math.Vector2(dx, dy);
+  }
+
+  private wrapValue(value: number, max: number): number {
+    if (value < 0) return value + max;
+    if (value > max) return value - max;
+    return value;
+  }
+
+  private wrapSpritePosition(sprite: Phaser.Physics.Arcade.Sprite): void {
+    sprite.x = this.wrapValue(sprite.x, WORLD_WIDTH);
+    sprite.y = this.wrapValue(sprite.y, WORLD_HEIGHT);
+  }
+
+  private wrapPoint(x: number, y: number): { x: number; y: number } {
+    return { x: this.wrapValue(x, WORLD_WIDTH), y: this.wrapValue(y, WORLD_HEIGHT) };
+  }
+
+  private isWrappedPointNearLine(pointX: number, pointY: number, x1: number, y1: number, x2: number, y2: number, radius: number): boolean {
+    for (const ox of [-WORLD_WIDTH, 0, WORLD_WIDTH]) {
+      for (const oy of [-WORLD_HEIGHT, 0, WORLD_HEIGHT]) {
+        if (this.isPointNearLine(pointX + ox, pointY + oy, x1, y1, x2, y2, radius)) return true;
+      }
+    }
+    return false;
+  }
+
 
   private hasActiveBoss(): boolean {
     let active = false;

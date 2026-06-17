@@ -23,18 +23,24 @@ export class MobileControls {
 
     this.createControlBackplates();
 
-    this.joystickBase = scene.add.image(this.joystickCenter.x, this.joystickCenter.y, "combat-joystick-base")
+    this.joystickBase = this.fixed(scene.add.image(this.joystickCenter.x, this.joystickCenter.y, "combat-joystick-base"))
       .setDisplaySize(160, 160)
       .setAlpha(0.97)
       .setDepth(80);
 
-    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 24, 0x72ff57, 0.96)
+    this.joystickKnob = this.fixed(scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 24, 0x72ff57, 0.96))
       .setStrokeStyle(3, 0x071107, 0.76)
       .setDepth(81);
 
     this.createButtons();
     this.createPointerControls();
     this.createKeyboardFallback();
+  }
+
+  private fixed<T extends Phaser.GameObjects.GameObject>(obj: T): T {
+    const fixedObj = obj as T & { setScrollFactor?: (x: number, y?: number) => T };
+    fixedObj.setScrollFactor?.(0);
+    return obj;
   }
 
   getInputState(): InputState {
@@ -55,22 +61,22 @@ export class MobileControls {
   }
 
   private createControlBackplates(): void {
-    this.scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 102, 0x061306, 0.24)
+    this.fixed(this.scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 102, 0x061306, 0.24))
       .setStrokeStyle(3, 0x39ff14, 0.16)
       .setDepth(78);
 
-    this.scene.add.circle(GAME_WIDTH - 132, GAME_HEIGHT - 92, 142, 0x061306, 0.22)
+    this.fixed(this.scene.add.circle(GAME_WIDTH - 132, GAME_HEIGHT - 92, 142, 0x061306, 0.22))
       .setStrokeStyle(3, 0xb66cff, 0.14)
       .setDepth(78);
 
-    this.scene.add.text(GAME_WIDTH - 162, GAME_HEIGHT - 204, "SKILLS", {
+    this.fixed(this.scene.add.text(GAME_WIDTH - 162, GAME_HEIGHT - 204, "SKILLS", {
       fontFamily: "Arial",
       fontSize: "12px",
       color: "#d7ffd0",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(81).setAlpha(0.78);
+    })).setOrigin(0.5).setDepth(81).setAlpha(0.78);
   }
 
   private createButtons(): void {
@@ -108,22 +114,22 @@ export class MobileControls {
     label: string,
     callback: () => void,
   ): void {
-    const hitZone = this.scene.add.circle(x, y, Math.max(width, height) * 0.64, 0x000000, 0.001)
+    const hitZone = this.fixed(this.scene.add.circle(x, y, Math.max(width, height) * 0.64, 0x000000, 0.001))
       .setDepth(79)
       .setInteractive({ useHandCursor: true });
 
-    const image = this.scene.add.image(x, y, texture)
+    const image = this.fixed(this.scene.add.image(x, y, texture))
       .setDisplaySize(width, height)
       .setDepth(80);
 
-    this.scene.add.text(x, y + height * 0.42, label, {
+    this.fixed(this.scene.add.text(x, y + height * 0.42, label, {
       fontFamily: "Arial",
       fontSize: label === "ATTACK" ? "12px" : "11px",
       color: "#f5fff1",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 4,
-    }).setOrigin(0.5).setDepth(81).setAlpha(0.9);
+    })).setOrigin(0.5).setDepth(81).setAlpha(0.9);
 
     hitZone.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       pointer.event?.preventDefault();
@@ -133,27 +139,27 @@ export class MobileControls {
   }
 
   private createAttackToggleButton(x: number, y: number, size: number): void {
-    const hitZone = this.scene.add.circle(x, y, size * 0.7, 0x000000, 0.001)
+    const hitZone = this.fixed(this.scene.add.circle(x, y, size * 0.7, 0x000000, 0.001))
       .setDepth(79)
       .setInteractive({ useHandCursor: true });
 
-    this.attackButton = this.scene.add.image(x, y, "combat-button-auto")
+    this.attackButton = this.fixed(this.scene.add.image(x, y, "combat-button-auto"))
       .setDisplaySize(size, size)
       .setDepth(80)
       .setAlpha(0.9);
 
-    this.attackIndicator = this.scene.add.circle(x + size * 0.3, y + size * 0.3, 6, 0xff3355, 0.95)
+    this.attackIndicator = this.fixed(this.scene.add.circle(x + size * 0.3, y + size * 0.3, 6, 0xff3355, 0.95))
       .setStrokeStyle(2, 0x050805, 0.75)
       .setDepth(81);
 
-    this.scene.add.text(x, y + size * 0.46, "AUTO", {
+    this.fixed(this.scene.add.text(x, y + size * 0.46, "AUTO", {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#f5fff1",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 4,
-    }).setOrigin(0.5).setDepth(81).setAlpha(0.9);
+    })).setOrigin(0.5).setDepth(81).setAlpha(0.9);
 
     hitZone.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       pointer.event?.preventDefault();
