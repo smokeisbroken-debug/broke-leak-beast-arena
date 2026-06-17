@@ -338,9 +338,10 @@ export class ArenaScene extends Phaser.Scene {
 
     const points = hitResult.score + hitResult.hits * 6 + (attack.comboStep === 3 ? 28 : 0);
     this.score += points;
-    this.cameras.main.flash(55, 57, 255, 20, false);
+    this.cameras.main.flash(42, 57, 255, 20, false);
+    if (attack.comboStep === 3 || hitResult.bossHit) this.cameras.main.shake(45, 0.0014);
     this.showFloatingText(
-      `COMBO ${attack.comboStep} +${points}`,
+      `HIT x${hitResult.hits} +${points}`,
       this.player.sprite.x,
       this.player.sprite.y - 64,
       hitResult.bossHit ? "#b66cff" : "#39ff14",
@@ -354,8 +355,10 @@ export class ArenaScene extends Phaser.Scene {
     const points = hitResult.score + hitResult.hits * 18 + (hitResult.bossHit ? 55 : 0);
     this.score += points;
 
-    this.cameras.main.shake(70, 0.0025);
-    if (hitResult.hits > 0) this.showFloatingText(`SLASH +${points}`, this.player.sprite.x, this.player.sprite.y - 70, "#39ff14");
+    if (hitResult.hits > 0) {
+      this.cameras.main.shake(hitResult.bossHit ? 95 : 64, hitResult.bossHit ? 0.003 : 0.0019);
+      this.showFloatingText(`SLASH x${hitResult.hits} +${points}`, this.player.sprite.x, this.player.sprite.y - 70, "#39ff14");
+    }
     if (hitResult.defeated > 0) this.maybeOfferDefeatUpgrade();
   }
 
@@ -366,8 +369,10 @@ export class ArenaScene extends Phaser.Scene {
     const points = hitResult.score + hitResult.hits * 12 + (hitResult.bossHit ? 40 : 0);
     this.score += points;
 
-    this.cameras.main.shake(70, 0.0025);
-    this.showFloatingText(hitResult.hits > 0 ? `PULSE +${points}` : "PULSE", this.player.sprite.x, this.player.sprite.y - 70, "#39ff14");
+    if (hitResult.hits > 0) {
+      this.cameras.main.shake(hitResult.bossHit ? 90 : 58, hitResult.bossHit ? 0.0028 : 0.0016);
+    }
+    this.showFloatingText(hitResult.hits > 0 ? `PULSE x${hitResult.hits} +${points}` : "PULSE", this.player.sprite.x, this.player.sprite.y - 70, "#39ff14");
     if (hitResult.defeated > 0) this.maybeOfferDefeatUpgrade();
   }
 
@@ -417,14 +422,16 @@ export class ArenaScene extends Phaser.Scene {
     if (this.player.tryBlockDamage()) {
       this.cameras.main.shake(70, 0.003);
       this.showBlockFlash();
-      this.showFloatingText(`BLOCKED ${label}`, this.player.sprite.x, this.player.sprite.y - 62, "#39ff14");
+      this.showFloatingText("BLOCK", this.player.sprite.x, this.player.sprite.y - 62, "#39ff14");
       return;
     }
 
     this.hp -= amount;
     this.player.flashHit();
-    this.cameras.main.shake(105, 0.005);
-    this.showFloatingText(`-${amount} HP ${label}`, this.player.sprite.x, this.player.sprite.y - 58, "#ff3355");
+    this.cameras.main.flash(70, 255, 51, 85, false);
+    this.cameras.main.shake(105, 0.0042);
+    this.showFloatingText(`-${amount} HP`, this.player.sprite.x, this.player.sprite.y - 58, "#ff3355");
+    this.showFloatingText(label, this.player.sprite.x, this.player.sprite.y - 78, "#ff9aaa");
 
     if (this.hp <= 0) {
       this.finishRun();
@@ -441,6 +448,18 @@ export class ArenaScene extends Phaser.Scene {
       .setRotation(direction.angle())
       .setDepth(30)
       .setAlpha(0.95);
+
+    const streak = this.add.line(0, 0, this.player.sprite.x, this.player.sprite.y, centerX, centerY, 0x39ff14, attack.comboStep === 3 ? 0.72 : 0.46)
+      .setOrigin(0, 0)
+      .setLineWidth(attack.comboStep === 3 ? 5 : 3)
+      .setDepth(36);
+
+    this.tweens.add({
+      targets: streak,
+      alpha: 0,
+      duration: 120,
+      onComplete: () => streak.destroy(),
+    });
 
     this.tweens.add({
       targets: fx,
@@ -468,9 +487,13 @@ export class ArenaScene extends Phaser.Scene {
       .setScale(0.24)
       .setRotation(direction.angle())
       .setDepth(38);
+    const line = this.add.line(0, 0, this.player.sprite.x, this.player.sprite.y, endX, endY, 0x39ff14, 0.74)
+      .setOrigin(0, 0)
+      .setLineWidth(5)
+      .setDepth(39);
 
     this.tweens.add({
-      targets: [trail, impact],
+      targets: [trail, impact, line],
       alpha: 0,
       duration: 230,
       onComplete: () => {
@@ -484,8 +507,11 @@ export class ArenaScene extends Phaser.Scene {
     const logicRadius = this.player.getPulseRadius();
     const visualRadius = Math.min(76, Math.max(44, logicRadius * 0.34));
     const ring = this.add.circle(this.player.sprite.x, this.player.sprite.y, 10, 0x39ff14, 0.08)
-      .setStrokeStyle(4, 0x78ff62, 0.72)
+      .setStrokeStyle(5, 0x78ff62, 0.82)
       .setDepth(35);
+    const innerRing = this.add.circle(this.player.sprite.x, this.player.sprite.y, 8, 0xbfff8d, 0.04)
+      .setStrokeStyle(2, 0xf5fff1, 0.36)
+      .setDepth(36);
     const glow = this.add.circle(this.player.sprite.x, this.player.sprite.y, 8, 0xbfff8d, 0.22)
       .setDepth(34);
 
@@ -496,6 +522,15 @@ export class ArenaScene extends Phaser.Scene {
       duration: 220,
       ease: "Cubic.easeOut",
       onComplete: () => ring.destroy(),
+    });
+
+    this.tweens.add({
+      targets: innerRing,
+      radius: visualRadius * 0.72,
+      alpha: 0,
+      duration: 190,
+      ease: "Cubic.easeOut",
+      onComplete: () => innerRing.destroy(),
     });
 
     this.tweens.add({
@@ -531,14 +566,20 @@ export class ArenaScene extends Phaser.Scene {
       .setScale(0.18)
       .setDepth(36)
       .setAlpha(0.9);
+    const guard = this.add.circle(this.player.sprite.x, this.player.sprite.y, 22, 0x39ff14, 0.03)
+      .setStrokeStyle(4, 0x39ff14, 0.65)
+      .setDepth(37);
 
     this.tweens.add({
-      targets: block,
-      scaleX: 0.28,
-      scaleY: 0.28,
+      targets: [block, guard],
+      scaleX: 1.35,
+      scaleY: 1.35,
       alpha: 0,
       duration: 220,
-      onComplete: () => block.destroy(),
+      onComplete: () => {
+        block.destroy();
+        guard.destroy();
+      },
     });
   }
 
