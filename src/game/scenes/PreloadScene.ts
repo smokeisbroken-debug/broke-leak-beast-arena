@@ -4,6 +4,16 @@ import { COLORS } from "../../config/theme";
 
 const ARENA_BACKGROUND_KEYS = Array.from({ length: 10 }, (_, index) => `arena-bg-${String(index + 1).padStart(2, "0")}`);
 
+
+const ENEMY_TEXTURE_SETS = {
+  "enemy-imp": Array.from({ length: 10 }, (_, index) => `assets/enemies/enemy-imp-${String(index + 1).padStart(2, "0")}.png`),
+  "enemy-runner": Array.from({ length: 10 }, (_, index) => `assets/enemies/enemy-runner-${String(index + 1).padStart(2, "0")}.png`),
+  "enemy-brute": Array.from({ length: 10 }, (_, index) => `assets/enemies/enemy-brute-${String(index + 1).padStart(2, "0")}.png`),
+  "enemy-beast": Array.from({ length: 10 }, (_, index) => `assets/enemies/enemy-beast-${String(index + 1).padStart(2, "0")}.png`),
+  "boss-thorn": Array.from({ length: 10 }, (_, index) => `assets/enemies/boss-thorn-${String(index + 1).padStart(2, "0")}.png`),
+  "boss-smoke": Array.from({ length: 10 }, (_, index) => `assets/enemies/boss-smoke-${String(index + 1).padStart(2, "0")}.png`),
+} as const;
+
 const MASCOT_TEXTURES = [
   ["mascot-idle-front", "assets/mascot/frog-idle-front.png"],
   ["mascot-idle-back", "assets/mascot/frog-idle-back.png"],
@@ -39,6 +49,7 @@ export class PreloadScene extends Phaser.Scene {
 
   create(): void {
     this.createMascotAnimations();
+    this.createEnemyAnimations();
     this.scene.start(SCENE_KEYS.menu);
   }
 
@@ -67,6 +78,12 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("combat-button-shield", "assets/ui/combat-button-shield.png?v=038");
     this.load.image("combat-button-auto", "assets/ui/combat-button-auto.png?v=038");
     this.load.image("combat-control-strip", "assets/ui/combat-control-strip.png?v=038");
+    Object.entries(ENEMY_TEXTURE_SETS).forEach(([prefix, paths]) => {
+      paths.forEach((path, index) => {
+        this.load.image(`${prefix}-${String(index + 1).padStart(2, "0")}`, path);
+      });
+    });
+
     this.load.spritesheet("arena-vfx-sheet", "assets/vfx/arena-vfx-sheet.png", {
       frameWidth: 418,
       frameHeight: 418,
@@ -163,6 +180,27 @@ export class PreloadScene extends Phaser.Scene {
         repeat: 0,
       });
     }
+  }
+
+  private createEnemyAnimations(): void {
+    const create = (key: string, prefix: string, frameRate: number) => {
+      if (this.anims.exists(key)) return;
+      this.anims.create({
+        key,
+        frames: Array.from({ length: 10 }, (_, index) => ({
+          key: `${prefix}-${String(index + 1).padStart(2, "0")}`,
+        })),
+        frameRate,
+        repeat: -1,
+      });
+    };
+
+    create("enemy-bad-habit-move", "enemy-imp", 9);
+    create("enemy-fomo-move", "enemy-runner", 11);
+    create("enemy-scam-move", "enemy-beast", 10);
+    create("enemy-smoke-brute-move", "enemy-brute", 7);
+    create("boss-thorn-move", "boss-thorn", 8);
+    create("boss-smoke-move", "boss-smoke", 7);
   }
 
   private createGeneratedPlaceholderTextures(): void {

@@ -35,7 +35,6 @@ export class MainMenuScene extends Phaser.Scene {
       stroke: "#050805", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(5);
 
-
     this.add.text(545, 258, "Tap PLAY to open fullscreen", {
       fontFamily: "Arial", fontSize: "14px", color: "#d7ffd0", align: "center",
       stroke: "#050805", strokeThickness: 3,

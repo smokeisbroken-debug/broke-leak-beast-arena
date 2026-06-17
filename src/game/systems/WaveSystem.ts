@@ -187,6 +187,7 @@ export class WaveSystem {
 
       const kind = beast.getData("kind") as EnemyKind;
       const speed = Number(beast.getData("speed") ?? 90);
+      beast.setFlipX(targetX < beast.x);
 
       if (Boolean(beast.getData("boss"))) {
         this.updateBossPattern(beast, targetX, targetY, now, speed);
