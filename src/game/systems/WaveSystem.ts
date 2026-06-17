@@ -15,6 +15,13 @@ interface BossHpBar {
   fill: Phaser.GameObjects.Rectangle;
   frame: Phaser.GameObjects.Rectangle;
   label: Phaser.GameObjects.Text;
+  phaseLabel: Phaser.GameObjects.Text;
+}
+
+interface BossAura {
+  outer: Phaser.GameObjects.Arc;
+  inner: Phaser.GameObjects.Arc;
+  phase: Phaser.GameObjects.Arc;
 }
 
 type BossPattern = "charge" | "bolt_spread" | "shockwave" | "summon" | "rage_charge" | "smoke_ring";
@@ -34,6 +41,7 @@ export class WaveSystem {
   private hazards: Phaser.GameObjects.Arc[] = [];
   private shadows = new Map<Phaser.Physics.Arcade.Sprite, Phaser.GameObjects.Ellipse>();
   private bossHpBars = new Map<Phaser.Physics.Arcade.Sprite, BossHpBar>();
+  private bossAuras = new Map<Phaser.Physics.Arcade.Sprite, BossAura>();
   private pendingBossRewardWave = 0;
 
   constructor(private scene: Phaser.Scene) {
@@ -86,6 +94,7 @@ export class WaveSystem {
     this.spawnDeathBurst(enemy.x, enemy.y, wasBoss ? 0xb66cff : 0x39ff14, wasBoss);
     this.removeShadow(enemy);
     this.removeBossHpBar(enemy);
+    this.removeBossAura(enemy);
     enemy.disableBody(true, true);
     this.defeatedCount += 1;
 
@@ -180,8 +189,15 @@ export class WaveSystem {
       bar.fill.destroy();
       bar.frame.destroy();
       bar.label.destroy();
+      bar.phaseLabel.destroy();
     });
     this.bossHpBars.clear();
+    this.bossAuras.forEach((aura) => {
+      aura.outer.destroy();
+      aura.inner.destroy();
+      aura.phase.destroy();
+    });
+    this.bossAuras.clear();
     this.group.clear(true, true);
     this.projectiles.clear(true, true);
     this.hazards.forEach((zone) => zone.destroy());
@@ -671,22 +687,46 @@ export class WaveSystem {
     projectile.setData("damage", boss ? 2 : 1);
     projectile.setSize(boss ? 22 : 16, boss ? 22 : 16);
     projectile.setDepth(30);
+    if (boss) {
+      projectile.setScale(1.18);
+      projectile.setTint(0xd9a7ff);
+    }
     this.scene.physics.moveTo(projectile, targetX, targetY, speed);
     this.projectiles.add(projectile);
   }
 
   private spawnHazard(x: number, y: number, radius = 45, durationMs = 1800): void {
-    const zone = this.scene.add.circle(x, y, radius, 0x7b42ff, 0.22)
-      .setStrokeStyle(2, 0xb66cff, 0.35)
-      .setDepth(6);
+    const warning = this.scene.add.circle(x, y, radius + 8, 0xff3355, 0.045)
+      .setStrokeStyle(4, 0xff3355, 0.55)
+      .setDepth(7);
+    const zone = this.scene.add.circle(x, y, radius, 0x7b42ff, 0.16)
+      .setStrokeStyle(3, 0xb66cff, 0.48)
+      .setDepth(8);
+    const core = this.scene.add.circle(x, y, Math.max(8, radius * 0.18), 0xf5fff1, 0.09)
+      .setDepth(9);
+
     zone.setData("expiresAt", Date.now() + durationMs);
     this.hazards.push(zone);
 
     this.scene.tweens.add({
-      targets: zone,
-      alpha: 0.06,
+      targets: warning,
+      scaleX: 1.08,
+      scaleY: 1.08,
+      alpha: 0.12,
+      duration: 210,
+      yoyo: true,
+      repeat: 1,
+      onComplete: () => warning.destroy(),
+    });
+
+    this.scene.tweens.add({
+      targets: [zone, core],
+      alpha: 0.04,
       duration: durationMs,
-      onComplete: () => zone.destroy(),
+      onComplete: () => {
+        zone.destroy();
+        core.destroy();
+      },
     });
   }
 
@@ -712,6 +752,7 @@ export class WaveSystem {
     shadow.setAlpha(isBoss ? 0.34 : 0.25);
 
     if (isBoss) {
+      this.updateBossAura(beast);
       this.updateBossHpBar(
         beast,
         Number(beast.getData("hp") ?? 1),
@@ -720,45 +761,93 @@ export class WaveSystem {
     }
   }
 
+  private updateBossAura(beast: Phaser.Physics.Arcade.Sprite): void {
+    const phase = Number(beast.getData("bossPhase") ?? 1);
+    const radius = phase >= 2 ? 76 : 64;
+
+    let aura = this.bossAuras.get(beast);
+    if (!aura) {
+      const outer = this.scene.add.circle(beast.x, beast.y, 66, 0xb66cff, 0.035)
+        .setStrokeStyle(2, 0xb66cff, 0.28)
+        .setDepth(6);
+      const inner = this.scene.add.circle(beast.x, beast.y, 36, 0x39ff14, 0.035)
+        .setStrokeStyle(1, 0x39ff14, 0.18)
+        .setDepth(6);
+      const phaseRing = this.scene.add.circle(beast.x, beast.y, 48, 0xff3355, 0.01)
+        .setStrokeStyle(2, 0xff3355, 0)
+        .setDepth(6);
+
+      aura = { outer, inner, phase: phaseRing };
+      this.bossAuras.set(beast, aura);
+
+      this.scene.tweens.add({
+        targets: outer,
+        scaleX: 1.08,
+        scaleY: 1.08,
+        alpha: 0.015,
+        duration: 720,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    }
+
+    aura.outer.setPosition(beast.x, beast.y + 10).setRadius(radius);
+    aura.inner.setPosition(beast.x, beast.y + 10).setRadius(Math.max(34, radius * 0.56));
+    aura.phase.setPosition(beast.x, beast.y + 10).setRadius(radius + 10);
+    aura.phase.setStrokeStyle(phase >= 2 ? 3 : 1, 0xff3355, phase >= 2 ? 0.34 : 0.08);
+    aura.phase.setAlpha(phase >= 2 ? 0.08 : 0.02);
+  }
+
   private updateBossHpBar(beast: Phaser.Physics.Arcade.Sprite, hp: number, maxHp: number): void {
-    const displayW = Number(beast.getData("displayW") ?? beast.displayWidth);
     const displayH = Number(beast.getData("displayH") ?? beast.displayHeight);
-    const barW = Phaser.Math.Clamp(displayW * 0.86, 70, 104);
-    const barY = beast.y - displayH * 0.58;
+    const barW = 132;
+    const barY = beast.y - displayH * 0.62;
     const ratio = Phaser.Math.Clamp(hp / maxHp, 0, 1);
 
     let bar = this.bossHpBars.get(beast);
     if (!bar) {
-      const bg = this.scene.add.rectangle(beast.x, barY, barW, 6, 0x21070c, 0.92)
+      const bg = this.scene.add.rectangle(beast.x, barY, barW, 9, 0x21070c, 0.96)
         .setDepth(48);
-      const fill = this.scene.add.rectangle(beast.x - barW / 2, barY, barW, 4, 0xff3355, 1)
+      const fill = this.scene.add.rectangle(beast.x - barW / 2, barY, barW, 7, 0xff3355, 1)
         .setOrigin(0, 0.5)
         .setDepth(49);
-      const frame = this.scene.add.rectangle(beast.x, barY, barW + 3, 8, 0x000000, 0)
-        .setStrokeStyle(1, 0xf5fff1, 0.36)
+      const frame = this.scene.add.rectangle(beast.x, barY, barW + 4, 11, 0x000000, 0)
+        .setStrokeStyle(2, 0xf5fff1, 0.42)
         .setDepth(50);
-      const label = this.scene.add.text(beast.x, barY - 11, "BOSS", {
+      const label = this.scene.add.text(beast.x, barY - 15, "BOSS", {
         fontFamily: "Arial",
-        fontSize: "9px",
+        fontSize: "10px",
         color: "#f5fff1",
         fontStyle: "bold",
         stroke: "#050805",
         strokeThickness: 3,
       }).setOrigin(0.5).setDepth(51);
-      bar = { bg, fill, frame, label };
+      const phaseLabel = this.scene.add.text(beast.x, barY + 13, "PHASE 1", {
+        fontFamily: "Arial",
+        fontSize: "8px",
+        color: "#d7ffd0",
+        fontStyle: "bold",
+        stroke: "#050805",
+        strokeThickness: 3,
+      }).setOrigin(0.5).setDepth(51);
+      bar = { bg, fill, frame, label, phaseLabel };
       this.bossHpBars.set(beast, bar);
     }
 
     const phase = Number(beast.getData("bossPhase") ?? 1);
     const style = ((beast.getData("bossStyle") as string | undefined) ?? "thorn").toUpperCase();
 
-    bar.bg.setPosition(beast.x, barY).setDisplaySize(barW, 6);
-    bar.frame.setPosition(beast.x, barY).setDisplaySize(barW + 3, 8);
-    bar.fill.setPosition(beast.x - barW / 2, barY).setDisplaySize(Math.max(3, barW * ratio), 4);
+    bar.bg.setPosition(beast.x, barY).setDisplaySize(barW, 9);
+    bar.frame.setPosition(beast.x, barY).setDisplaySize(barW + 4, 11);
+    bar.fill.setPosition(beast.x - barW / 2, barY).setDisplaySize(Math.max(4, barW * ratio), 7);
     bar.fill.setFillStyle(ratio < 0.28 ? 0xff3355 : ratio < 0.58 ? 0xffb338 : 0x39ff14, 1);
-    bar.label.setPosition(beast.x, barY - 11);
-    bar.label.setText(`${style} BOSS · P${phase}`);
+    bar.label.setPosition(beast.x, barY - 15);
+    bar.label.setText(`${style} BOSS`);
     bar.label.setColor(phase >= 2 ? "#d9a7ff" : "#f5fff1");
+    bar.phaseLabel.setPosition(beast.x, barY + 13);
+    bar.phaseLabel.setText(phase >= 2 ? "PHASE 2" : "PHASE 1");
+    bar.phaseLabel.setColor(phase >= 2 ? "#ff9aaa" : "#d7ffd0");
   }
 
   private removeBossHpBar(beast: Phaser.Physics.Arcade.Sprite): void {
@@ -768,7 +857,17 @@ export class WaveSystem {
     bar.fill.destroy();
     bar.frame.destroy();
     bar.label.destroy();
+    bar.phaseLabel.destroy();
     this.bossHpBars.delete(beast);
+  }
+
+  private removeBossAura(beast: Phaser.Physics.Arcade.Sprite): void {
+    const aura = this.bossAuras.get(beast);
+    if (!aura) return;
+    aura.outer.destroy();
+    aura.inner.destroy();
+    aura.phase.destroy();
+    this.bossAuras.delete(beast);
   }
 
   private spawnHitSpark(x: number, y: number, color: number, heavy = false): void {
@@ -862,48 +961,93 @@ export class WaveSystem {
   }
 
   private showTelegraphLine(x1: number, y1: number, x2: number, y2: number, color: number, durationMs: number): void {
-    const line = this.scene.add.line(0, 0, x1, y1, x2, y2, color, 0.72)
+    const glow = this.scene.add.line(0, 0, x1, y1, x2, y2, color, 0.18)
       .setOrigin(0, 0)
-      .setLineWidth(3)
+      .setLineWidth(10)
+      .setDepth(8);
+    const line = this.scene.add.line(0, 0, x1, y1, x2, y2, color, 0.84)
+      .setOrigin(0, 0)
+      .setLineWidth(4)
       .setDepth(9);
+    const target = this.scene.add.circle(x2, y2, 8, color, 0.22)
+      .setStrokeStyle(2, color, 0.72)
+      .setDepth(10);
 
     this.scene.tweens.add({
-      targets: line,
+      targets: [glow, line, target],
       alpha: 0.12,
-      duration: durationMs,
+      duration: Math.max(180, durationMs * 0.62),
       yoyo: true,
-      onComplete: () => line.destroy(),
+      repeat: 1,
+      onComplete: () => {
+        glow.destroy();
+        line.destroy();
+        target.destroy();
+      },
     });
   }
 
   private showTelegraphCircle(x: number, y: number, radius: number, color: number, durationMs: number): void {
-    const circle = this.scene.add.circle(x, y, radius, color, 0.14)
-      .setStrokeStyle(3, color, 0.68)
+    const fill = this.scene.add.circle(x, y, radius, color, 0.075)
       .setDepth(8);
+    const circle = this.scene.add.circle(x, y, radius, color, 0.02)
+      .setStrokeStyle(4, color, 0.74)
+      .setDepth(9);
+    const inner = this.scene.add.circle(x, y, Math.max(12, radius * 0.22), 0xf5fff1, 0.08)
+      .setStrokeStyle(1, color, 0.32)
+      .setDepth(10);
 
     this.scene.tweens.add({
-      targets: circle,
+      targets: [fill, circle, inner],
       alpha: 0.04,
-      scaleX: 1.1,
-      scaleY: 1.1,
+      scaleX: 1.12,
+      scaleY: 1.12,
       duration: durationMs,
-      yoyo: true,
-      onComplete: () => circle.destroy(),
+      ease: "Sine.easeInOut",
+      onComplete: () => {
+        fill.destroy();
+        circle.destroy();
+        inner.destroy();
+      },
+    });
+  }
+
+  private showBossArenaFlash(x: number, y: number): void {
+    const sweep = this.scene.add.circle(x, y, 28, 0xb66cff, 0.045)
+      .setStrokeStyle(4, 0xb66cff, 0.42)
+      .setDepth(7);
+    const screenPulse = this.scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xb66cff, 0.055)
+      .setDepth(5);
+
+    this.scene.tweens.add({
+      targets: sweep,
+      radius: 190,
+      alpha: 0,
+      duration: 680,
+      ease: "Cubic.easeOut",
+      onComplete: () => sweep.destroy(),
+    });
+
+    this.scene.tweens.add({
+      targets: screenPulse,
+      alpha: 0,
+      duration: 360,
+      onComplete: () => screenPulse.destroy(),
     });
   }
 
   private showBossIntro(boss: Phaser.Physics.Arcade.Sprite): void {
     const style = ((boss.getData("bossStyle") as string | undefined) ?? "thorn").toUpperCase();
-    const label = this.scene.add.text(GAME_WIDTH / 2, 92, `${style} BOSS`, {
+    const label = this.scene.add.text(GAME_WIDTH / 2, 86, `${style} BOSS`, {
       fontFamily: "Arial",
-      fontSize: "28px",
+      fontSize: "32px",
       color: "#d9a7ff",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 6,
     }).setOrigin(0.5).setDepth(120);
 
-    const sub = this.scene.add.text(GAME_WIDTH / 2, 122, "DODGE THE PATTERN · BREAK THE LEAK", {
+    const sub = this.scene.add.text(GAME_WIDTH / 2, 122, "WATCH RED/PURPLE ZONES", {
       fontFamily: "Arial",
       fontSize: "12px",
       color: "#f5fff1",
@@ -912,7 +1056,8 @@ export class WaveSystem {
       strokeThickness: 4,
     }).setOrigin(0.5).setDepth(120);
 
-    this.showTelegraphCircle(boss.x, boss.y, 120, 0xb66cff, 740);
+    this.showTelegraphCircle(boss.x, boss.y, 132, 0xb66cff, 820);
+    this.showBossArenaFlash(boss.x, boss.y);
     this.scene.cameras.main.shake(120, 0.0025);
 
     this.scene.tweens.add({
@@ -929,6 +1074,33 @@ export class WaveSystem {
     });
   }
 
+  private showBossDefeatSweep(x: number, y: number): void {
+    const ringA = this.scene.add.circle(x, y, 24, 0x39ff14, 0.04)
+      .setStrokeStyle(5, 0x39ff14, 0.7)
+      .setDepth(46);
+    const ringB = this.scene.add.circle(x, y, 14, 0xf5fff1, 0.04)
+      .setStrokeStyle(2, 0xf5fff1, 0.45)
+      .setDepth(47);
+
+    this.scene.tweens.add({
+      targets: ringA,
+      radius: 210,
+      alpha: 0,
+      duration: 640,
+      ease: "Cubic.easeOut",
+      onComplete: () => ringA.destroy(),
+    });
+
+    this.scene.tweens.add({
+      targets: ringB,
+      radius: 128,
+      alpha: 0,
+      duration: 420,
+      ease: "Cubic.easeOut",
+      onComplete: () => ringB.destroy(),
+    });
+  }
+
   private showBossClear(x: number, y: number): void {
     const label = this.scene.add.text(GAME_WIDTH / 2, 92, "BOSS BROKEN", {
       fontFamily: "Arial",
@@ -939,7 +1111,8 @@ export class WaveSystem {
       strokeThickness: 6,
     }).setOrigin(0.5).setDepth(120);
 
-    this.showTelegraphCircle(x, y, 138, 0x39ff14, 640);
+    this.showTelegraphCircle(x, y, 148, 0x39ff14, 700);
+    this.showBossDefeatSweep(x, y);
 
     this.scene.tweens.add({
       targets: label,
@@ -955,7 +1128,7 @@ export class WaveSystem {
   private showEnemyWarning(text: string, x: number, y: number, color: string): void {
     const label = this.scene.add.text(x, y, text, {
       fontFamily: "Arial",
-      fontSize: "11px",
+      fontSize: "12px",
       color,
       fontStyle: "bold",
       stroke: "#050805",
