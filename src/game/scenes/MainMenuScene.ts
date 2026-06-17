@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import { GAME_CONFIG } from "../../config/game";
+import { requestAppFullscreen } from "../../app/AppShell";
 
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -34,12 +35,21 @@ export class MainMenuScene extends Phaser.Scene {
       stroke: "#050805", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(5);
 
-    const play = this.add.image(545, 308, "start-play-button")
+
+    this.add.text(545, 258, "Tap PLAY to open fullscreen", {
+      fontFamily: "Arial", fontSize: "14px", color: "#d7ffd0", align: "center",
+      stroke: "#050805", strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(5);
+
+    const play = this.add.image(545, 314, "start-play-button")
       .setDisplaySize(260, 84)
       .setDepth(5)
       .setInteractive({ useHandCursor: true });
 
-    play.on("pointerdown", () => this.scene.start(SCENE_KEYS.arena));
+    play.on("pointerdown", async () => {
+      await requestAppFullscreen(document.documentElement);
+      this.scene.start(SCENE_KEYS.arena);
+    });
     play.on("pointerover", () => play.setScale(1.03));
     play.on("pointerout", () => play.setScale(1));
 

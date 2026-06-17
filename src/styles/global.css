@@ -27,9 +27,13 @@ body,
   user-select: none;
 }
 
+#app,
 #game-root {
+  position: fixed;
+  inset: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   touch-action: none;
 }
 

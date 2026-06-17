@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
+import { requestAppFullscreen, toggleAppFullscreen } from "../../app/AppShell";
 import { PlayerMascot } from "../entities/PlayerMascot";
 import { WaveSystem } from "../systems/WaveSystem";
 import { MobileControls } from "../ui/MobileControls";
@@ -38,6 +39,7 @@ export class ArenaScene extends Phaser.Scene {
   private arenaBackground!: Phaser.GameObjects.Image;
   private arenaShade!: Phaser.GameObjects.Rectangle;
   private pauseButton!: Phaser.GameObjects.Container;
+  private fullscreenButton!: Phaser.GameObjects.Container;
   private pauseOverlay?: Phaser.GameObjects.Container;
   private currentArenaBackgroundKey = "";
 
@@ -82,6 +84,9 @@ export class ArenaScene extends Phaser.Scene {
     this.controls = new MobileControls(this);
     this.hud = new Hud(this);
     this.createPauseButton();
+    this.input.once("pointerdown", () => {
+      void requestAppFullscreen(document.documentElement);
+    });
 
     this.hud.update(this.getHudState());
     this.createCountdown();
@@ -189,6 +194,23 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private createPauseButton(): void {
+    const fullBg = this.add.circle(GAME_WIDTH - 86, 34, 18, 0x050805, 0.72)
+      .setStrokeStyle(2, 0xb66cff, 0.3);
+    const fullIcon = this.add.text(GAME_WIDTH - 86, 34, "⛶", {
+      fontFamily: "Arial",
+      fontSize: "18px",
+      color: "#f5fff1",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
+    }).setOrigin(0.5);
+
+    this.fullscreenButton = this.add.container(0, 0, [fullBg, fullIcon]).setDepth(85);
+    fullBg.setInteractive({ useHandCursor: true });
+    fullBg.on("pointerdown", () => {
+      void toggleAppFullscreen(document.documentElement);
+    });
+
     const bg = this.add.circle(GAME_WIDTH - 34, 34, 20, 0x050805, 0.72)
       .setStrokeStyle(2, 0x39ff14, 0.3);
     const bars = this.add.text(GAME_WIDTH - 34, 34, "II", {

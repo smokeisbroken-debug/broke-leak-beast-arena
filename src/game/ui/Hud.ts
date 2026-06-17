@@ -33,58 +33,62 @@ export class Hud {
   private buildText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene) {
-    scene.add.rectangle(154, 46, 266, 68, 0x050805, 0.52)
+    scene.add.rectangle(GAME_WIDTH / 2, 36, GAME_WIDTH - 36, 62, 0x040706, 0.42)
+      .setStrokeStyle(2, 0x39ff14, 0.12)
+      .setDepth(69);
+
+    scene.add.rectangle(118, 37, 210, 54, 0x050805, 0.66)
       .setStrokeStyle(2, 0x39ff14, 0.22)
       .setDepth(70);
-    scene.add.image(48, 46, "mascot-idle-front")
-      .setDisplaySize(48, 48)
+    scene.add.image(42, 37, "mascot-idle-front")
+      .setDisplaySize(36, 36)
       .setDepth(71);
 
-    scene.add.text(82, 15, "WALLET HP", {
-      fontFamily: "Arial", fontSize: "11px", color: "#d7ffd0", fontStyle: "bold",
+    scene.add.text(66, 15, "WALLET HP", {
+      fontFamily: "Arial", fontSize: "10px", color: "#d7ffd0", fontStyle: "bold",
       stroke: "#050805", strokeThickness: 3,
     }).setDepth(71);
 
-    scene.add.rectangle(156, 34, 132, 12, 0x152115, 0.95).setDepth(71).setOrigin(0.5);
-    this.hpFill = scene.add.rectangle(90, 34, 130, 10, 0x39ff14, 1).setOrigin(0, 0.5).setDepth(72);
-    this.hpText = scene.add.text(228, 23, "5/5", {
-      fontFamily: "Arial", fontSize: "13px", color: "#f5fff1", fontStyle: "bold",
+    scene.add.rectangle(144, 28, 118, 10, 0x152115, 0.95).setDepth(71).setOrigin(0.5);
+    this.hpFill = scene.add.rectangle(85, 28, 116, 8, 0x39ff14, 1).setOrigin(0, 0.5).setDepth(72);
+    this.hpText = scene.add.text(204, 18, "5/5", {
+      fontFamily: "Arial", fontSize: "12px", color: "#f5fff1", fontStyle: "bold",
       stroke: "#050805", strokeThickness: 3,
     }).setDepth(72);
 
-    scene.add.text(82, 46, "UPGRADE", {
-      fontFamily: "Arial", fontSize: "10px", color: "#cfc5ff", fontStyle: "bold",
+    scene.add.text(66, 40, "UPGRADE", {
+      fontFamily: "Arial", fontSize: "9px", color: "#cfc5ff", fontStyle: "bold",
       stroke: "#050805", strokeThickness: 3,
     }).setDepth(71);
-    scene.add.rectangle(156, 61, 132, 9, 0x1a1330, 0.95).setDepth(71).setOrigin(0.5);
-    this.nextFill = scene.add.rectangle(90, 61, 130, 7, 0xb66cff, 1).setOrigin(0, 0.5).setDepth(72);
+    scene.add.rectangle(144, 49, 118, 8, 0x1a1330, 0.95).setDepth(71).setOrigin(0.5);
+    this.nextFill = scene.add.rectangle(85, 49, 116, 6, 0xb66cff, 1).setOrigin(0, 0.5).setDepth(72);
 
-    this.scoreText = scene.add.text(306, 15, "SCORE 0", {
+    this.scoreText = scene.add.text(255, 15, "SCORE 0", {
       fontFamily: "Arial", fontSize: "15px", color: "#f5fff1", fontStyle: "bold",
       stroke: "#050805", strokeThickness: 4,
     }).setDepth(71);
 
-    this.leaksText = scene.add.text(306, 38, "LEAKS 0", {
+    this.leaksText = scene.add.text(255, 36, "LEAKS 0", {
       fontFamily: "Arial", fontSize: "14px", color: "#8bff7d", fontStyle: "bold",
       stroke: "#050805", strokeThickness: 4,
     }).setDepth(71);
 
-    this.waveText = scene.add.text(GAME_WIDTH / 2, 26, "WAVE 1", {
-      fontFamily: "Arial", fontSize: "24px", color: "#39ff14", fontStyle: "bold",
+    this.waveText = scene.add.text(GAME_WIDTH / 2, 20, "WAVE 1", {
+      fontFamily: "Arial", fontSize: "26px", color: "#39ff14", fontStyle: "bold",
       stroke: "#050805", strokeThickness: 5,
     }).setOrigin(0.5).setDepth(71);
 
-    this.buildText = scene.add.text(GAME_WIDTH / 2, 54, "BUILD 0", {
-      fontFamily: "Arial", fontSize: "12px", color: "#d7ffd0", fontStyle: "bold",
+    this.buildText = scene.add.text(GAME_WIDTH / 2, 43, "BUILD 0 · NEXT 7", {
+      fontFamily: "Arial", fontSize: "13px", color: "#d7ffd0", fontStyle: "bold",
       stroke: "#050805", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(71);
 
-    this.timeText = scene.add.text(GAME_WIDTH - 84, 18, "0s", {
+    this.timeText = scene.add.text(GAME_WIDTH - 114, 14, "0s", {
       fontFamily: "Arial", fontSize: "17px", color: "#d9c8ff", fontStyle: "bold",
       stroke: "#050805", strokeThickness: 4,
     }).setOrigin(1, 0).setDepth(71);
 
-    this.statusText = scene.add.text(GAME_WIDTH - 84, 43, "", {
+    this.statusText = scene.add.text(GAME_WIDTH - 114, 36, "", {
       fontFamily: "Arial", fontSize: "12px", color: "#d9d0ff", fontStyle: "bold",
       stroke: "#050805", strokeThickness: 4, align: "right",
     }).setOrigin(1, 0).setDepth(71);
@@ -92,12 +96,12 @@ export class Hud {
 
   update(state: HudState): void {
     const hpRatio = Phaser.Math.Clamp(state.hp / Math.max(1, state.maxHp), 0, 1);
-    this.hpFill.width = Math.max(4, 130 * hpRatio);
+    this.hpFill.width = Math.max(4, 116 * hpRatio);
     this.hpText.setText(`${Math.max(0, state.hp)}/${state.maxHp}`);
 
     const upgradeEvery = Math.max(7, state.nextUpgradeIn + 1);
     const progressRatio = Phaser.Math.Clamp((upgradeEvery - state.nextUpgradeIn) / upgradeEvery, 0, 1);
-    this.nextFill.width = Math.max(5, 130 * progressRatio);
+    this.nextFill.width = Math.max(5, 116 * progressRatio);
 
     this.scoreText.setText(`SCORE ${state.score}`);
     this.leaksText.setText(`LEAKS ${state.defeated}`);
