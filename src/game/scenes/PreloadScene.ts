@@ -195,12 +195,12 @@ export class PreloadScene extends Phaser.Scene {
       });
     };
 
-    create("enemy-bad-habit-move", "enemy-imp", 9);
-    create("enemy-fomo-move", "enemy-runner", 11);
-    create("enemy-scam-move", "enemy-beast", 10);
-    create("enemy-smoke-brute-move", "enemy-brute", 7);
-    create("boss-thorn-move", "boss-thorn", 8);
-    create("boss-smoke-move", "boss-smoke", 7);
+    create("enemy-bad-habit-move", "enemy-imp", 8);
+    create("enemy-fomo-move", "enemy-runner", 12);
+    create("enemy-scam-move", "enemy-beast", 9);
+    create("enemy-smoke-brute-move", "enemy-brute", 6);
+    create("boss-thorn-move", "boss-thorn", 6);
+    create("boss-smoke-move", "boss-smoke", 6);
   }
 
   private createGeneratedPlaceholderTextures(): void {

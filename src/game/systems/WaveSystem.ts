@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
-import { createLeakBeast } from "../entities/LeakBeast";
+import { applyLeakBeastBody, createLeakBeast } from "../entities/LeakBeast";
 import type { AttackSpec, EnemyKind } from "../types/game";
 
 interface HitResult {
@@ -24,6 +24,7 @@ export class WaveSystem {
   private spawnTimer = 0;
   private lastBossWave = 0;
   private hazards: Phaser.GameObjects.Arc[] = [];
+  private shadows = new Map<Phaser.Physics.Arcade.Sprite, Phaser.GameObjects.Ellipse>();
 
   constructor(private scene: Phaser.Scene) {
     this.group = scene.physics.add.group();
@@ -72,6 +73,7 @@ export class WaveSystem {
     const score = Number(enemy.getData("score") ?? 0);
 
     this.spawnDeathPop(enemy.x, enemy.y, wasBoss ? 0xb66cff : 0x39ff14);
+    this.removeShadow(enemy);
     enemy.disableBody(true, true);
     this.defeatedCount += 1;
 
@@ -146,6 +148,8 @@ export class WaveSystem {
   }
 
   clearAll(): void {
+    this.shadows.forEach((shadow) => shadow.destroy());
+    this.shadows.clear();
     this.group.clear(true, true);
     this.projectiles.clear(true, true);
     this.hazards.forEach((zone) => zone.destroy());
@@ -182,6 +186,9 @@ export class WaveSystem {
     this.group.children.iterate((child) => {
       const beast = child as Phaser.Physics.Arcade.Sprite | null;
       if (!beast || !beast.active || !beast.body) return true;
+
+      applyLeakBeastBody(beast);
+      this.updateEnemyPresentation(beast);
 
       if (Number(beast.getData("hitStunUntil") ?? 0) > now) return true;
 
@@ -225,7 +232,7 @@ export class WaveSystem {
     if (chargeUntil > now) {
       const dirX = Number(beast.getData("chargeDirX") ?? 0);
       const dirY = Number(beast.getData("chargeDirY") ?? 0);
-      beast.setVelocity(dirX * speed * 2.8, dirY * speed * 2.8);
+      beast.setVelocity(dirX * speed * 2.45, dirY * speed * 2.45);
       return;
     }
 
@@ -239,7 +246,7 @@ export class WaveSystem {
     const nextChargeAt = Number(beast.getData("nextChargeAt") ?? 0);
     const distance = Phaser.Math.Distance.Between(beast.x, beast.y, targetX, targetY);
 
-    if (nextChargeAt <= now && distance < 260) {
+    if (nextChargeAt <= now && distance < 238) {
       const dir = new Phaser.Math.Vector2(targetX - beast.x, targetY - beast.y);
       if (dir.lengthSq() <= 0) dir.set(1, 0);
       dir.normalize();
@@ -252,7 +259,7 @@ export class WaveSystem {
       beast.setVelocity(0, 0);
       beast.setTint(0xff3355);
       this.showTelegraphLine(beast.x, beast.y, beast.x + dir.x * 190, beast.y + dir.y * 190, 0xff3355, 520);
-      this.showEnemyWarning("FOMO CHARGE", beast.x, beast.y - 34, "#ff3355");
+      this.showEnemyWarning("CHARGE", beast.x, beast.y - 32, "#ff3355");
       return;
     }
 
@@ -378,7 +385,7 @@ export class WaveSystem {
       beast.setData("chargeDirX", dir.x);
       beast.setData("chargeDirY", dir.y);
       this.showTelegraphLine(beast.x, beast.y, beast.x + dir.x * 230, beast.y + dir.y * 230, 0xff3355, 650);
-      this.showEnemyWarning("BOSS CHARGE", beast.x, beast.y - 62, "#ff3355");
+      this.showEnemyWarning("BOSS CHARGE", beast.x, beast.y - 58, "#ff3355");
       return;
     }
 
@@ -386,18 +393,18 @@ export class WaveSystem {
       this.showTelegraphLine(beast.x, beast.y, targetX, targetY, 0xb66cff, 650);
       this.showTelegraphLine(beast.x, beast.y, targetX + 85, targetY, 0xb66cff, 650);
       this.showTelegraphLine(beast.x, beast.y, targetX - 85, targetY, 0xb66cff, 650);
-      this.showEnemyWarning("BOLT SPREAD", beast.x, beast.y - 62, "#b66cff");
+      this.showEnemyWarning("BOLT SPREAD", beast.x, beast.y - 58, "#b66cff");
       return;
     }
 
     if (pattern === "shockwave") {
       this.showTelegraphCircle(beast.x, beast.y, 86, 0xff3355, 650);
-      this.showEnemyWarning("SHOCKWAVE", beast.x, beast.y - 62, "#ff3355");
+      this.showEnemyWarning("SHOCKWAVE", beast.x, beast.y - 58, "#ff3355");
       return;
     }
 
     this.showTelegraphCircle(targetX, targetY, 70, 0x39ff14, 650);
-    this.showEnemyWarning("SUMMON LEAKS", beast.x, beast.y - 62, "#39ff14");
+    this.showEnemyWarning("SUMMON", beast.x, beast.y - 58, "#39ff14");
   }
 
   private executeBossPattern(
@@ -468,7 +475,7 @@ export class WaveSystem {
   private getSpawnInterval(runElapsedMs: number): number {
     const earlySafetyMs = runElapsedMs < 9000 ? 220 : 0;
     const bossSafetyMs = this.bossActive ? 360 : 0;
-    return Math.max(560, 1260 - this.currentWave * 74 + earlySafetyMs + bossSafetyMs);
+    return Math.max(620, 1320 - this.currentWave * 68 + earlySafetyMs + bossSafetyMs);
   }
 
   private shouldSpawnMiniBoss(): boolean {
@@ -477,11 +484,11 @@ export class WaveSystem {
 
   private spawn(targetX: number, targetY: number, runElapsedMs: number, forcedKind?: EnemyKind): void {
     const side = Phaser.Math.Between(0, 3);
-    const margin = 38;
-    const topY = 88;
-    const bottomY = GAME_HEIGHT - 96;
-    const leftX = 78;
-    const rightX = GAME_WIDTH - 78;
+    const margin = 34;
+    const topY = 96;
+    const bottomY = GAME_HEIGHT - 126;
+    const leftX = 128;
+    const rightX = GAME_WIDTH - 128;
 
     const positions = [
       { x: Phaser.Math.Between(leftX, rightX), y: topY - margin },
@@ -499,9 +506,8 @@ export class WaveSystem {
 
   private spawnBoss(targetX: number, targetY: number): void {
     const side = Phaser.Math.Between(0, 1);
-    const x = side === 0 ? 42 : GAME_WIDTH - 42;
-    const y = Phaser.Math.Between(120, GAME_HEIGHT - 120);
-    const boss = createLeakBeast(this.scene, side === 0 ? -72 : GAME_WIDTH + 72, y, { boss: true, kind: "smoke_brute", wave: this.currentWave });
+    const y = Phaser.Math.Between(132, GAME_HEIGHT - 138);
+    const boss = createLeakBeast(this.scene, side === 0 ? 72 : GAME_WIDTH - 72, y, { boss: true, kind: "smoke_brute", wave: this.currentWave });
     boss.setData("nextPatternAt", Date.now() + 900);
     this.scene.physics.moveTo(boss, targetX, targetY, Number(boss.getData("speed") ?? 70));
     this.group.add(boss);
@@ -511,7 +517,7 @@ export class WaveSystem {
     const projectile = this.scene.physics.add.sprite(x, y, boss ? "boss-bolt" : "scam-bolt");
     projectile.setData("damage", boss ? 2 : 1);
     projectile.setSize(boss ? 22 : 16, boss ? 22 : 16);
-    projectile.setDepth(16);
+    projectile.setDepth(30);
     this.scene.physics.moveTo(projectile, targetX, targetY, speed);
     this.projectiles.add(projectile);
   }
@@ -529,6 +535,35 @@ export class WaveSystem {
       duration: durationMs,
       onComplete: () => zone.destroy(),
     });
+  }
+
+  private updateEnemyPresentation(beast: Phaser.Physics.Arcade.Sprite): void {
+    const isBoss = Boolean(beast.getData("boss"));
+    beast.setDepth((isBoss ? 18 : 12) + beast.y / 1000);
+
+    let shadow = this.shadows.get(beast);
+    if (!shadow) {
+      shadow = this.scene.add.ellipse(
+        beast.x,
+        beast.y + Number(beast.getData("displayH") ?? 52) * 0.38,
+        Number(beast.getData("shadowW") ?? 40),
+        Number(beast.getData("shadowH") ?? 12),
+        0x000000,
+        isBoss ? 0.34 : 0.25,
+      ).setDepth(7);
+      this.shadows.set(beast, shadow);
+    }
+
+    shadow.setPosition(beast.x, beast.y + Number(beast.getData("displayH") ?? 52) * 0.38);
+    shadow.setDisplaySize(Number(beast.getData("shadowW") ?? 40), Number(beast.getData("shadowH") ?? 12));
+    shadow.setAlpha(isBoss ? 0.34 : 0.25);
+  }
+
+  private removeShadow(beast: Phaser.Physics.Arcade.Sprite): void {
+    const shadow = this.shadows.get(beast);
+    if (!shadow) return;
+    shadow.destroy();
+    this.shadows.delete(beast);
   }
 
   private spawnDeathPop(x: number, y: number, color: number): void {
