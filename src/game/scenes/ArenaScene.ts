@@ -759,65 +759,102 @@ export class ArenaScene extends Phaser.Scene {
       return obj;
     };
 
-    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.74).setDepth(150));
-    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH - 110, GAME_HEIGHT - 90, 0x071107, 0.98)
-      .setStrokeStyle(2, 0x39ff14, 0.55)
+    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.76).setDepth(150));
+    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH - 74, GAME_HEIGHT - 70, 0x061006, 0.98)
+      .setStrokeStyle(2, 0x39ff14, 0.52)
+      .setDepth(151));
+    add(this.add.rectangle(GAME_WIDTH / 2, 84, GAME_WIDTH - 132, 58, 0x0b190b, 0.82)
+      .setStrokeStyle(1, 0xb66cff, 0.25)
       .setDepth(151));
 
-    add(this.add.text(GAME_WIDTH / 2, 84, "CHOOSE UPGRADE", {
+    add(this.add.text(GAME_WIDTH / 2, 66, "CHOOSE UPGRADE", {
       fontFamily: "Arial",
-      fontSize: "24px",
+      fontSize: "28px",
       color: "#39ff14",
       fontStyle: "bold",
       stroke: "#050805",
-      strokeThickness: 4,
+      strokeThickness: 5,
     }).setOrigin(0.5).setDepth(152));
 
-    add(this.add.text(GAME_WIDTH / 2, 112, reason.toUpperCase(), {
+    add(this.add.text(GAME_WIDTH / 2, 100, reason.toUpperCase(), {
       fontFamily: "Arial",
       fontSize: "12px",
-      color: "#9cff8a",
+      color: "#d7ffd0",
       fontStyle: "bold",
-    }).setOrigin(0.5).setDepth(152));
-
-    add(this.add.text(GAME_WIDTH / 2, 136, "Pick one boost for this run", {
-      fontFamily: "Arial",
-      fontSize: "12px",
-      color: "#f5fff1",
+      stroke: "#050805",
+      strokeThickness: 3,
     }).setOrigin(0.5).setDepth(152));
 
     const options = this.pickUpgradeOptions();
-    options.forEach((option, index) => {
-      const y = 192 + index * 80;
-      const stroke = option.rarity === "rare" ? 0xb66cff : option.rarity === "survival" ? 0xff3355 : 0x39ff14;
-      const fill = option.rarity === "rare" ? 0x130821 : option.rarity === "survival" ? 0x1a080b : 0x0d210d;
+    const cardWidth = 206;
+    const cardHeight = 198;
+    const startX = GAME_WIDTH / 2 - cardWidth - 20;
+    const cardY = 250;
 
-      const card = add(this.add.rectangle(GAME_WIDTH / 2, y, GAME_WIDTH - 170, 62, fill, 0.96)
-        .setStrokeStyle(2, stroke, 0.62)
+    options.forEach((option, index) => {
+      const x = startX + index * (cardWidth + 20);
+      const stroke = this.getUpgradeStroke(option.rarity);
+      const fill = this.getUpgradeFill(option.rarity);
+      const labelColor = this.getUpgradeTextColor(option.rarity);
+
+      const glow = add(this.add.circle(x, cardY - 48, 68, stroke, 0.08).setDepth(151));
+      const card = add(this.add.rectangle(x, cardY, cardWidth, cardHeight, fill, 0.98)
+        .setStrokeStyle(2, stroke, 0.72)
         .setDepth(152)
         .setInteractive({ useHandCursor: true }));
 
-      add(this.add.text(128, y - 23, option.tag, {
+      add(this.add.text(x - cardWidth / 2 + 16, cardY - 84, option.rarity.toUpperCase(), {
         fontFamily: "Arial",
         fontSize: "10px",
-        color: option.rarity === "rare" ? "#d6a8ff" : option.rarity === "survival" ? "#ff9aaa" : "#9cff8a",
+        color: labelColor,
         fontStyle: "bold",
+        stroke: "#050805",
+        strokeThickness: 3,
       }).setDepth(153));
 
-      add(this.add.text(128, y - 8, option.title, {
+      add(this.add.circle(x, cardY - 46, 32, stroke, 0.16)
+        .setStrokeStyle(2, stroke, 0.58)
+        .setDepth(153));
+      add(this.add.text(x, cardY - 47, this.getUpgradeIcon(option.id), {
         fontFamily: "Arial",
-        fontSize: "17px",
+        fontSize: "20px",
         color: "#f5fff1",
         fontStyle: "bold",
-      }).setDepth(153));
+        stroke: "#050805",
+        strokeThickness: 4,
+      }).setOrigin(0.5).setDepth(154));
 
-      add(this.add.text(128, y + 12, option.description, {
+      add(this.add.text(x, cardY - 6, option.title.toUpperCase(), {
         fontFamily: "Arial",
-        fontSize: "12px",
-        color: "#9cff8a",
-      }).setDepth(153));
+        fontSize: "15px",
+        color: "#f5fff1",
+        fontStyle: "bold",
+        stroke: "#050805",
+        strokeThickness: 4,
+        align: "center",
+        wordWrap: { width: cardWidth - 28 },
+      }).setOrigin(0.5).setDepth(154));
 
-      card.on("pointerdown", () => {
+      add(this.add.text(x, cardY + 31, option.description, {
+        fontFamily: "Arial",
+        fontSize: "11px",
+        color: "#d7ffd0",
+        align: "center",
+        wordWrap: { width: cardWidth - 26 },
+        lineSpacing: 2,
+      }).setOrigin(0.5, 0).setDepth(154));
+
+      const pickBg = add(this.add.rectangle(x, cardY + 80, cardWidth - 54, 30, stroke, 0.95)
+        .setDepth(154)
+        .setInteractive({ useHandCursor: true }));
+      add(this.add.text(x, cardY + 80, "PICK", {
+        fontFamily: "Arial",
+        fontSize: "14px",
+        color: "#050805",
+        fontStyle: "bold",
+      }).setOrigin(0.5).setDepth(155));
+
+      const choose = () => {
         const message = this.player.applyUpgrade(option.id);
         this.upgradeChoicesTaken += 1;
         this.nextUpgradeDefeatedTarget += 7 + Math.min(5, this.upgradeChoicesTaken * 2);
@@ -832,8 +869,50 @@ export class ArenaScene extends Phaser.Scene {
         this.fightPaused = false;
         this.showUpgradeToast(option.title, message);
         this.hud.update(this.getHudState());
+      };
+
+      card.on("pointerdown", choose);
+      pickBg.on("pointerdown", choose);
+      card.on("pointerover", () => {
+        this.tweens.add({ targets: [card, glow], scaleX: 1.035, scaleY: 1.035, duration: 90 });
+      });
+      card.on("pointerout", () => {
+        this.tweens.add({ targets: [card, glow], scaleX: 1, scaleY: 1, duration: 90 });
       });
     });
+  }
+
+  private getUpgradeStroke(rarity: UpgradeRarity): number {
+    if (rarity === "rare") return 0xb66cff;
+    if (rarity === "survival") return 0xff6688;
+    return 0x39ff14;
+  }
+
+  private getUpgradeFill(rarity: UpgradeRarity): number {
+    if (rarity === "rare") return 0x160926;
+    if (rarity === "survival") return 0x21090f;
+    return 0x0d210d;
+  }
+
+  private getUpgradeTextColor(rarity: UpgradeRarity): string {
+    if (rarity === "rare") return "#d6a8ff";
+    if (rarity === "survival") return "#ff9aaa";
+    return "#9cff8a";
+  }
+
+  private getUpgradeIcon(id: PlayerUpgradeId): string {
+    switch (id) {
+      case "damage": return "DMG";
+      case "speed": return "SPD";
+      case "dash": return "DASH";
+      case "pulse": return "AOE";
+      case "heart": return "HP";
+      case "attack_speed": return "ATK";
+      case "wide_swing": return "ARC";
+      case "shield_battery": return "DEF";
+      case "boss_breaker": return "BOSS";
+      default: return "UP";
+    }
   }
 
   private pickUpgradeOptions(): UpgradeOption[] {
@@ -845,30 +924,46 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private showUpgradeToast(title: string, message: string): void {
-    const panel = this.add.rectangle(GAME_WIDTH / 2, 92, 360, 56, 0x071107, 0.94)
-      .setStrokeStyle(2, 0x39ff14, 0.45)
+    const panel = this.add.rectangle(GAME_WIDTH / 2, 86, 426, 60, 0x071107, 0.95)
+      .setStrokeStyle(2, 0x39ff14, 0.5)
       .setDepth(155);
-    const titleText = this.add.text(GAME_WIDTH / 2, 81, title.toUpperCase(), {
+    const icon = this.add.circle(GAME_WIDTH / 2 - 178, 86, 19, 0x39ff14, 0.14)
+      .setStrokeStyle(2, 0x39ff14, 0.6)
+      .setDepth(156);
+    const iconText = this.add.text(GAME_WIDTH / 2 - 178, 86, "UP", {
+      fontFamily: "Arial",
+      fontSize: "10px",
+      color: "#39ff14",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(157);
+    const titleText = this.add.text(GAME_WIDTH / 2 - 144, 76, title.toUpperCase(), {
       fontFamily: "Arial",
       fontSize: "14px",
       color: "#39ff14",
       fontStyle: "bold",
-    }).setOrigin(0.5).setDepth(156);
-    const bodyText = this.add.text(GAME_WIDTH / 2, 100, message, {
+      stroke: "#050805",
+      strokeThickness: 3,
+    }).setOrigin(0, 0.5).setDepth(156);
+    const bodyText = this.add.text(GAME_WIDTH / 2 - 144, 98, message, {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#f5fff1",
-      align: "center",
-    }).setOrigin(0.5).setDepth(156);
+      align: "left",
+      wordWrap: { width: 320 },
+    }).setOrigin(0, 0.5).setDepth(156);
 
     this.tweens.add({
-      targets: [panel, titleText, bodyText],
+      targets: [panel, icon, iconText, titleText, bodyText],
       y: "-=18",
       alpha: 0,
-      delay: 1050,
+      delay: 1150,
       duration: 520,
       onComplete: () => {
         panel.destroy();
+        icon.destroy();
+        iconText.destroy();
         titleText.destroy();
         bodyText.destroy();
       },
