@@ -3,10 +3,11 @@ import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import { requestAppFullscreen, toggleAppFullscreen } from "../../app/AppShell";
 import { PlayerMascot } from "../entities/PlayerMascot";
+import { createCollectible } from "../entities/Collectible";
 import { WaveSystem } from "../systems/WaveSystem";
 import { MobileControls } from "../ui/MobileControls";
 import { Hud } from "../ui/Hud";
-import type { AttackSpec, PlayerUpgradeId, RunResult } from "../types/game";
+import type { AttackSpec, PickupType, PlayerUpgradeId, RunResult } from "../types/game";
 
 type UpgradeRarity = "core" | "rare" | "survival";
 
@@ -16,6 +17,14 @@ interface UpgradeOption {
   description: string;
   rarity: UpgradeRarity;
   tag: string;
+}
+
+interface EnemyDefeatEvent {
+  x: number;
+  y: number;
+  boss: boolean;
+  kind: string;
+  score: number;
 }
 
 const UPGRADE_POOL: UpgradeOption[] = [
@@ -42,6 +51,7 @@ export class ArenaScene extends Phaser.Scene {
   private fullscreenButton!: Phaser.GameObjects.Container;
   private pauseOverlay?: Phaser.GameObjects.Container;
   private currentArenaBackgroundKey = "";
+  private pickups!: Phaser.Physics.Arcade.Group;
 
   private score = 0;
   private hp = 5;
@@ -78,6 +88,7 @@ export class ArenaScene extends Phaser.Scene {
     this.currentArenaBackgroundKey = "";
 
     this.createArenaBackground();
+    this.pickups = this.physics.add.group();
 
     this.player = new PlayerMascot(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 18);
     this.waves = new WaveSystem(this);
@@ -103,6 +114,17 @@ export class ArenaScene extends Phaser.Scene {
       this.waves.projectiles,
       (_, projectile) => this.onProjectileHit(projectile as Phaser.Physics.Arcade.Sprite),
     );
+
+    this.physics.add.overlap(
+      this.player.sprite,
+      this.pickups,
+      (_, collectible) => this.collectPickup(collectible as Phaser.Physics.Arcade.Sprite),
+    );
+
+    this.events.on("enemy-defeated", this.handleEnemyDefeated, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off("enemy-defeated", this.handleEnemyDefeated, this);
+    });
   }
 
   update(_time: number, delta: number): void {
@@ -158,6 +180,7 @@ export class ArenaScene extends Phaser.Scene {
       this.maybeOfferDefeatUpgrade();
     }
 
+    this.cullExpiredPickups();
     this.hud.update(this.getHudState());
   }
 
@@ -332,6 +355,112 @@ export class ArenaScene extends Phaser.Scene {
         duration: 260,
         onComplete: () => this.countdownText.destroy(),
       });
+    });
+  }
+
+
+  private handleEnemyDefeated(event: EnemyDefeatEvent): void {
+    const dropRoll = Phaser.Math.FloatBetween(0, 1);
+    const maxHp = 5 + this.player.getMaxHpBonus();
+    const missingHp = maxHp - this.hp;
+
+    if (event.boss) {
+      this.spawnPickup("safe_point", event.x - 18, event.y - 8, 110);
+      this.spawnPickup("cooldown", event.x + 18, event.y - 6);
+      this.spawnPickup(missingHp >= 2 ? "heart" : "speed", event.x, event.y + 10);
+      if (Phaser.Math.Between(0, 1) === 1) this.spawnPickup("shield", event.x + Phaser.Math.Between(-22, 22), event.y + 14);
+      return;
+    }
+
+    if (dropRoll < 0.38) {
+      this.spawnPickup("safe_point", event.x, event.y, 24 + Math.floor(event.score * 0.15));
+      return;
+    }
+
+    if (missingHp >= 2 && dropRoll < 0.5) {
+      this.spawnPickup("heart", event.x, event.y);
+      return;
+    }
+
+    if (dropRoll < 0.6) {
+      this.spawnPickup("shield", event.x, event.y);
+      return;
+    }
+
+    if (dropRoll < 0.69) {
+      this.spawnPickup("cooldown", event.x, event.y);
+      return;
+    }
+
+    if (dropRoll < 0.78) {
+      this.spawnPickup("speed", event.x, event.y);
+    }
+  }
+
+  private spawnPickup(type: PickupType, x: number, y: number, value = 1): void {
+    createCollectible(this, this.pickups, x, y, type, value);
+  }
+
+  private collectPickup(collectible: Phaser.Physics.Arcade.Sprite): void {
+    if (!collectible.active) return;
+    const type = String(collectible.getData("type")) as PickupType;
+    const value = Number(collectible.getData("value") ?? 1);
+    const shadow = collectible.getData("shadow") as Phaser.GameObjects.GameObject | undefined;
+    shadow?.destroy();
+
+    collectible.disableBody(true, true);
+
+    switch (type) {
+      case "safe_point":
+        this.score += value;
+        this.showFloatingText(`SAFE +${value}`, this.player.sprite.x, this.player.sprite.y - 64, "#39ff14");
+        break;
+      case "heart":
+        this.hp = Math.min(this.hp + 1, 5 + this.player.getMaxHpBonus());
+        this.showFloatingText("+1 HP", this.player.sprite.x, this.player.sprite.y - 64, "#ff88aa");
+        break;
+      case "shield":
+        this.player.grantShieldPickup(1, 2500);
+        this.showFloatingText("SHIELD", this.player.sprite.x, this.player.sprite.y - 64, "#7dffb5");
+        break;
+      case "cooldown":
+        this.player.reduceCooldowns(1400);
+        this.showFloatingText("COOLDOWN", this.player.sprite.x, this.player.sprite.y - 64, "#d6a8ff");
+        break;
+      case "speed":
+        this.player.applySpeedBoost(46, 3600);
+        this.showFloatingText("SPEED", this.player.sprite.x, this.player.sprite.y - 64, "#fff17d");
+        break;
+      default:
+        break;
+    }
+
+    this.showPickupBurst(this.player.sprite.x, this.player.sprite.y, type);
+  }
+
+  private showPickupBurst(x: number, y: number, type: PickupType): void {
+    const color = type === "heart" ? 0xff6688 : type === "shield" ? 0x7dffb5 : type === "cooldown" ? 0xb66cff : type === "speed" ? 0xfff17d : 0x39ff14;
+    const ring = this.add.circle(x, y, 8, color, 0.08).setStrokeStyle(3, color, 0.85).setDepth(40);
+    this.tweens.add({
+      targets: ring,
+      radius: 28,
+      alpha: 0,
+      duration: 220,
+      onComplete: () => ring.destroy(),
+    });
+  }
+
+  private cullExpiredPickups(): void {
+    this.pickups.children.iterate((child) => {
+      const collectible = child as Phaser.Physics.Arcade.Sprite | null;
+      if (!collectible || !collectible.active) return true;
+      const shadow = collectible.getData("shadow") as Phaser.GameObjects.Ellipse | undefined;
+      if (shadow?.active) shadow.setPosition(collectible.x, collectible.y + 12);
+      if (Date.now() > Number(collectible.getData("expireAt") ?? 0)) {
+        shadow?.destroy();
+        collectible.disableBody(true, true);
+      }
+      return true;
     });
   }
 
@@ -592,9 +721,9 @@ export class ArenaScene extends Phaser.Scene {
 
   private showWaveBanner(wave: number): void {
     const isBossWave = wave % 3 === 0;
-    const text = this.add.text(GAME_WIDTH / 2, 86, isBossWave ? `WAVE ${wave}: MINI-BOSS PATTERN` : `WAVE ${wave}`, {
+    const text = this.add.text(GAME_WIDTH / 2, 86, isBossWave ? `WAVE ${wave}: BOSS` : `WAVE ${wave}`, {
       fontFamily: "Arial",
-      fontSize: isBossWave ? "18px" : "20px",
+      fontSize: isBossWave ? "20px" : "20px",
       color: isBossWave ? "#b66cff" : "#39ff14",
       fontStyle: "bold",
       stroke: "#050805",
@@ -635,7 +764,7 @@ export class ArenaScene extends Phaser.Scene {
       .setStrokeStyle(2, 0x39ff14, 0.55)
       .setDepth(151));
 
-    add(this.add.text(GAME_WIDTH / 2, 84, "ROGUELITE UPGRADE", {
+    add(this.add.text(GAME_WIDTH / 2, 84, "CHOOSE UPGRADE", {
       fontFamily: "Arial",
       fontSize: "24px",
       color: "#39ff14",
@@ -651,7 +780,7 @@ export class ArenaScene extends Phaser.Scene {
       fontStyle: "bold",
     }).setOrigin(0.5).setDepth(152));
 
-    add(this.add.text(GAME_WIDTH / 2, 136, "Choose one build path for this run", {
+    add(this.add.text(GAME_WIDTH / 2, 136, "Pick one boost for this run", {
       fontFamily: "Arial",
       fontSize: "12px",
       color: "#f5fff1",

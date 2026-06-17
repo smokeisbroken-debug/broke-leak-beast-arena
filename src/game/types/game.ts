@@ -11,6 +11,7 @@ export interface InputState {
 }
 
 export type EnemyKind = "bad_habit" | "fomo" | "scam" | "smoke_brute";
+export type PickupType = "safe_point" | "heart" | "shield" | "cooldown" | "speed";
 
 export interface EnemyDefinition {
   id: EnemyKind;

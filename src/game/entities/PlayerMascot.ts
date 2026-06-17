@@ -38,6 +38,8 @@ export class PlayerMascot {
 
   private shieldUntil = -9999;
   private shieldCharges = 0;
+  private tempSpeedBoost = 0;
+  private speedBoostUntil = -9999;
   private currentVisualKey = "";
 
   private facing = new Phaser.Math.Vector2(1, 0);
@@ -78,6 +80,10 @@ export class PlayerMascot {
       if (!this.isDodging && !this.isAttacking && !this.isPulseCasting && !this.isSlashCasting) this.sprite.clearTint();
     }
 
+    if (this.tempSpeedBoost > 0 && now > this.speedBoostUntil) {
+      this.tempSpeedBoost = 0;
+    }
+
     const velocity = new Phaser.Math.Vector2(input.x, input.y);
 
     if (velocity.lengthSq() > 0) {
@@ -85,7 +91,7 @@ export class PlayerMascot {
       this.facing.copy(velocity);
     }
 
-    const currentSpeed = this.baseSpeed + this.upgrades.speedBonus;
+    const currentSpeed = this.baseSpeed + this.upgrades.speedBonus + this.tempSpeedBoost;
     const movement = velocity.clone().scale(currentSpeed);
 
     if (this.isDodging) {
@@ -196,6 +202,36 @@ export class PlayerMascot {
 
   getMaxHpBonus(): number {
     return this.upgrades.maxHpBonus;
+  }
+
+
+  grantShieldPickup(charges = 1, durationMs = 2200): void {
+    this.shieldCharges = Math.max(this.shieldCharges, charges);
+    this.shieldUntil = Math.max(this.shieldUntil, Date.now() + durationMs);
+    this.invincibleUntil = Math.max(this.invincibleUntil, Date.now() + 120);
+    this.sprite.setTint(0x39ff14);
+    this.scene.time.delayedCall(180, () => {
+      if (!this.sprite.active || this.isShieldActive() || this.isDodging || this.isAttacking || this.isPulseCasting || this.isSlashCasting) return;
+      this.sprite.clearTint();
+    });
+  }
+
+  reduceCooldowns(ms: number): void {
+    this.lastAttackAt -= ms;
+    this.lastDodgeAt -= ms;
+    this.lastPulseAt -= ms;
+    this.lastShieldAt -= ms;
+    this.lastSlashAt -= ms;
+  }
+
+  applySpeedBoost(amount = 48, durationMs = 3500): void {
+    this.tempSpeedBoost = Math.max(this.tempSpeedBoost, amount);
+    this.speedBoostUntil = Math.max(this.speedBoostUntil, Date.now() + durationMs);
+    this.sprite.setTint(0xfff17d);
+    this.scene.time.delayedCall(180, () => {
+      if (!this.sprite.active || this.isShieldActive() || this.isDodging || this.isAttacking || this.isPulseCasting || this.isSlashCasting) return;
+      this.sprite.clearTint();
+    });
   }
 
   get isInvincible(): boolean {

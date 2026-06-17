@@ -212,6 +212,7 @@ export class PreloadScene extends Phaser.Scene {
     this.createProjectile("scam-bolt", 0xff3355);
     this.createProjectile("boss-bolt", 0xb66cff);
     this.createSpark();
+    this.createPickupTextures();
   }
 
   private createBeastTexture(key: string, color: number, mouthColor: number): void {
@@ -259,6 +260,49 @@ export class PreloadScene extends Phaser.Scene {
     bolt.lineBetween(2, 12, 22, 12);
     bolt.generateTexture(key, 24, 24);
     bolt.destroy();
+  }
+
+  private createPickupTextures(): void {
+    const coin = this.add.graphics();
+    coin.fillStyle(0x39ff14, 1);
+    coin.fillCircle(16, 16, 12);
+    coin.lineStyle(2, 0xf5fff1, 0.8);
+    coin.strokeCircle(16, 16, 9);
+    coin.fillStyle(0xf5fff1, 0.9);
+    coin.fillRoundedRect(12, 10, 8, 12, 2);
+    coin.generateTexture("pickup-safe-point", 32, 32);
+    coin.destroy();
+
+    const heart = this.add.graphics();
+    heart.fillStyle(0xff6688, 1);
+    heart.fillCircle(11, 11, 7);
+    heart.fillCircle(21, 11, 7);
+    heart.fillTriangle(4, 13, 28, 13, 16, 29);
+    heart.generateTexture("pickup-heart", 32, 32);
+    heart.destroy();
+
+    const shield = this.add.graphics();
+    shield.fillStyle(0x7dffb5, 1);
+    shield.fillPoints([{x:16,y:3},{x:27,y:9},{x:24,y:22},{x:16,y:29},{x:8,y:22},{x:5,y:9}], true);
+    shield.lineStyle(2, 0xf5fff1, 0.8);
+    shield.strokePoints([{x:16,y:3},{x:27,y:9},{x:24,y:22},{x:16,y:29},{x:8,y:22},{x:5,y:9}], true);
+    shield.generateTexture("pickup-shield", 32, 32);
+    shield.destroy();
+
+    const cooldown = this.add.graphics();
+    cooldown.fillStyle(0xb66cff, 1);
+    cooldown.fillPoints([{x:16,y:2},{x:28,y:16},{x:16,y:30},{x:4,y:16}], true);
+    cooldown.lineStyle(2, 0xf5fff1, 0.8);
+    cooldown.strokePoints([{x:16,y:2},{x:28,y:16},{x:16,y:30},{x:4,y:16}], true);
+    cooldown.generateTexture("pickup-cooldown", 32, 32);
+    cooldown.destroy();
+
+    const speed = this.add.graphics();
+    speed.fillStyle(0xfff17d, 1);
+    speed.fillTriangle(7, 18, 17, 6, 17, 14);
+    speed.fillTriangle(15, 14, 25, 14, 15, 26);
+    speed.generateTexture("pickup-speed", 32, 32);
+    speed.destroy();
   }
 
   private createSpark(): void {

@@ -97,6 +97,13 @@ export class WaveSystem {
     }
 
     enemy.setData("lastScore", score);
+    this.scene.events.emit("enemy-defeated", {
+      x: enemy.x,
+      y: enemy.y,
+      boss: wasBoss,
+      kind: String(enemy.getData("kind") ?? "bad_habit"),
+      score,
+    });
     return true;
   }
 

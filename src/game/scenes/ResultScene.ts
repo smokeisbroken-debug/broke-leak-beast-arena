@@ -57,10 +57,6 @@ export class ResultScene extends Phaser.Scene {
       }).setOrigin(1, 0).setDepth(3);
     });
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 92, "Prototype only. No backend rewards yet.", {
-      fontFamily: "Arial", fontSize: "13px", color: "#d8e9d6", align: "center", stroke: "#050805", strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(3);
-
     const again = this.add.text(GAME_WIDTH / 2 - 110, GAME_HEIGHT - 46, "PLAY AGAIN", {
       fontFamily: "Arial", fontSize: "18px", color: "#050505", backgroundColor: "#39ff14", padding: { x: 26, y: 12 }, fontStyle: "bold",
     }).setOrigin(0.5).setDepth(4);
