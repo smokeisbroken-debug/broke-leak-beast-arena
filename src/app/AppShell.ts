@@ -1,13 +1,51 @@
+type TelegramWebApp = {
+  expand?: () => void;
+  ready?: () => void;
+  disableVerticalSwipes?: () => void;
+  requestFullscreen?: () => void;
+};
+
+type TelegramWindow = Window & {
+  Telegram?: {
+    WebApp?: TelegramWebApp;
+  };
+};
+
 export function mountAppShell(): void {
   const root = document.getElementById("app");
   if (!root) return;
+
+  syncViewportHeight();
+  window.addEventListener("resize", syncViewportHeight);
+  window.visualViewport?.addEventListener("resize", syncViewportHeight);
+  window.visualViewport?.addEventListener("scroll", syncViewportHeight);
+
+  const webApp = (window as TelegramWindow).Telegram?.WebApp;
+  try {
+    webApp?.ready?.();
+    webApp?.expand?.();
+    webApp?.disableVerticalSwipes?.();
+  } catch {
+    // Telegram WebApp APIs are optional. The game must still load in a normal browser.
+  }
 
   const loader = document.createElement("div");
   loader.className = "broke-loading";
   loader.textContent = "LOADING LEAK BEAST ARENA";
   root.appendChild(loader);
 
+  const rotateHint = document.createElement("div");
+  rotateHint.className = "broke-rotate-hint";
+  rotateHint.textContent = "Rotate phone for battle";
+  root.appendChild(rotateHint);
+
   window.setTimeout(() => loader.remove(), 650);
+}
+
+function syncViewportHeight(): void {
+  const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+  document.documentElement.style.setProperty("--app-height", `${Math.round(viewportHeight)}px`);
+  document.documentElement.style.setProperty("--app-width", `${Math.round(window.visualViewport?.width ?? window.innerWidth)}px`);
 }
 
 type FullscreenElement = HTMLElement & {
@@ -25,6 +63,14 @@ export function isAppFullscreen(): boolean {
 }
 
 export async function requestAppFullscreen(target?: HTMLElement | null): Promise<boolean> {
+  const webApp = (window as TelegramWindow).Telegram?.WebApp;
+  try {
+    webApp?.expand?.();
+    webApp?.requestFullscreen?.();
+  } catch {
+    // Keep browser fallback below.
+  }
+
   const element = (target ?? document.documentElement) as FullscreenElement | null;
   if (!element) return false;
   if (isAppFullscreen()) return true;

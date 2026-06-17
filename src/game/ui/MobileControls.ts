@@ -13,8 +13,8 @@ export class MobileControls {
   private joystickBase: Phaser.GameObjects.Image;
   private joystickKnob: Phaser.GameObjects.Arc;
   private joystickPointerId: number | null = null;
-  private readonly joystickCenter = new Phaser.Math.Vector2(108, GAME_HEIGHT - 84);
-  private readonly joystickRadius = 52;
+  private readonly joystickCenter = new Phaser.Math.Vector2(108, GAME_HEIGHT - 82);
+  private readonly joystickRadius = 54;
 
   constructor(private scene: Phaser.Scene) {
     scene.input.addPointer(6);
@@ -22,7 +22,7 @@ export class MobileControls {
     this.createControlBackplates();
 
     this.joystickBase = scene.add.image(this.joystickCenter.x, this.joystickCenter.y, "combat-joystick-base")
-      .setDisplaySize(116, 116)
+      .setDisplaySize(120, 120)
       .setAlpha(0.96)
       .setDepth(80);
 
@@ -52,33 +52,34 @@ export class MobileControls {
   }
 
   private createControlBackplates(): void {
-    this.scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 74, 0x050805, 0.24)
+    this.scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 78, 0x050805, 0.28)
       .setStrokeStyle(2, 0x39ff14, 0.12)
       .setDepth(78);
 
-    this.scene.add.circle(GAME_WIDTH - 110, GAME_HEIGHT - 86, 96, 0x050805, 0.24)
+    this.scene.add.circle(GAME_WIDTH - 118, GAME_HEIGHT - 88, 102, 0x050805, 0.24)
       .setStrokeStyle(2, 0xb66cff, 0.12)
       .setDepth(78);
   }
 
   private createButtons(): void {
-    this.createImageButton(GAME_WIDTH - 156, GAME_HEIGHT - 88, "combat-button-slash", 64, 64, "SLASH", () => {
+    // Right-side diamond. Main action is closest to thumb center, support skills around it.
+    this.createImageButton(GAME_WIDTH - 176, GAME_HEIGHT - 88, "combat-button-slash", 80, 80, "SLASH", () => {
       this.inputState.slash = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 104, GAME_HEIGHT - 136, "combat-button-shield", 54, 54, "SHIELD", () => {
+    this.createImageButton(GAME_WIDTH - 108, GAME_HEIGHT - 148, "combat-button-shield", 68, 68, "SHIELD", () => {
       this.inputState.shield = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 102, GAME_HEIGHT - 42, "combat-button-pulse", 56, 56, "PULSE", () => {
+    this.createImageButton(GAME_WIDTH - 108, GAME_HEIGHT - 42, "combat-button-pulse", 70, 70, "PULSE", () => {
       this.inputState.pulse = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 48, GAME_HEIGHT - 88, "combat-button-dash", 62, 62, "DASH", () => {
+    this.createImageButton(GAME_WIDTH - 42, GAME_HEIGHT - 88, "combat-button-dash", 76, 76, "DASH", () => {
       this.inputState.dodge = true;
     });
 
-    this.createAttackToggleButton(GAME_WIDTH - 218, GAME_HEIGHT - 42, 44);
+    this.createAttackToggleButton(GAME_WIDTH - 240, GAME_HEIGHT - 42, 64);
   }
 
   private createImageButton(
@@ -100,7 +101,7 @@ export class MobileControls {
 
     this.scene.add.text(x, y + height * 0.45, label, {
       fontFamily: "Arial",
-      fontSize: "8px",
+      fontSize: "10px",
       color: "#f5fff1",
       fontStyle: "bold",
       stroke: "#050805",
@@ -115,22 +116,22 @@ export class MobileControls {
   }
 
   private createAttackToggleButton(x: number, y: number, size: number): void {
-    const hitZone = this.scene.add.circle(x, y, size * 0.72, 0x000000, 0.001)
+    const hitZone = this.scene.add.circle(x, y, size * 0.62, 0x000000, 0.001)
       .setDepth(79)
       .setInteractive({ useHandCursor: true });
 
     this.attackButton = this.scene.add.image(x, y, "combat-button-auto")
       .setDisplaySize(size, size)
       .setDepth(80)
-      .setAlpha(0.92);
+      .setAlpha(0.9);
 
-    this.attackIndicator = this.scene.add.circle(x + size * 0.24, y + size * 0.24, 4, 0xff3355, 0.95)
+    this.attackIndicator = this.scene.add.circle(x + size * 0.3, y + size * 0.3, 5, 0xff3355, 0.95)
       .setStrokeStyle(2, 0x050805, 0.75)
       .setDepth(81);
 
-    this.scene.add.text(x, y + size * 0.62, "AUTO", {
+    this.scene.add.text(x, y + size * 0.48, "AUTO", {
       fontFamily: "Arial",
-      fontSize: "8px",
+      fontSize: "10px",
       color: "#f5fff1",
       fontStyle: "bold",
       stroke: "#050805",
@@ -141,7 +142,7 @@ export class MobileControls {
       pointer.event?.preventDefault();
       this.attackToggled = !this.attackToggled;
       this.refreshAttackToggleVisual();
-      this.flashButton(this.attackButton!);
+      this.scene.tweens.add({ targets: this.attackButton, alpha: this.attackToggled ? 1 : 0.9, duration: 60 });
     });
 
     this.refreshAttackToggleVisual();
@@ -150,9 +151,9 @@ export class MobileControls {
   private refreshAttackToggleVisual(): void {
     if (!this.attackButton || !this.attackIndicator) return;
     this.attackButton.setScale(1);
-    this.attackButton.setDisplaySize(44, 44);
-    this.attackButton.setAlpha(this.attackToggled ? 1 : 0.92);
-    this.attackIndicator.setPosition(this.attackButton.x + 10, this.attackButton.y + 10);
+    this.attackButton.setDisplaySize(64, 64);
+    this.attackButton.setAlpha(this.attackToggled ? 1 : 0.9);
+    this.attackIndicator.setPosition(this.attackButton.x + 18, this.attackButton.y + 18);
     this.attackIndicator.setFillStyle(this.attackToggled ? 0x39ff14 : 0xff3355, 0.95);
   }
 

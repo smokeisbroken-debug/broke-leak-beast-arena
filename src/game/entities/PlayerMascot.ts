@@ -2,6 +2,10 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import type { AttackSpec, InputState, PlayerUpgradeId, PlayerUpgradeState } from "../types/game";
 
+const PLAYER_BASE_SCALE = 0.052;
+const PLAYER_ATTACK_SCALE = 0.058;
+const PLAYER_HEAVY_ATTACK_SCALE = 0.062;
+
 export class PlayerMascot {
   public readonly sprite: Phaser.Physics.Arcade.Sprite;
 
@@ -61,7 +65,7 @@ export class PlayerMascot {
   constructor(private scene: Phaser.Scene, x: number, y: number) {
     this.sprite = scene.physics.add.sprite(x, y, "mascot-idle-front");
     this.sprite.setCollideWorldBounds(true);
-    this.sprite.setScale(0.04);
+    this.sprite.setScale(PLAYER_BASE_SCALE);
     this.sprite.setSize(360, 520);
     this.sprite.setDepth(24);
     this.playVisual("mascot-idle-front-anim");
@@ -339,14 +343,14 @@ export class PlayerMascot {
     this.isAttacking = true;
     this.attackStartedThisFrame = true;
     this.sprite.setTint(comboStep === 3 ? 0xb66cff : 0xffffff);
-    this.sprite.setScale(comboStep === 3 ? 0.115 : 0.108);
+    this.sprite.setScale(comboStep === 3 ? PLAYER_HEAVY_ATTACK_SCALE : PLAYER_ATTACK_SCALE);
     this.playVisual("mascot-attack-anim");
 
     this.scene.time.delayedCall(comboStep === 3 ? 210 : 145, () => {
       if (!this.sprite.active) return;
       this.isAttacking = false;
       if (!this.isDodging && !this.isPulseCasting && !this.isSlashCasting && !this.isShieldActive()) this.sprite.clearTint();
-      this.sprite.setScale(0.04);
+      this.sprite.setScale(PLAYER_BASE_SCALE);
     });
   }
 
@@ -389,13 +393,13 @@ export class PlayerMascot {
     };
 
     this.sprite.setTint(0x39ff14);
-    this.sprite.setScale(0.118);
+    this.sprite.setScale(PLAYER_HEAVY_ATTACK_SCALE);
     this.playVisual("mascot-attack-anim");
 
     this.scene.time.delayedCall(285, () => {
       if (!this.sprite.active) return;
       this.isSlashCasting = false;
-      this.sprite.setScale(0.04);
+      this.sprite.setScale(PLAYER_BASE_SCALE);
       if (!this.isAttacking && !this.isDodging && !this.isPulseCasting && !this.isShieldActive()) this.sprite.clearTint();
     });
   }

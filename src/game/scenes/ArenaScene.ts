@@ -215,9 +215,9 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     // Soft masks behind thumb zones so buttons are readable without covering the arena.
-    this.add.rectangle(112, GAME_HEIGHT - 78, 210, 144, 0x020402, 0.22)
+    this.add.rectangle(116, GAME_HEIGHT - 78, 226, 154, 0x020402, 0.22)
       .setDepth(5);
-    this.add.rectangle(GAME_WIDTH - 126, GAME_HEIGHT - 82, 250, 154, 0x020402, 0.22)
+    this.add.rectangle(GAME_WIDTH - 130, GAME_HEIGHT - 82, 286, 176, 0x020402, 0.22)
       .setDepth(5);
 
     this.updateArenaBackgroundForWave(1);
