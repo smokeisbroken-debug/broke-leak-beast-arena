@@ -58,10 +58,11 @@ export class WaveSystem {
   }
 
   spawnOpeningPack(targetX: number, targetY: number): void {
-    // Spawn real targets immediately after countdown so the first screen does not feel empty.
+    // Landscape opening pack: enemies appear around the central arena, not under controls.
     this.spawn(targetX, targetY, 99999, "bad_habit");
     this.spawn(targetX, targetY, 99999, "bad_habit");
-    this.spawnTimer = 520;
+    this.spawn(targetX, targetY, 99999, "fomo");
+    this.spawnTimer = 620;
   }
 
   defeatEnemy(enemy: Phaser.Physics.Arcade.Sprite): boolean {
@@ -475,13 +476,17 @@ export class WaveSystem {
 
   private spawn(targetX: number, targetY: number, runElapsedMs: number, forcedKind?: EnemyKind): void {
     const side = Phaser.Math.Between(0, 3);
-    const margin = 32;
+    const margin = 38;
+    const topY = 88;
+    const bottomY = GAME_HEIGHT - 96;
+    const leftX = 78;
+    const rightX = GAME_WIDTH - 78;
 
     const positions = [
-      { x: Phaser.Math.Between(0, GAME_WIDTH), y: -margin },
-      { x: GAME_WIDTH + margin, y: Phaser.Math.Between(100, GAME_HEIGHT - 152) },
-      { x: Phaser.Math.Between(0, GAME_WIDTH), y: GAME_HEIGHT - 138 + margin },
-      { x: -margin, y: Phaser.Math.Between(100, GAME_HEIGHT - 152) },
+      { x: Phaser.Math.Between(leftX, rightX), y: topY - margin },
+      { x: rightX + margin, y: Phaser.Math.Between(topY, bottomY) },
+      { x: Phaser.Math.Between(leftX, rightX), y: bottomY + margin },
+      { x: leftX - margin, y: Phaser.Math.Between(topY, bottomY) },
     ];
 
     const position = positions[side];
@@ -493,9 +498,9 @@ export class WaveSystem {
 
   private spawnBoss(targetX: number, targetY: number): void {
     const side = Phaser.Math.Between(0, 1);
-    const x = side === 0 ? -62 : GAME_WIDTH + 62;
-    const y = Phaser.Math.Between(150, GAME_HEIGHT - 200);
-    const boss = createLeakBeast(this.scene, x, y, { boss: true, kind: "smoke_brute", wave: this.currentWave });
+    const x = side === 0 ? 42 : GAME_WIDTH - 42;
+    const y = Phaser.Math.Between(120, GAME_HEIGHT - 120);
+    const boss = createLeakBeast(this.scene, side === 0 ? -72 : GAME_WIDTH + 72, y, { boss: true, kind: "smoke_brute", wave: this.currentWave });
     boss.setData("nextPatternAt", Date.now() + 900);
     this.scene.physics.moveTo(boss, targetX, targetY, Number(boss.getData("speed") ?? 70));
     this.group.add(boss);
@@ -539,7 +544,7 @@ export class WaveSystem {
   private showTelegraphLine(x1: number, y1: number, x2: number, y2: number, color: number, durationMs: number): void {
     const line = this.scene.add.line(0, 0, x1, y1, x2, y2, color, 0.72)
       .setOrigin(0, 0)
-      .setLineWidth(4)
+      .setLineWidth(3)
       .setDepth(9);
 
     this.scene.tweens.add({
@@ -570,7 +575,7 @@ export class WaveSystem {
   private showEnemyWarning(text: string, x: number, y: number, color: string): void {
     const label = this.scene.add.text(x, y, text, {
       fontFamily: "Arial",
-      fontSize: "10px",
+      fontSize: "11px",
       color,
       fontStyle: "bold",
       stroke: "#050805",

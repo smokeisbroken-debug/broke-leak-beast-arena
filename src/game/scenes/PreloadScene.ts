@@ -59,14 +59,14 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("start-tagline", "assets/ui/start-tagline.png");
     this.load.image("start-feature-strip", "assets/ui/start-feature-strip.png");
 
-    this.load.image("combat-hud-panel", "assets/ui/combat-hud-panel.png?v=037");
-    this.load.image("combat-joystick-base", "assets/ui/combat-joystick-base.png?v=037");
-    this.load.image("combat-button-slash", "assets/ui/combat-button-slash.png?v=037");
-    this.load.image("combat-button-dash", "assets/ui/combat-button-dash.png?v=037");
-    this.load.image("combat-button-pulse", "assets/ui/combat-button-pulse.png?v=037");
-    this.load.image("combat-button-shield", "assets/ui/combat-button-shield.png?v=037");
-    this.load.image("combat-button-auto", "assets/ui/combat-button-auto.png?v=037");
-    this.load.image("combat-control-strip", "assets/ui/combat-control-strip.png?v=037");
+    this.load.image("combat-hud-panel", "assets/ui/combat-hud-panel.png?v=038");
+    this.load.image("combat-joystick-base", "assets/ui/combat-joystick-base.png?v=038");
+    this.load.image("combat-button-slash", "assets/ui/combat-button-slash.png?v=038");
+    this.load.image("combat-button-dash", "assets/ui/combat-button-dash.png?v=038");
+    this.load.image("combat-button-pulse", "assets/ui/combat-button-pulse.png?v=038");
+    this.load.image("combat-button-shield", "assets/ui/combat-button-shield.png?v=038");
+    this.load.image("combat-button-auto", "assets/ui/combat-button-auto.png?v=038");
+    this.load.image("combat-control-strip", "assets/ui/combat-control-strip.png?v=038");
     this.load.spritesheet("arena-vfx-sheet", "assets/vfx/arena-vfx-sheet.png", {
       frameWidth: 418,
       frameHeight: 418,

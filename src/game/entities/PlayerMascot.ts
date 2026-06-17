@@ -11,7 +11,7 @@ export class PlayerMascot {
   public isSlashCasting = false;
   public isShieldCasting = false;
 
-  private baseSpeed = 230;
+  private baseSpeed = 245;
   private attackCooldownMs = 330;
   private dodgeCooldownMs = 780;
   private pulseCooldownMs = 5200;

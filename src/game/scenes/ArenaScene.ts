@@ -154,23 +154,44 @@ export class ArenaScene extends Phaser.Scene {
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
       .setDepth(0);
 
-    this.arenaShade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x030406, 0.42)
+    this.arenaShade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x030406, 0.36)
       .setDepth(1);
 
-    this.add.ellipse(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 18, 540, 280, 0x071007, 0.24)
-      .setStrokeStyle(3, 0x39ff14, 0.18)
+    // Wide landscape arena: readable center, controls stay outside the main fight focus.
+    this.add.ellipse(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 12, 590, 300, 0x071007, 0.22)
+      .setStrokeStyle(3, 0x39ff14, 0.2)
       .setDepth(4);
-    this.add.ellipse(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 18, 468, 220, 0x050805, 0.12)
+    this.add.ellipse(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 12, 500, 240, 0x050805, 0.08)
       .setStrokeStyle(2, 0xb66cff, 0.12)
       .setDepth(4);
+
+    for (let i = -2; i <= 2; i += 1) {
+      const y = GAME_HEIGHT / 2 + 12 + i * 38;
+      this.add.line(0, 0, 188, y, GAME_WIDTH - 188, y, 0x39ff14, 0.055)
+        .setOrigin(0, 0)
+        .setDepth(4);
+    }
+
+    for (let i = -2; i <= 2; i += 1) {
+      const x = GAME_WIDTH / 2 + i * 72;
+      this.add.line(0, 0, x, 105, x, GAME_HEIGHT - 88, 0xb66cff, 0.045)
+        .setOrigin(0, 0)
+        .setDepth(4);
+    }
+
+    // Soft masks behind thumb zones so buttons are readable without covering the arena.
+    this.add.rectangle(112, GAME_HEIGHT - 78, 210, 144, 0x020402, 0.22)
+      .setDepth(5);
+    this.add.rectangle(GAME_WIDTH - 126, GAME_HEIGHT - 82, 250, 154, 0x020402, 0.22)
+      .setDepth(5);
 
     this.updateArenaBackgroundForWave(1);
   }
 
   private createPauseButton(): void {
-    const bg = this.add.circle(GAME_WIDTH - 38, 40, 22, 0x050805, 0.72)
+    const bg = this.add.circle(GAME_WIDTH - 34, 34, 20, 0x050805, 0.72)
       .setStrokeStyle(2, 0x39ff14, 0.3);
-    const bars = this.add.text(GAME_WIDTH - 38, 40, "II", {
+    const bars = this.add.text(GAME_WIDTH - 34, 34, "II", {
       fontFamily: "Arial",
       fontSize: "20px",
       color: "#f5fff1",
@@ -275,7 +296,7 @@ export class ArenaScene extends Phaser.Scene {
       this.fightStarted = true;
       this.activeElapsedMs = 0;
       this.waves.spawnOpeningPack(this.player.sprite.x, this.player.sprite.y);
-      this.showFloatingText("OPENING WAVE", GAME_WIDTH / 2, 92, "#39ff14");
+      this.showFloatingText("OPENING WAVE", GAME_WIDTH / 2, 84, "#39ff14");
       this.tweens.add({
         targets: this.countdownText,
         alpha: 0,
@@ -503,7 +524,7 @@ export class ArenaScene extends Phaser.Scene {
     const isBossWave = wave % 3 === 0;
     const text = this.add.text(GAME_WIDTH / 2, 86, isBossWave ? `WAVE ${wave}: MINI-BOSS PATTERN` : `WAVE ${wave}`, {
       fontFamily: "Arial",
-      fontSize: isBossWave ? "22px" : "22px",
+      fontSize: isBossWave ? "18px" : "20px",
       color: isBossWave ? "#b66cff" : "#39ff14",
       fontStyle: "bold",
       stroke: "#050805",
@@ -658,7 +679,7 @@ export class ArenaScene extends Phaser.Scene {
   private showFloatingText(text: string, x: number, y: number, color: string): void {
     const label = this.add.text(x, y, text, {
       fontFamily: "Arial",
-      fontSize: "16px",
+      fontSize: "14px",
       color,
       fontStyle: "bold",
       stroke: "#050805",
