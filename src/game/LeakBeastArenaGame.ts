@@ -18,6 +18,7 @@ export function createLeakBeastArenaGame(parent: string): Phaser.Game {
       antialias: true,
       pixelArt: false,
       roundPixels: false,
+      powerPreference: "high-performance",
     },
     physics: {
       default: "arcade",
@@ -31,7 +32,7 @@ export function createLeakBeastArenaGame(parent: string): Phaser.Game {
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
     input: {
-      activePointers: 4,
+      activePointers: 6,
     },
     scene: [BootScene, PreloadScene, MainMenuScene, ArenaScene, ResultScene],
   });

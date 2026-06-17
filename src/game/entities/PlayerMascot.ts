@@ -59,7 +59,7 @@ export class PlayerMascot {
   constructor(private scene: Phaser.Scene, x: number, y: number) {
     this.sprite = scene.physics.add.sprite(x, y, "mascot-idle-front");
     this.sprite.setCollideWorldBounds(true);
-    this.sprite.setScale(0.038);
+    this.sprite.setScale(0.04);
     this.sprite.setSize(360, 520);
     this.sprite.setDepth(24);
     this.playVisual("mascot-idle-front-anim");
@@ -303,14 +303,14 @@ export class PlayerMascot {
     this.isAttacking = true;
     this.attackStartedThisFrame = true;
     this.sprite.setTint(comboStep === 3 ? 0xb66cff : 0xffffff);
-    this.sprite.setScale(comboStep === 3 ? 0.108 : 0.102);
+    this.sprite.setScale(comboStep === 3 ? 0.115 : 0.108);
     this.playVisual("mascot-attack-anim");
 
     this.scene.time.delayedCall(comboStep === 3 ? 210 : 145, () => {
       if (!this.sprite.active) return;
       this.isAttacking = false;
       if (!this.isDodging && !this.isPulseCasting && !this.isSlashCasting && !this.isShieldActive()) this.sprite.clearTint();
-      this.sprite.setScale(0.038);
+      this.sprite.setScale(0.04);
     });
   }
 
@@ -353,13 +353,13 @@ export class PlayerMascot {
     };
 
     this.sprite.setTint(0x39ff14);
-    this.sprite.setScale(0.11);
+    this.sprite.setScale(0.118);
     this.playVisual("mascot-attack-anim");
 
     this.scene.time.delayedCall(285, () => {
       if (!this.sprite.active) return;
       this.isSlashCasting = false;
-      this.sprite.setScale(0.038);
+      this.sprite.setScale(0.04);
       if (!this.isAttacking && !this.isDodging && !this.isPulseCasting && !this.isShieldActive()) this.sprite.clearTint();
     });
   }
@@ -400,8 +400,8 @@ export class PlayerMascot {
   }
 
   keepInsideArena(): void {
-    this.sprite.x = Phaser.Math.Clamp(this.sprite.x, 24, GAME_WIDTH - 24);
-    this.sprite.y = Phaser.Math.Clamp(this.sprite.y, 96, GAME_HEIGHT - 132);
+    this.sprite.x = Phaser.Math.Clamp(this.sprite.x, 58, GAME_WIDTH - 58);
+    this.sprite.y = Phaser.Math.Clamp(this.sprite.y, 88, GAME_HEIGHT - 74);
   }
 
   private updateVisualState(velocity: Phaser.Math.Vector2): void {

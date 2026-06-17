@@ -37,6 +37,8 @@ export class ArenaScene extends Phaser.Scene {
   private countdownText!: Phaser.GameObjects.Text;
   private arenaBackground!: Phaser.GameObjects.Image;
   private arenaShade!: Phaser.GameObjects.Rectangle;
+  private pauseButton!: Phaser.GameObjects.Container;
+  private pauseOverlay?: Phaser.GameObjects.Container;
   private currentArenaBackgroundKey = "";
 
   private score = 0;
@@ -75,10 +77,11 @@ export class ArenaScene extends Phaser.Scene {
 
     this.createArenaBackground();
 
-    this.player = new PlayerMascot(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80);
+    this.player = new PlayerMascot(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 18);
     this.waves = new WaveSystem(this);
     this.controls = new MobileControls(this);
     this.hud = new Hud(this);
+    this.createPauseButton();
 
     this.hud.update(this.getHudState());
     this.createCountdown();
@@ -151,19 +154,58 @@ export class ArenaScene extends Phaser.Scene {
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
       .setDepth(0);
 
-    this.arenaShade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x030406, 0.36)
+    this.arenaShade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x030406, 0.42)
       .setDepth(1);
 
-    this.add.rectangle(GAME_WIDTH / 2, (GAME_HEIGHT - 88) / 2 + 74, GAME_WIDTH - 18, GAME_HEIGHT - 176, 0x000000, 0.1)
-      .setStrokeStyle(1, 0x39ff14, 0.08)
+    this.add.ellipse(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 18, 540, 280, 0x071007, 0.24)
+      .setStrokeStyle(3, 0x39ff14, 0.18)
+      .setDepth(4);
+    this.add.ellipse(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 18, 468, 220, 0x050805, 0.12)
+      .setStrokeStyle(2, 0xb66cff, 0.12)
       .setDepth(4);
 
-    this.add.image(GAME_WIDTH / 2, 127, "combat-control-strip")
-      .setDisplaySize(300, 34)
-      .setAlpha(0.9)
-      .setDepth(5);
-
     this.updateArenaBackgroundForWave(1);
+  }
+
+  private createPauseButton(): void {
+    const bg = this.add.circle(GAME_WIDTH - 38, 40, 22, 0x050805, 0.72)
+      .setStrokeStyle(2, 0x39ff14, 0.3);
+    const bars = this.add.text(GAME_WIDTH - 38, 40, "II", {
+      fontFamily: "Arial",
+      fontSize: "20px",
+      color: "#f5fff1",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
+    }).setOrigin(0.5);
+
+    this.pauseButton = this.add.container(0, 0, [bg, bars]).setDepth(85);
+    bg.setInteractive({ useHandCursor: true });
+    bg.on("pointerdown", () => this.togglePauseState());
+  }
+
+  private togglePauseState(): void {
+    if (!this.fightStarted || this.runFinished || this.upgradeOverlayActive) return;
+
+    this.fightPaused = !this.fightPaused;
+
+    if (this.fightPaused) {
+      this.physics.pause();
+      const dim = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.45);
+      const panel = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 260, 118, 0x050805, 0.9)
+        .setStrokeStyle(2, 0x39ff14, 0.35);
+      const title = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 18, "PAUSED", {
+        fontFamily: "Arial", fontSize: "28px", color: "#39ff14", fontStyle: "bold", stroke: "#050805", strokeThickness: 5,
+      }).setOrigin(0.5);
+      const hint = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 20, "Tap pause again to continue", {
+        fontFamily: "Arial", fontSize: "14px", color: "#f5fff1", stroke: "#050805", strokeThickness: 3,
+      }).setOrigin(0.5);
+      this.pauseOverlay = this.add.container(0, 0, [dim, panel, title, hint]).setDepth(149);
+    } else {
+      this.physics.resume();
+      this.pauseOverlay?.destroy(true);
+      this.pauseOverlay = undefined;
+    }
   }
 
   private updateArenaBackgroundForWave(wave: number): void {
@@ -178,7 +220,7 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private createCountdown(): void {
-    this.countdownText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 66, "3", {
+    this.countdownText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 18, "3", {
       fontFamily: "Arial",
       fontSize: "72px",
       color: "#39ff14",
@@ -201,6 +243,7 @@ export class ArenaScene extends Phaser.Scene {
 
     return {
       hp: this.hp,
+      maxHp: 5 + (this.player?.getMaxHpBonus() ?? 0),
       score: this.score,
       wave: this.waves?.currentWave ?? 1,
       defeated: this.waves?.defeatedCount ?? 0,
@@ -232,7 +275,7 @@ export class ArenaScene extends Phaser.Scene {
       this.fightStarted = true;
       this.activeElapsedMs = 0;
       this.waves.spawnOpeningPack(this.player.sprite.x, this.player.sprite.y);
-      this.showFloatingText("OPENING WAVE", GAME_WIDTH / 2, 118, "#39ff14");
+      this.showFloatingText("OPENING WAVE", GAME_WIDTH / 2, 92, "#39ff14");
       this.tweens.add({
         targets: this.countdownText,
         alpha: 0,
@@ -458,7 +501,7 @@ export class ArenaScene extends Phaser.Scene {
 
   private showWaveBanner(wave: number): void {
     const isBossWave = wave % 3 === 0;
-    const text = this.add.text(GAME_WIDTH / 2, 144, isBossWave ? `WAVE ${wave}: MINI-BOSS PATTERN` : `WAVE ${wave}`, {
+    const text = this.add.text(GAME_WIDTH / 2, 86, isBossWave ? `WAVE ${wave}: MINI-BOSS PATTERN` : `WAVE ${wave}`, {
       fontFamily: "Arial",
       fontSize: isBossWave ? "22px" : "22px",
       color: isBossWave ? "#b66cff" : "#39ff14",
@@ -469,7 +512,7 @@ export class ArenaScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: text,
-      y: 116,
+      y: 64,
       alpha: 0,
       duration: 1150,
       ease: "Cubic.easeOut",
@@ -497,11 +540,11 @@ export class ArenaScene extends Phaser.Scene {
     };
 
     add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.74).setDepth(150));
-    add(this.add.rectangle(GAME_WIDTH / 2, 296, GAME_WIDTH - 26, 386, 0x071107, 0.98)
+    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH - 110, GAME_HEIGHT - 90, 0x071107, 0.98)
       .setStrokeStyle(2, 0x39ff14, 0.55)
       .setDepth(151));
 
-    add(this.add.text(GAME_WIDTH / 2, 116, "ROGUELITE UPGRADE", {
+    add(this.add.text(GAME_WIDTH / 2, 84, "ROGUELITE UPGRADE", {
       fontFamily: "Arial",
       fontSize: "24px",
       color: "#39ff14",
@@ -510,14 +553,14 @@ export class ArenaScene extends Phaser.Scene {
       strokeThickness: 4,
     }).setOrigin(0.5).setDepth(152));
 
-    add(this.add.text(GAME_WIDTH / 2, 145, reason.toUpperCase(), {
+    add(this.add.text(GAME_WIDTH / 2, 112, reason.toUpperCase(), {
       fontFamily: "Arial",
       fontSize: "12px",
       color: "#9cff8a",
       fontStyle: "bold",
     }).setOrigin(0.5).setDepth(152));
 
-    add(this.add.text(GAME_WIDTH / 2, 170, "Choose one build path for this run", {
+    add(this.add.text(GAME_WIDTH / 2, 136, "Choose one build path for this run", {
       fontFamily: "Arial",
       fontSize: "12px",
       color: "#f5fff1",
@@ -525,30 +568,30 @@ export class ArenaScene extends Phaser.Scene {
 
     const options = this.pickUpgradeOptions();
     options.forEach((option, index) => {
-      const y = 224 + index * 94;
+      const y = 192 + index * 80;
       const stroke = option.rarity === "rare" ? 0xb66cff : option.rarity === "survival" ? 0xff3355 : 0x39ff14;
       const fill = option.rarity === "rare" ? 0x130821 : option.rarity === "survival" ? 0x1a080b : 0x0d210d;
 
-      const card = add(this.add.rectangle(GAME_WIDTH / 2, y, GAME_WIDTH - 58, 76, fill, 0.96)
+      const card = add(this.add.rectangle(GAME_WIDTH / 2, y, GAME_WIDTH - 170, 62, fill, 0.96)
         .setStrokeStyle(2, stroke, 0.62)
         .setDepth(152)
         .setInteractive({ useHandCursor: true }));
 
-      add(this.add.text(58, y - 27, option.tag, {
+      add(this.add.text(128, y - 23, option.tag, {
         fontFamily: "Arial",
         fontSize: "10px",
         color: option.rarity === "rare" ? "#d6a8ff" : option.rarity === "survival" ? "#ff9aaa" : "#9cff8a",
         fontStyle: "bold",
       }).setDepth(153));
 
-      add(this.add.text(58, y - 8, option.title, {
+      add(this.add.text(128, y - 8, option.title, {
         fontFamily: "Arial",
         fontSize: "17px",
         color: "#f5fff1",
         fontStyle: "bold",
       }).setDepth(153));
 
-      add(this.add.text(58, y + 17, option.description, {
+      add(this.add.text(128, y + 12, option.description, {
         fontFamily: "Arial",
         fontSize: "12px",
         color: "#9cff8a",
@@ -582,16 +625,16 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private showUpgradeToast(title: string, message: string): void {
-    const panel = this.add.rectangle(GAME_WIDTH / 2, 108, GAME_WIDTH - 50, 62, 0x071107, 0.94)
+    const panel = this.add.rectangle(GAME_WIDTH / 2, 92, 360, 56, 0x071107, 0.94)
       .setStrokeStyle(2, 0x39ff14, 0.45)
       .setDepth(155);
-    const titleText = this.add.text(GAME_WIDTH / 2, 94, title.toUpperCase(), {
+    const titleText = this.add.text(GAME_WIDTH / 2, 81, title.toUpperCase(), {
       fontFamily: "Arial",
       fontSize: "14px",
       color: "#39ff14",
       fontStyle: "bold",
     }).setOrigin(0.5).setDepth(156);
-    const bodyText = this.add.text(GAME_WIDTH / 2, 117, message, {
+    const bodyText = this.add.text(GAME_WIDTH / 2, 100, message, {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#f5fff1",
@@ -624,7 +667,7 @@ export class ArenaScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: label,
-      y: y - 36,
+      y: y - 28,
       alpha: 0,
       duration: 760,
       onComplete: () => label.destroy(),
@@ -634,6 +677,7 @@ export class ArenaScene extends Phaser.Scene {
   private finishRun(): void {
     if (this.runFinished) return;
     this.runFinished = true;
+    this.pauseOverlay?.destroy(true);
     this.waves.clearAll();
     this.physics.pause();
 
