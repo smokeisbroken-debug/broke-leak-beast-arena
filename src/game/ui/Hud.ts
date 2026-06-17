@@ -30,8 +30,8 @@ export class Hud {
   private progressText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene) {
-    scene.add.image(GAME_WIDTH / 2, 40, "combat-hud-panel")
-      .setDisplaySize(376, 69)
+    scene.add.image(GAME_WIDTH / 2, 39, "combat-hud-panel")
+      .setDisplaySize(374, 68)
       .setDepth(70)
       .setAlpha(1);
 
@@ -47,33 +47,33 @@ export class Hud {
     };
 
     // Put values directly under / near the printed labels on the art.
-    this.scoreValue = scene.add.text(48, 20, "0", { ...valueStyle, fontSize: "17px" })
+    this.scoreValue = scene.add.text(71, 20, "0", { ...valueStyle, fontSize: "17px" })
       .setOrigin(0.5)
       .setDepth(71);
 
-    this.leaksValue = scene.add.text(48, 47, "0", { ...valueStyle, fontSize: "17px", color: "#8bff7d" })
+    this.leaksValue = scene.add.text(72, 47, "0", { ...valueStyle, fontSize: "17px", color: "#8bff7d" })
       .setOrigin(0.5)
       .setDepth(71);
 
-    this.waveValue = scene.add.text(GAME_WIDTH / 2, 27, "1", {
+    this.waveValue = scene.add.text(GAME_WIDTH / 2, 28, "1", {
       ...valueStyle,
       fontSize: "27px",
       color: "#39ff14",
       strokeThickness: 6,
     }).setOrigin(0.5).setDepth(71);
 
-    this.hpValue = scene.add.text(353, 23, "5/5", { ...valueStyle, fontSize: "20px" })
+    this.hpValue = scene.add.text(342, 24, "5/5", { ...valueStyle, fontSize: "20px" })
       .setOrigin(0.5)
       .setDepth(71);
 
-    this.timeValue = scene.add.text(353, 49, "0s", {
+    this.timeValue = scene.add.text(342, 50, "0s", {
       ...valueStyle,
       fontSize: "13px",
       color: "#d9c8ff",
       strokeThickness: 4,
     }).setOrigin(0.5).setDepth(71);
 
-    this.statusText = scene.add.text(GAME_WIDTH / 2, 83, "", {
+    this.statusText = scene.add.text(GAME_WIDTH / 2, 82, "", {
       fontFamily: "Arial",
       fontSize: "12px",
       color: "#d9d0ff",
@@ -83,7 +83,7 @@ export class Hud {
       align: "center",
     }).setOrigin(0.5).setDepth(71);
 
-    this.progressText = scene.add.text(GAME_WIDTH / 2, 101, "", {
+    this.progressText = scene.add.text(GAME_WIDTH / 2, 100, "", {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#d7ffd0",

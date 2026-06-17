@@ -158,9 +158,9 @@ export class ArenaScene extends Phaser.Scene {
       .setStrokeStyle(1, 0x39ff14, 0.08)
       .setDepth(4);
 
-    this.add.image(GAME_WIDTH / 2, 132, "combat-control-strip")
-             .setDisplaySize(304, 35)
-      .setAlpha(0.97)
+    this.add.image(GAME_WIDTH / 2, 127, "combat-control-strip")
+      .setDisplaySize(300, 34)
+      .setAlpha(0.9)
       .setDepth(5);
 
     this.updateArenaBackgroundForWave(1);
@@ -247,7 +247,6 @@ export class ArenaScene extends Phaser.Scene {
 
     const hitResult = this.waves.hitEnemiesInArc(this.player.sprite.x, this.player.sprite.y, attack);
     if (hitResult.hits <= 0) {
-      this.showFloatingText(`COMBO ${attack.comboStep}: MISS`, this.player.sprite.x, this.player.sprite.y - 54, "#88aa88");
       return;
     }
 
@@ -269,8 +268,8 @@ export class ArenaScene extends Phaser.Scene {
     const points = hitResult.score + hitResult.hits * 18 + (hitResult.bossHit ? 55 : 0);
     this.score += points;
 
-    this.cameras.main.shake(95, 0.004);
-    this.showFloatingText(hitResult.hits > 0 ? `DASH SLASH +${points}` : "DASH SLASH", this.player.sprite.x, this.player.sprite.y - 80, "#39ff14");
+    this.cameras.main.shake(70, 0.0025);
+    if (hitResult.hits > 0) this.showFloatingText(`SLASH +${points}`, this.player.sprite.x, this.player.sprite.y - 70, "#39ff14");
     if (hitResult.defeated > 0) this.maybeOfferDefeatUpgrade();
   }
 
@@ -281,14 +280,14 @@ export class ArenaScene extends Phaser.Scene {
     const points = hitResult.score + hitResult.hits * 12 + (hitResult.bossHit ? 40 : 0);
     this.score += points;
 
-    this.cameras.main.shake(90, 0.004);
-    this.showFloatingText(hitResult.hits > 0 ? `SAFE PULSE +${points}` : "SAFE PULSE", this.player.sprite.x, this.player.sprite.y - 86, "#39ff14");
+    this.cameras.main.shake(70, 0.0025);
+    this.showFloatingText(hitResult.hits > 0 ? `PULSE +${points}` : "PULSE", this.player.sprite.x, this.player.sprite.y - 70, "#39ff14");
     if (hitResult.defeated > 0) this.maybeOfferDefeatUpgrade();
   }
 
   private resolveLeakShield(): void {
     this.showLeakShield();
-    this.showFloatingText(`LEAK SHIELD x${this.player.getShieldCapacity()}`, this.player.sprite.x, this.player.sprite.y - 92, "#39ff14");
+    this.showFloatingText(`SHIELD x${this.player.getShieldCapacity()}`, this.player.sprite.x, this.player.sprite.y - 70, "#39ff14");
   }
 
   private onEnemyContact(enemy: Phaser.Physics.Arcade.Sprite): void {
@@ -338,7 +337,7 @@ export class ArenaScene extends Phaser.Scene {
 
     this.hp -= amount;
     this.player.flashHit();
-    this.cameras.main.shake(135, 0.008);
+    this.cameras.main.shake(105, 0.005);
     this.showFloatingText(`-${amount} HP ${label}`, this.player.sprite.x, this.player.sprite.y - 58, "#ff3355");
 
     if (this.hp <= 0) {

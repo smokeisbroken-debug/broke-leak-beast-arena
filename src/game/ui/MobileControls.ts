@@ -50,11 +50,11 @@ export class MobileControls {
   }
 
   private createButtons(): void {
-    this.createAttackToggleButton(GAME_WIDTH - 61, GAME_HEIGHT - 74, 58);
-    this.createImageButton(GAME_WIDTH - 120, GAME_HEIGHT - 60, "combat-button-dash", 48, 48, () => { this.inputState.dodge = true; });
-    this.createImageButton(GAME_WIDTH - 117, GAME_HEIGHT - 116, "combat-button-slash", 50, 50, () => { this.inputState.slash = true; });
-    this.createImageButton(GAME_WIDTH - 61, GAME_HEIGHT - 118, "combat-button-shield", 40, 40, () => { this.inputState.shield = true; });
-    this.createImageButton(GAME_WIDTH - 22, GAME_HEIGHT - 82, "combat-button-pulse", 42, 42, () => { this.inputState.pulse = true; });
+    this.createAttackToggleButton(GAME_WIDTH - 64, GAME_HEIGHT - 76, 56);
+    this.createImageButton(GAME_WIDTH - 121, GAME_HEIGHT - 60, "combat-button-dash", 48, 48, () => { this.inputState.dodge = true; });
+    this.createImageButton(GAME_WIDTH - 119, GAME_HEIGHT - 116, "combat-button-slash", 50, 50, () => { this.inputState.slash = true; });
+    this.createImageButton(GAME_WIDTH - 66, GAME_HEIGHT - 118, "combat-button-shield", 40, 40, () => { this.inputState.shield = true; });
+    this.createImageButton(GAME_WIDTH - 34, GAME_HEIGHT - 86, "combat-button-pulse", 42, 42, () => { this.inputState.pulse = true; });
   }
 
   private createImageButton(x: number, y: number, texture: string, width: number, height: number, callback: () => void): void {
@@ -98,7 +98,7 @@ export class MobileControls {
   private refreshAttackToggleVisual(): void {
     if (!this.attackButton || !this.attackIndicator) return;
     this.attackButton.setScale(1);
-    this.attackButton.setDisplaySize(58, 58);
+    this.attackButton.setDisplaySize(56, 56);
     this.attackButton.setAlpha(this.attackToggled ? 1 : 0.9);
     this.attackIndicator.setFillStyle(this.attackToggled ? 0x39ff14 : 0xff3355, 0.95);
   }

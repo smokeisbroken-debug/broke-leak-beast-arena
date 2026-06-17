@@ -14,6 +14,11 @@ export function createLeakBeastArenaGame(parent: string): Phaser.Game {
     width: GAME_WIDTH,
     height: GAME_HEIGHT,
     backgroundColor: COLORS.bg,
+    render: {
+      antialias: true,
+      pixelArt: false,
+      roundPixels: false,
+    },
     physics: {
       default: "arcade",
       arcade: {
