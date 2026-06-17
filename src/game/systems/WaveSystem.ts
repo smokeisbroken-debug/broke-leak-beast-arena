@@ -14,9 +14,11 @@ interface BossHpBar {
   bg: Phaser.GameObjects.Rectangle;
   fill: Phaser.GameObjects.Rectangle;
   frame: Phaser.GameObjects.Rectangle;
+  label: Phaser.GameObjects.Text;
 }
 
-type BossPattern = "charge" | "bolt_spread" | "shockwave" | "summon";
+type BossPattern = "charge" | "bolt_spread" | "shockwave" | "summon" | "rage_charge" | "smoke_ring";
+type BossPhase = 1 | 2;
 
 const ENEMY_ROTATION: EnemyKind[] = ["bad_habit", "bad_habit", "fomo", "scam", "smoke_brute"];
 
@@ -32,6 +34,7 @@ export class WaveSystem {
   private hazards: Phaser.GameObjects.Arc[] = [];
   private shadows = new Map<Phaser.Physics.Arcade.Sprite, Phaser.GameObjects.Ellipse>();
   private bossHpBars = new Map<Phaser.Physics.Arcade.Sprite, BossHpBar>();
+  private pendingBossRewardWave = 0;
 
   constructor(private scene: Phaser.Scene) {
     this.group = scene.physics.add.group();
@@ -86,7 +89,13 @@ export class WaveSystem {
     enemy.disableBody(true, true);
     this.defeatedCount += 1;
 
-    if (wasBoss) this.bossActive = false;
+    if (wasBoss) {
+      this.bossActive = false;
+      this.pendingBossRewardWave = this.currentWave;
+      this.scene.cameras.main.shake(180, 0.004);
+      this.showBossClear(enemy.x, enemy.y);
+    }
+
     enemy.setData("lastScore", score);
     return true;
   }
@@ -163,12 +172,20 @@ export class WaveSystem {
       bar.bg.destroy();
       bar.fill.destroy();
       bar.frame.destroy();
+      bar.label.destroy();
     });
     this.bossHpBars.clear();
     this.group.clear(true, true);
     this.projectiles.clear(true, true);
     this.hazards.forEach((zone) => zone.destroy());
     this.hazards = [];
+    this.pendingBossRewardWave = 0;
+  }
+
+  consumeBossRewardWave(): number {
+    const wave = this.pendingBossRewardWave;
+    this.pendingBossRewardWave = 0;
+    return wave;
   }
 
   private damageEnemy(
@@ -179,9 +196,20 @@ export class WaveSystem {
   ): { defeated: boolean; bossHit: boolean; score: number } {
     const isBoss = Boolean(enemy.getData("boss"));
     const maxHp = Math.max(1, Number(enemy.getData("maxHp") ?? 1));
-    const hp = Number(enemy.getData("hp") ?? 1) - damage;
     const now = Date.now();
 
+    if (isBoss && now < Number(enemy.getData("spawnInvulnerableUntil") ?? 0)) {
+      this.showDamageNumber(
+        "BLOCK",
+        enemy.x,
+        enemy.y - Number(enemy.getData("displayH") ?? enemy.displayHeight) * 0.46,
+        "#d9a7ff",
+        false,
+      );
+      return { defeated: false, bossHit: true, score: 0 };
+    }
+
+    const hp = Number(enemy.getData("hp") ?? 1) - damage;
     enemy.setData("hp", hp);
     enemy.setData("hitStunUntil", now + (isBoss ? 95 : 155));
     enemy.setVelocity(direction.x * knockback, direction.y * knockback);
@@ -370,11 +398,15 @@ export class WaveSystem {
   }
 
   private updateBossPattern(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number, now: number, speed: number): void {
+    const phase = this.updateBossPhase(beast, now);
+    const style = (beast.getData("bossStyle") as "thorn" | "smoke" | undefined) ?? "thorn";
+    const phaseSpeed = phase === 2 ? speed * 1.18 : speed;
+
     const chargeUntil = Number(beast.getData("chargeUntil") ?? 0);
     if (chargeUntil > now) {
       const dirX = Number(beast.getData("chargeDirX") ?? 0);
       const dirY = Number(beast.getData("chargeDirY") ?? 0);
-      beast.setVelocity(dirX * speed * 3.65, dirY * speed * 3.65);
+      beast.setVelocity(dirX * phaseSpeed * (phase === 2 ? 4.15 : 3.45), dirY * phaseSpeed * (phase === 2 ? 4.15 : 3.45));
       return;
     }
 
@@ -383,58 +415,118 @@ export class WaveSystem {
 
     if (queuedPattern && patternFireAt > now) {
       beast.setVelocity(0, 0);
-      beast.setTint(0xffffff);
+      beast.setTint(phase === 2 ? 0xffddff : 0xffffff);
       return;
     }
 
     if (queuedPattern && patternFireAt <= now) {
-      this.executeBossPattern(beast, queuedPattern, targetX, targetY, now, speed);
+      this.executeBossPattern(beast, queuedPattern, targetX, targetY, now, phaseSpeed);
       beast.setData("queuedPattern", undefined);
       beast.setData("patternFireAt", 0);
-      beast.setData("nextPatternAt", now + Phaser.Math.Between(2300, 3050));
+      beast.setData("nextPatternAt", now + Phaser.Math.Between(phase === 2 ? 1450 : 2150, phase === 2 ? 2150 : 3000));
       beast.clearTint();
       return;
     }
 
     const nextPatternAt = Number(beast.getData("nextPatternAt") ?? 0);
     if (nextPatternAt <= now) {
-      const pattern = Phaser.Math.RND.pick(["charge", "bolt_spread", "shockwave", "summon"] as BossPattern[]);
+      const pattern = this.pickBossPattern(style, phase);
+      const windupMs = phase === 2 ? 470 : 650;
       beast.setData("queuedPattern", pattern);
-      beast.setData("patternFireAt", now + 650);
-      this.telegraphBossPattern(beast, pattern, targetX, targetY);
+      beast.setData("patternFireAt", now + windupMs);
+      this.telegraphBossPattern(beast, pattern, targetX, targetY, windupMs);
       return;
     }
 
-    this.scene.physics.moveTo(beast, targetX, targetY, speed * 0.68);
+    const orbit = new Phaser.Math.Vector2(targetX - beast.x, targetY - beast.y);
+    if (orbit.lengthSq() > 0) orbit.normalize();
+    const distance = Phaser.Math.Distance.Between(beast.x, beast.y, targetX, targetY);
+
+    if (distance < 112 && phase === 1) {
+      beast.setVelocity(-orbit.x * phaseSpeed * 0.42, -orbit.y * phaseSpeed * 0.42);
+    } else {
+      this.scene.physics.moveTo(beast, targetX, targetY, phaseSpeed * (phase === 2 ? 0.78 : 0.62));
+    }
   }
 
-  private telegraphBossPattern(beast: Phaser.Physics.Arcade.Sprite, pattern: BossPattern, targetX: number, targetY: number): void {
-    if (pattern === "charge") {
+  private updateBossPhase(beast: Phaser.Physics.Arcade.Sprite, now: number): BossPhase {
+    const hp = Number(beast.getData("hp") ?? 1);
+    const maxHp = Math.max(1, Number(beast.getData("maxHp") ?? 1));
+    const nextPhase: BossPhase = hp <= maxHp * 0.5 ? 2 : 1;
+    const currentPhase = Number(beast.getData("bossPhase") ?? 1) as BossPhase;
+
+    if (nextPhase === 2 && currentPhase !== 2) {
+      beast.setData("bossPhase", 2);
+      beast.setData("nextPatternAt", now + 520);
+      beast.setData("patternFireAt", 0);
+      beast.setData("queuedPattern", undefined);
+      beast.setTint(0xffddff);
+      this.spawnHitSpark(beast.x, beast.y, 0xb66cff, true);
+      this.showTelegraphCircle(beast.x, beast.y, 100, 0xb66cff, 520);
+      this.showEnemyWarning("PHASE 2", beast.x, beast.y - 66, "#d9a7ff");
+      this.scene.cameras.main.shake(135, 0.0035);
+      this.scene.time.delayedCall(180, () => {
+        if (beast.active) beast.clearTint();
+      });
+    } else {
+      beast.setData("bossPhase", nextPhase);
+    }
+
+    return nextPhase;
+  }
+
+  private pickBossPattern(style: "thorn" | "smoke", phase: BossPhase): BossPattern {
+    if (style === "smoke") {
+      return phase === 2
+        ? Phaser.Math.RND.pick(["smoke_ring", "shockwave", "bolt_spread", "summon"] as BossPattern[])
+        : Phaser.Math.RND.pick(["shockwave", "smoke_ring", "summon"] as BossPattern[]);
+    }
+
+    return phase === 2
+      ? Phaser.Math.RND.pick(["rage_charge", "bolt_spread", "shockwave", "charge"] as BossPattern[])
+      : Phaser.Math.RND.pick(["charge", "bolt_spread", "shockwave"] as BossPattern[]);
+  }
+
+  private telegraphBossPattern(
+    beast: Phaser.Physics.Arcade.Sprite,
+    pattern: BossPattern,
+    targetX: number,
+    targetY: number,
+    durationMs: number,
+  ): void {
+    if (pattern === "charge" || pattern === "rage_charge") {
       const dir = new Phaser.Math.Vector2(targetX - beast.x, targetY - beast.y);
       if (dir.lengthSq() <= 0) dir.set(1, 0);
       dir.normalize();
       beast.setData("chargeDirX", dir.x);
       beast.setData("chargeDirY", dir.y);
-      this.showTelegraphLine(beast.x, beast.y, beast.x + dir.x * 230, beast.y + dir.y * 230, 0xff3355, 650);
-      this.showEnemyWarning("CHARGE", beast.x, beast.y - 58, "#ff3355");
+      this.showTelegraphLine(beast.x, beast.y, beast.x + dir.x * (pattern === "rage_charge" ? 310 : 230), beast.y + dir.y * (pattern === "rage_charge" ? 310 : 230), 0xff3355, durationMs);
+      this.showEnemyWarning(pattern === "rage_charge" ? "RAGE" : "CHARGE", beast.x, beast.y - 58, "#ff3355");
       return;
     }
 
     if (pattern === "bolt_spread") {
-      this.showTelegraphLine(beast.x, beast.y, targetX, targetY, 0xb66cff, 650);
-      this.showTelegraphLine(beast.x, beast.y, targetX + 85, targetY, 0xb66cff, 650);
-      this.showTelegraphLine(beast.x, beast.y, targetX - 85, targetY, 0xb66cff, 650);
+      this.showTelegraphLine(beast.x, beast.y, targetX, targetY, 0xb66cff, durationMs);
+      this.showTelegraphLine(beast.x, beast.y, targetX + 85, targetY, 0xb66cff, durationMs);
+      this.showTelegraphLine(beast.x, beast.y, targetX - 85, targetY, 0xb66cff, durationMs);
       this.showEnemyWarning("BOLTS", beast.x, beast.y - 58, "#b66cff");
       return;
     }
 
     if (pattern === "shockwave") {
-      this.showTelegraphCircle(beast.x, beast.y, 86, 0xff3355, 650);
+      this.showTelegraphCircle(beast.x, beast.y, 92, 0xff3355, durationMs);
       this.showEnemyWarning("WAVE", beast.x, beast.y - 58, "#ff3355");
       return;
     }
 
-    this.showTelegraphCircle(targetX, targetY, 70, 0x39ff14, 650);
+    if (pattern === "smoke_ring") {
+      this.showTelegraphCircle(targetX, targetY, 76, 0x7b42ff, durationMs);
+      this.showTelegraphCircle(beast.x, beast.y, 66, 0x7b42ff, durationMs);
+      this.showEnemyWarning("SMOKE RING", beast.x, beast.y - 58, "#b66cff");
+      return;
+    }
+
+    this.showTelegraphCircle(targetX, targetY, 70, 0x39ff14, durationMs);
     this.showEnemyWarning("SUMMON", beast.x, beast.y - 58, "#39ff14");
   }
 
@@ -446,8 +538,11 @@ export class WaveSystem {
     now: number,
     speed: number,
   ): void {
-    if (pattern === "charge") {
-      beast.setData("chargeUntil", now + 720);
+    if (pattern === "charge" || pattern === "rage_charge") {
+      beast.setData("chargeUntil", now + (pattern === "rage_charge" ? 920 : 720));
+      if (pattern === "rage_charge") {
+        this.spawnProjectile(beast.x, beast.y, targetX, targetY, 175, true);
+      }
       return;
     }
 
@@ -455,14 +550,30 @@ export class WaveSystem {
       this.spawnProjectile(beast.x, beast.y, targetX, targetY, 205, true);
       this.spawnProjectile(beast.x, beast.y, targetX + 90, targetY, 175, true);
       this.spawnProjectile(beast.x, beast.y, targetX - 90, targetY, 175, true);
+
+      if (Number(beast.getData("bossPhase") ?? 1) >= 2) {
+        this.spawnProjectile(beast.x, beast.y, targetX, targetY - 70, 165, true);
+        this.spawnProjectile(beast.x, beast.y, targetX, targetY + 70, 165, true);
+      }
       return;
     }
 
     if (pattern === "shockwave") {
-      this.spawnHazard(beast.x, beast.y, 86, 1450);
-      for (let i = 0; i < 6; i += 1) {
-        const angle = (Math.PI * 2 * i) / 6;
-        this.spawnProjectile(beast.x, beast.y, beast.x + Math.cos(angle) * 160, beast.y + Math.sin(angle) * 160, 145, true);
+      this.spawnHazard(beast.x, beast.y, Number(beast.getData("bossPhase") ?? 1) >= 2 ? 104 : 86, 1550);
+      const count = Number(beast.getData("bossPhase") ?? 1) >= 2 ? 8 : 6;
+      for (let i = 0; i < count; i += 1) {
+        const angle = (Math.PI * 2 * i) / count;
+        this.spawnProjectile(beast.x, beast.y, beast.x + Math.cos(angle) * 170, beast.y + Math.sin(angle) * 170, 145, true);
+      }
+      return;
+    }
+
+    if (pattern === "smoke_ring") {
+      this.spawnHazard(targetX, targetY, 62, 1900);
+      const ringCount = 4;
+      for (let i = 0; i < ringCount; i += 1) {
+        const angle = (Math.PI * 2 * i) / ringCount;
+        this.spawnHazard(targetX + Math.cos(angle) * 82, targetY + Math.sin(angle) * 54, 36, 1650);
       }
       return;
     }
@@ -472,7 +583,6 @@ export class WaveSystem {
     if (this.currentWave >= 4) this.spawn(targetX, targetY, 99999, "scam");
     beast.setVelocity(0, 0);
     beast.setData("hitStunUntil", now + 360);
-    // Keep the argument used so TypeScript does not complain if build settings change.
     void speed;
   }
 
@@ -539,9 +649,14 @@ export class WaveSystem {
     const side = Phaser.Math.Between(0, 1);
     const y = Phaser.Math.Between(132, GAME_HEIGHT - 138);
     const boss = createLeakBeast(this.scene, side === 0 ? 72 : GAME_WIDTH - 72, y, { boss: true, kind: "smoke_brute", wave: this.currentWave });
-    boss.setData("nextPatternAt", Date.now() + 900);
+    const now = Date.now();
+
+    boss.setData("bossPhase", 1);
+    boss.setData("nextPatternAt", now + 1250);
+    boss.setData("spawnInvulnerableUntil", now + 520);
     this.scene.physics.moveTo(boss, targetX, targetY, Number(boss.getData("speed") ?? 70));
     this.group.add(boss);
+    this.showBossIntro(boss);
   }
 
   private spawnProjectile(x: number, y: number, targetX: number, targetY: number, speed = 165, boss = false): void {
@@ -615,14 +730,28 @@ export class WaveSystem {
       const frame = this.scene.add.rectangle(beast.x, barY, barW + 3, 8, 0x000000, 0)
         .setStrokeStyle(1, 0xf5fff1, 0.36)
         .setDepth(50);
-      bar = { bg, fill, frame };
+      const label = this.scene.add.text(beast.x, barY - 11, "BOSS", {
+        fontFamily: "Arial",
+        fontSize: "9px",
+        color: "#f5fff1",
+        fontStyle: "bold",
+        stroke: "#050805",
+        strokeThickness: 3,
+      }).setOrigin(0.5).setDepth(51);
+      bar = { bg, fill, frame, label };
       this.bossHpBars.set(beast, bar);
     }
+
+    const phase = Number(beast.getData("bossPhase") ?? 1);
+    const style = ((beast.getData("bossStyle") as string | undefined) ?? "thorn").toUpperCase();
 
     bar.bg.setPosition(beast.x, barY).setDisplaySize(barW, 6);
     bar.frame.setPosition(beast.x, barY).setDisplaySize(barW + 3, 8);
     bar.fill.setPosition(beast.x - barW / 2, barY).setDisplaySize(Math.max(3, barW * ratio), 4);
     bar.fill.setFillStyle(ratio < 0.28 ? 0xff3355 : ratio < 0.58 ? 0xffb338 : 0x39ff14, 1);
+    bar.label.setPosition(beast.x, barY - 11);
+    bar.label.setText(`${style} BOSS · P${phase}`);
+    bar.label.setColor(phase >= 2 ? "#d9a7ff" : "#f5fff1");
   }
 
   private removeBossHpBar(beast: Phaser.Physics.Arcade.Sprite): void {
@@ -631,6 +760,7 @@ export class WaveSystem {
     bar.bg.destroy();
     bar.fill.destroy();
     bar.frame.destroy();
+    bar.label.destroy();
     this.bossHpBars.delete(beast);
   }
 
@@ -752,6 +882,66 @@ export class WaveSystem {
       duration: durationMs,
       yoyo: true,
       onComplete: () => circle.destroy(),
+    });
+  }
+
+  private showBossIntro(boss: Phaser.Physics.Arcade.Sprite): void {
+    const style = ((boss.getData("bossStyle") as string | undefined) ?? "thorn").toUpperCase();
+    const label = this.scene.add.text(GAME_WIDTH / 2, 92, `${style} BOSS`, {
+      fontFamily: "Arial",
+      fontSize: "28px",
+      color: "#d9a7ff",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 6,
+    }).setOrigin(0.5).setDepth(120);
+
+    const sub = this.scene.add.text(GAME_WIDTH / 2, 122, "DODGE THE PATTERN · BREAK THE LEAK", {
+      fontFamily: "Arial",
+      fontSize: "12px",
+      color: "#f5fff1",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(120);
+
+    this.showTelegraphCircle(boss.x, boss.y, 120, 0xb66cff, 740);
+    this.scene.cameras.main.shake(120, 0.0025);
+
+    this.scene.tweens.add({
+      targets: [label, sub],
+      y: "-=22",
+      alpha: 0,
+      delay: 850,
+      duration: 520,
+      ease: "Cubic.easeOut",
+      onComplete: () => {
+        label.destroy();
+        sub.destroy();
+      },
+    });
+  }
+
+  private showBossClear(x: number, y: number): void {
+    const label = this.scene.add.text(GAME_WIDTH / 2, 92, "BOSS BROKEN", {
+      fontFamily: "Arial",
+      fontSize: "28px",
+      color: "#39ff14",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 6,
+    }).setOrigin(0.5).setDepth(120);
+
+    this.showTelegraphCircle(x, y, 138, 0x39ff14, 640);
+
+    this.scene.tweens.add({
+      targets: label,
+      y: 66,
+      alpha: 0,
+      delay: 650,
+      duration: 520,
+      ease: "Cubic.easeOut",
+      onComplete: () => label.destroy(),
     });
   }
 

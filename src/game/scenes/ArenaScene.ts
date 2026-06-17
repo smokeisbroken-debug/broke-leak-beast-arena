@@ -150,7 +150,14 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     this.score += Math.floor(delta / 120);
-    this.maybeOfferDefeatUpgrade();
+
+    const bossRewardWave = this.waves.consumeBossRewardWave();
+    if (bossRewardWave > 0 && !this.upgradeOverlayActive && !this.fightPaused) {
+      this.time.delayedCall(420, () => this.showUpgradeChoice(`Boss wave ${bossRewardWave} cleared`));
+    } else {
+      this.maybeOfferDefeatUpgrade();
+    }
+
     this.hud.update(this.getHudState());
   }
 
