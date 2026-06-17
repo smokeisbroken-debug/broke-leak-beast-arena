@@ -2,9 +2,9 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import type { AttackSpec, InputState, PlayerUpgradeId, PlayerUpgradeState } from "../types/game";
 
-const PLAYER_BASE_SCALE = 0.075;
-const PLAYER_ATTACK_SCALE = 0.077;
-const PLAYER_HEAVY_ATTACK_SCALE = 0.079;
+const PLAYER_BASE_SCALE = 0.096;
+const PLAYER_ATTACK_SCALE = 0.1;
+const PLAYER_HEAVY_ATTACK_SCALE = 0.104;
 
 export class PlayerMascot {
   public readonly sprite: Phaser.Physics.Arcade.Sprite;
@@ -67,7 +67,7 @@ export class PlayerMascot {
     this.sprite.setCollideWorldBounds(true);
     this.sprite.setScale(PLAYER_BASE_SCALE);
     this.sprite.setSize(360, 520);
-    this.sprite.setDepth(24);
+    this.sprite.setDepth(26);
     this.playVisual("mascot-idle-front-anim");
   }
 

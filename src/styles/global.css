@@ -1,10 +1,10 @@
 :root {
-  --broke-bg: #081208;
-  --broke-panel: rgba(7, 24, 7, 0.82);
-  --broke-green: #39ff14;
-  --broke-purple: #8a00ff;
-  --broke-white: #f5fff1;
-  --broke-muted: rgba(245, 255, 241, 0.72);
+  --broke-bg: #0d1d0d;
+  --broke-panel: rgba(17, 48, 17, 0.82);
+  --broke-green: #72ff57;
+  --broke-purple: #a45cff;
+  --broke-white: #fcfff7;
+  --broke-muted: rgba(252, 255, 247, 0.76);
   --app-height: 100vh;
   --app-width: 100vw;
 }
@@ -30,9 +30,9 @@ body,
   padding: 0;
   overflow: hidden;
   background:
-    radial-gradient(circle at 18% 18%, rgba(57, 255, 20, 0.22), transparent 30%),
-    radial-gradient(circle at 86% 12%, rgba(138, 0, 255, 0.24), transparent 32%),
-    linear-gradient(180deg, #081208 0%, #0a1a0a 100%);
+    radial-gradient(circle at 18% 18%, rgba(114, 255, 87, 0.28), transparent 32%),
+    radial-gradient(circle at 86% 12%, rgba(164, 92, 255, 0.24), transparent 34%),
+    linear-gradient(180deg, #102510 0%, #163216 100%);
   color: var(--broke-white);
   font-family: Arial, Helvetica, sans-serif;
   touch-action: none;
@@ -60,7 +60,7 @@ body {
   place-items: center;
   overflow: hidden;
   touch-action: none;
-  background: #081208;
+  background: #102510;
   padding: 0;
 }
 
@@ -107,7 +107,7 @@ html.broke-landscape #game-root canvas {
   letter-spacing: 0.06em;
   z-index: 10;
   pointer-events: none;
-  background: rgba(8, 18, 8, 0.72);
+  background: rgba(13, 29, 13, 0.68);
 }
 
 .broke-access-overlay {
@@ -122,7 +122,7 @@ html.broke-landscape #game-root canvas {
     max(18px, env(safe-area-inset-left));
   background:
     radial-gradient(circle at 50% 30%, rgba(57, 255, 20, 0.18), transparent 36%),
-    rgba(8, 18, 8, 0.88);
+    rgba(13, 29, 13, 0.84);
   color: var(--broke-white);
   z-index: 25;
 }
@@ -136,7 +136,7 @@ html.broke-landscape #game-root canvas {
   border: 1px solid rgba(57, 255, 20, 0.45);
   border-radius: 22px;
   padding: 22px;
-  background: rgba(7, 24, 7, 0.9);
+  background: rgba(17, 48, 17, 0.9);
   box-shadow: 0 22px 80px rgba(0, 0, 0, 0.46);
   text-align: center;
 }

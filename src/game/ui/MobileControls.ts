@@ -14,9 +14,9 @@ export class MobileControls {
   private joystickBase: Phaser.GameObjects.Image;
   private joystickKnob: Phaser.GameObjects.Arc;
   private joystickPointerId: number | null = null;
-  private readonly joystickCenter = new Phaser.Math.Vector2(126, GAME_HEIGHT - 88);
-  private readonly joystickRadius = 66;
-  private readonly autoButtonSize = 76;
+  private readonly joystickCenter = new Phaser.Math.Vector2(128, GAME_HEIGHT - 88);
+  private readonly joystickRadius = 72;
+  private readonly autoButtonSize = 84;
 
   constructor(private scene: Phaser.Scene) {
     scene.input.addPointer(6);
@@ -24,11 +24,11 @@ export class MobileControls {
     this.createControlBackplates();
 
     this.joystickBase = scene.add.image(this.joystickCenter.x, this.joystickCenter.y, "combat-joystick-base")
-      .setDisplaySize(146, 146)
+      .setDisplaySize(160, 160)
       .setAlpha(0.97)
       .setDepth(80);
 
-    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 22, 0x39ff14, 0.96)
+    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 24, 0x72ff57, 0.96)
       .setStrokeStyle(3, 0x071107, 0.76)
       .setDepth(81);
 
@@ -55,17 +55,17 @@ export class MobileControls {
   }
 
   private createControlBackplates(): void {
-    this.scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 96, 0x050805, 0.25)
+    this.scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 102, 0x061306, 0.24)
       .setStrokeStyle(3, 0x39ff14, 0.16)
       .setDepth(78);
 
-    this.scene.add.circle(GAME_WIDTH - 130, GAME_HEIGHT - 92, 132, 0x050805, 0.24)
+    this.scene.add.circle(GAME_WIDTH - 132, GAME_HEIGHT - 92, 142, 0x061306, 0.22)
       .setStrokeStyle(3, 0xb66cff, 0.14)
       .setDepth(78);
 
-    this.scene.add.text(GAME_WIDTH - 162, GAME_HEIGHT - 202, "TAP SKILLS", {
+    this.scene.add.text(GAME_WIDTH - 162, GAME_HEIGHT - 204, "SKILLS", {
       fontFamily: "Arial",
-      fontSize: "11px",
+      fontSize: "12px",
       color: "#d7ffd0",
       fontStyle: "bold",
       stroke: "#050805",
@@ -75,19 +75,19 @@ export class MobileControls {
 
   private createButtons(): void {
     // Main sword swing is now a direct ATTACK button. It works even when the player is not moving.
-    this.createImageButton(GAME_WIDTH - 178, GAME_HEIGHT - 92, "combat-button-slash", 104, 104, "ATTACK", () => {
+    this.createImageButton(GAME_WIDTH - 182, GAME_HEIGHT - 92, "combat-button-slash", 114, 114, "ATTACK", () => {
       this.queueAttack();
     });
 
-    this.createImageButton(GAME_WIDTH - 104, GAME_HEIGHT - 160, "combat-button-shield", 86, 86, "SHIELD", () => {
+    this.createImageButton(GAME_WIDTH - 104, GAME_HEIGHT - 160, "combat-button-shield", 94, 94, "SHIELD", () => {
       this.inputState.shield = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 104, GAME_HEIGHT - 42, "combat-button-pulse", 86, 86, "PULSE", () => {
+    this.createImageButton(GAME_WIDTH - 104, GAME_HEIGHT - 42, "combat-button-pulse", 94, 94, "PULSE", () => {
       this.inputState.pulse = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 38, GAME_HEIGHT - 92, "combat-button-dash", 92, 92, "DASH", () => {
+    this.createImageButton(GAME_WIDTH - 36, GAME_HEIGHT - 92, "combat-button-dash", 98, 98, "DASH", () => {
       this.inputState.dodge = true;
     });
 

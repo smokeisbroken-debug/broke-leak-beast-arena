@@ -48,6 +48,8 @@ export class ArenaScene extends Phaser.Scene {
   private countdownText!: Phaser.GameObjects.Text;
   private arenaBackground!: Phaser.GameObjects.Image;
   private arenaShade!: Phaser.GameObjects.Rectangle;
+  private mascotGlowOuter!: Phaser.GameObjects.Arc;
+  private mascotGlowInner!: Phaser.GameObjects.Arc;
   private pauseButton!: Phaser.GameObjects.Container;
   private fullscreenButton!: Phaser.GameObjects.Container;
   private pauseOverlay?: Phaser.GameObjects.Container;
@@ -68,6 +70,7 @@ export class ArenaScene extends Phaser.Scene {
   private upgradeOverlayActive = false;
   private contactDamageReadyAt = 0;
   private hazardDamageReadyAt = 0;
+  private rangedDamageReadyAt = 0;
   private pickupsCollected = 0;
   private bossesBroken = 0;
 
@@ -89,6 +92,7 @@ export class ArenaScene extends Phaser.Scene {
     this.upgradeOverlayActive = false;
     this.contactDamageReadyAt = 0;
     this.hazardDamageReadyAt = 0;
+    this.rangedDamageReadyAt = 0;
     this.pickupsCollected = 0;
     this.bossesBroken = 0;
     this.currentArenaBackgroundKey = "";
@@ -98,6 +102,7 @@ export class ArenaScene extends Phaser.Scene {
     this.sfx = new SfxSystem();
 
     this.player = new PlayerMascot(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 18);
+    this.createMascotSpotlight();
     this.waves = new WaveSystem(this);
     this.controls = new MobileControls(this);
     this.hud = new Hud(this);
@@ -134,8 +139,10 @@ export class ArenaScene extends Phaser.Scene {
     );
 
     this.events.on("enemy-defeated", this.handleEnemyDefeated, this);
+    this.events.on("player-ranged-hit", this.handlePlayerRangedHit, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.events.off("enemy-defeated", this.handleEnemyDefeated, this);
+      this.events.off("player-ranged-hit", this.handlePlayerRangedHit, this);
     });
   }
 
@@ -154,6 +161,7 @@ export class ArenaScene extends Phaser.Scene {
     }
     this.player.update(input, delta);
     this.player.keepInsideArena();
+    this.updateMascotSpotlight();
 
     const attack = this.player.consumeAttackStarted();
     if (attack) {
@@ -205,38 +213,80 @@ export class ArenaScene extends Phaser.Scene {
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
       .setDepth(0);
 
-    this.arenaShade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x061306, 0.18)
+    this.arenaShade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x103010, 0.1)
       .setDepth(1);
 
-    // Wide landscape arena: readable center, controls stay outside the main fight focus.
-    this.add.ellipse(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 12, 590, 300, 0x071007, 0.22)
-      .setStrokeStyle(3, 0x39ff14, 0.2)
+    this.add.circle(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 4, 210, 0x72ff57, 0.065)
+      .setDepth(2);
+    this.add.circle(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 12, 132, 0xfcfff7, 0.03)
+      .setDepth(2);
+    this.add.circle(136, 86, 90, 0x72ff57, 0.035).setDepth(2);
+    this.add.circle(GAME_WIDTH - 136, 86, 90, 0xa45cff, 0.03).setDepth(2);
+
+    // Wide landscape arena: brighter readable center, controls stay outside the main fight focus.
+    this.add.ellipse(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 12, 600, 308, 0x133413, 0.14)
+      .setStrokeStyle(3, 0x72ff57, 0.24)
       .setDepth(4);
-    this.add.ellipse(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 12, 500, 240, 0x050805, 0.08)
-      .setStrokeStyle(2, 0xb66cff, 0.12)
+    this.add.ellipse(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 12, 510, 246, 0x071707, 0.05)
+      .setStrokeStyle(2, 0xa45cff, 0.16)
       .setDepth(4);
 
     for (let i = -2; i <= 2; i += 1) {
       const y = GAME_HEIGHT / 2 + 12 + i * 38;
-      this.add.line(0, 0, 188, y, GAME_WIDTH - 188, y, 0x39ff14, 0.055)
+      this.add.line(0, 0, 188, y, GAME_WIDTH - 188, y, 0x72ff57, 0.075)
         .setOrigin(0, 0)
         .setDepth(4);
     }
 
     for (let i = -2; i <= 2; i += 1) {
       const x = GAME_WIDTH / 2 + i * 72;
-      this.add.line(0, 0, x, 105, x, GAME_HEIGHT - 88, 0xb66cff, 0.045)
+      this.add.line(0, 0, x, 105, x, GAME_HEIGHT - 88, 0xa45cff, 0.06)
         .setOrigin(0, 0)
         .setDepth(4);
     }
 
     // Soft masks behind thumb zones so buttons are readable without covering the arena.
-    this.add.rectangle(116, GAME_HEIGHT - 78, 226, 154, 0x061306, 0.12)
+    this.add.rectangle(116, GAME_HEIGHT - 78, 232, 160, 0x103010, 0.09)
       .setDepth(5);
-    this.add.rectangle(GAME_WIDTH - 130, GAME_HEIGHT - 82, 286, 176, 0x061306, 0.12)
+    this.add.rectangle(GAME_WIDTH - 130, GAME_HEIGHT - 82, 296, 184, 0x103010, 0.09)
       .setDepth(5);
 
     this.updateArenaBackgroundForWave(1);
+  }
+
+  private createMascotSpotlight(): void {
+    this.mascotGlowOuter = this.add.circle(this.player.sprite.x, this.player.sprite.y + 2, 42, 0x72ff57, 0.08)
+      .setDepth(22);
+    this.mascotGlowInner = this.add.circle(this.player.sprite.x, this.player.sprite.y + 2, 24, 0xfcfff7, 0.07)
+      .setDepth(23);
+
+    this.tweens.add({
+      targets: this.mascotGlowOuter,
+      scaleX: 1.14,
+      scaleY: 1.14,
+      alpha: 0.12,
+      duration: 520,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+
+    this.tweens.add({
+      targets: this.mascotGlowInner,
+      scaleX: 1.08,
+      scaleY: 1.08,
+      alpha: 0.11,
+      duration: 420,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+  }
+
+  private updateMascotSpotlight(): void {
+    if (!this.player?.sprite.active) return;
+    this.mascotGlowOuter.setPosition(this.player.sprite.x, this.player.sprite.y + 4);
+    this.mascotGlowInner.setPosition(this.player.sprite.x, this.player.sprite.y + 2);
   }
 
   private createPauseButton(): void {
@@ -304,8 +354,8 @@ export class ArenaScene extends Phaser.Scene {
     this.currentArenaBackgroundKey = nextKey;
     this.arenaBackground.setTexture(nextKey);
 
-    const shadeAlpha = wave % 3 === 0 ? 0.24 : 0.18;
-    this.arenaShade.setFillStyle(0x061306, shadeAlpha);
+    const shadeAlpha = wave % 3 === 0 ? 0.14 : 0.1;
+    this.arenaShade.setFillStyle(0x103010, shadeAlpha);
   }
 
   private createCountdown(): void {
@@ -662,6 +712,14 @@ export class ArenaScene extends Phaser.Scene {
     if (push.lengthSq() <= 0) push.set(1, 0);
     push.normalize().scale(265);
     this.player.sprite.setVelocity(push.x, push.y);
+  }
+
+  private handlePlayerRangedHit(payload: { damage: number; label?: string }): void {
+    if (this.runFinished || !this.fightStarted || this.fightPaused) return;
+    const now = Date.now();
+    if (now < this.rangedDamageReadyAt) return;
+    this.rangedDamageReadyAt = now + 260;
+    this.damagePlayer(payload.damage, payload.label ?? "SHOT");
   }
 
   private onProjectileHit(projectile: Phaser.Physics.Arcade.Sprite): void {

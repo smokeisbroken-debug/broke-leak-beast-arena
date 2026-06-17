@@ -1,12 +1,12 @@
 export const COLORS = {
-  bg: 0x081208,
-  panel: 0x071807,
-  green: 0x39ff14,
-  purple: 0x8a00ff,
-  red: 0xff173d,
-  yellow: 0xffd43b,
-  white: 0xf5fff1,
-  black: 0x050505,
+  bg: 0x0d1d0d,
+  panel: 0x113011,
+  green: 0x72ff57,
+  purple: 0xa45cff,
+  red: 0xff4866,
+  yellow: 0xffeb72,
+  white: 0xfcfff7,
+  black: 0x041004,
 } as const;
 
 export const TEXT = {

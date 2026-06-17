@@ -40,10 +40,13 @@ export class WaveSystem {
   private lastBossWave = 0;
   private hazards: Phaser.GameObjects.Arc[] = [];
   private shadows = new Map<Phaser.Physics.Arcade.Sprite, Phaser.GameObjects.Ellipse>();
+  private glows = new Map<Phaser.Physics.Arcade.Sprite, Phaser.GameObjects.Ellipse>();
   private bossHpBars = new Map<Phaser.Physics.Arcade.Sprite, BossHpBar>();
   private bossAuras = new Map<Phaser.Physics.Arcade.Sprite, BossAura>();
   private pendingBossRewardWave = 0;
   private lastMegaLeakSpawnMs = -99999;
+  private latestTargetX = GAME_WIDTH / 2;
+  private latestTargetY = GAME_HEIGHT / 2;
 
   constructor(private scene: Phaser.Scene) {
     this.group = scene.physics.add.group();
@@ -52,6 +55,9 @@ export class WaveSystem {
 
   update(runElapsedMs: number, delta: number, targetX: number, targetY: number, paused = false): void {
     if (paused) return;
+
+    this.latestTargetX = targetX;
+    this.latestTargetY = targetY;
 
     const nextWave = Math.max(1, Math.floor(runElapsedMs / 22000) + 1);
     this.currentWave = nextWave;
@@ -90,9 +96,10 @@ export class WaveSystem {
     const wasBoss = Boolean(enemy.getData("boss"));
     const score = Number(enemy.getData("score") ?? 0);
 
-    this.spawnDeathPop(enemy.x, enemy.y, wasBoss ? 0xb66cff : 0x39ff14);
-    this.spawnDeathBurst(enemy.x, enemy.y, wasBoss ? 0xb66cff : 0x39ff14, wasBoss);
+    this.spawnDeathPop(enemy.x, enemy.y, wasBoss ? 0xb66cff : 0x72ff57);
+    this.spawnDeathBurst(enemy.x, enemy.y, wasBoss ? 0xb66cff : 0x72ff57, wasBoss);
     this.removeShadow(enemy);
+    this.removeGlow(enemy);
     this.removeBossHpBar(enemy);
     this.removeBossAura(enemy);
     enemy.disableBody(true, true);
@@ -184,6 +191,8 @@ export class WaveSystem {
   clearAll(): void {
     this.shadows.forEach((shadow) => shadow.destroy());
     this.shadows.clear();
+    this.glows.forEach((glow) => glow.destroy());
+    this.glows.clear();
     this.bossHpBars.forEach((bar) => {
       bar.bg.destroy();
       bar.fill.destroy();
@@ -238,7 +247,7 @@ export class WaveSystem {
     enemy.setVelocity(direction.x * knockback, direction.y * knockback);
     enemy.setTint(isBoss ? 0xffffff : 0x9cff8a);
 
-    this.spawnHitSpark(enemy.x, enemy.y, isBoss ? 0xb66cff : 0x39ff14, isBoss);
+    this.spawnHitSpark(enemy.x, enemy.y, isBoss ? 0xb66cff : 0x72ff57, isBoss);
     this.showDamageNumber(
       `-${damage}`,
       enemy.x,
@@ -364,7 +373,7 @@ export class WaveSystem {
       if (now >= shotAt) {
         const shotX = Number(beast.getData("shotX") ?? targetX);
         const shotY = Number(beast.getData("shotY") ?? targetY);
-        this.spawnProjectile(beast.x, beast.y, shotX, shotY, 190);
+        this.fireScamShot(beast, shotX, shotY);
         beast.setData("shotQueued", false);
         beast.clearTint();
       }
@@ -584,7 +593,7 @@ export class WaveSystem {
       return;
     }
 
-    this.showTelegraphCircle(targetX, targetY, 70, 0x39ff14, durationMs);
+    this.showTelegraphCircle(targetX, targetY, 70, 0x72ff57, durationMs);
     this.showEnemyWarning("SUMMON", beast.x, beast.y - 58, "#39ff14");
   }
 
@@ -720,10 +729,13 @@ export class WaveSystem {
   private spawnProjectile(x: number, y: number, targetX: number, targetY: number, speed = 165, boss = false): void {
     const projectile = this.scene.physics.add.sprite(x, y, boss ? "boss-bolt" : "scam-bolt");
     projectile.setData("damage", boss ? 2 : 1);
-    projectile.setSize(boss ? 22 : 16, boss ? 22 : 16);
+    projectile.setSize(boss ? 26 : 18, boss ? 26 : 18);
     projectile.setDepth(30);
     if (boss) {
-      projectile.setScale(1.18);
+      projectile.setScale(1.28);
+      projectile.setTint(0xe6c4ff);
+    } else {
+      projectile.setScale(1.08);
       projectile.setTint(0xd9a7ff);
     }
     this.scene.physics.moveTo(projectile, targetX, targetY, speed);
@@ -767,13 +779,15 @@ export class WaveSystem {
 
   private updateEnemyPresentation(beast: Phaser.Physics.Arcade.Sprite): void {
     const isBoss = Boolean(beast.getData("boss"));
+    const displayW = Number(beast.getData("displayW") ?? 60);
+    const displayH = Number(beast.getData("displayH") ?? 52);
     beast.setDepth((isBoss ? 18 : 12) + beast.y / 1000);
 
     let shadow = this.shadows.get(beast);
     if (!shadow) {
       shadow = this.scene.add.ellipse(
         beast.x,
-        beast.y + Number(beast.getData("displayH") ?? 52) * 0.38,
+        beast.y + displayH * 0.38,
         Number(beast.getData("shadowW") ?? 40),
         Number(beast.getData("shadowH") ?? 12),
         0x000000,
@@ -782,9 +796,21 @@ export class WaveSystem {
       this.shadows.set(beast, shadow);
     }
 
-    shadow.setPosition(beast.x, beast.y + Number(beast.getData("displayH") ?? 52) * 0.38);
+    shadow.setPosition(beast.x, beast.y + displayH * 0.38);
     shadow.setDisplaySize(Number(beast.getData("shadowW") ?? 40), Number(beast.getData("shadowH") ?? 12));
     shadow.setAlpha(isBoss ? 0.34 : 0.25);
+
+    const glowStyle = this.getEnemyGlowStyle(beast);
+    let glow = this.glows.get(beast);
+    if (!glow) {
+      glow = this.scene.add.ellipse(beast.x, beast.y + displayH * 0.06, displayW * 0.86, displayH * 0.62, glowStyle.color, glowStyle.alpha)
+        .setDepth(6);
+      this.glows.set(beast, glow);
+    }
+
+    glow.setPosition(beast.x, beast.y + displayH * 0.06);
+    glow.setDisplaySize(displayW * (isBoss ? 0.92 : 0.84), displayH * (isBoss ? 0.82 : 0.62));
+    glow.setFillStyle(glowStyle.color, glowStyle.alpha);
 
     if (isBoss) {
       this.updateBossAura(beast);
@@ -972,6 +998,90 @@ export class WaveSystem {
         onComplete: () => particle.destroy(),
       });
     }
+  }
+
+  private fireScamShot(beast: Phaser.Physics.Arcade.Sprite, targetX: number, targetY: number): void {
+    this.spawnBeamFlash(beast.x, beast.y, targetX, targetY, 0xd9a7ff);
+
+    if (this.isPointNearLine(this.latestTargetX, this.latestTargetY, beast.x, beast.y, targetX, targetY, 26)) {
+      this.spawnHitSpark(this.latestTargetX, this.latestTargetY, 0xd9a7ff, false);
+      this.scene.events.emit("player-ranged-hit", { damage: 1, label: "SCAM SHOT" });
+      return;
+    }
+
+    const impact = this.scene.add.circle(targetX, targetY, 10, 0xd9a7ff, 0.14)
+      .setStrokeStyle(2, 0xf5fff1, 0.5)
+      .setDepth(44);
+    this.scene.tweens.add({
+      targets: impact,
+      radius: 22,
+      alpha: 0,
+      duration: 170,
+      onComplete: () => impact.destroy(),
+    });
+  }
+
+  private spawnBeamFlash(x1: number, y1: number, x2: number, y2: number, color: number): void {
+    const glow = this.scene.add.line(0, 0, x1, y1, x2, y2, color, 0.26)
+      .setOrigin(0, 0)
+      .setLineWidth(12)
+      .setDepth(34);
+    const core = this.scene.add.line(0, 0, x1, y1, x2, y2, 0xfcfff7, 0.94)
+      .setOrigin(0, 0)
+      .setLineWidth(3)
+      .setDepth(35);
+    const pulse = this.scene.add.circle(x2, y2, 9, color, 0.18)
+      .setStrokeStyle(2, 0xfcfff7, 0.75)
+      .setDepth(36);
+
+    this.scene.tweens.add({
+      targets: [glow, core, pulse],
+      alpha: 0,
+      duration: 110,
+      onComplete: () => {
+        glow.destroy();
+        core.destroy();
+        pulse.destroy();
+      },
+    });
+  }
+
+  private isPointNearLine(pointX: number, pointY: number, x1: number, y1: number, x2: number, y2: number, radius: number): boolean {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lengthSq = dx * dx + dy * dy;
+    if (lengthSq <= 0.0001) {
+      return Phaser.Math.Distance.Between(pointX, pointY, x2, y2) <= radius;
+    }
+
+    const t = Phaser.Math.Clamp(((pointX - x1) * dx + (pointY - y1) * dy) / lengthSq, 0, 1);
+    const closestX = x1 + dx * t;
+    const closestY = y1 + dy * t;
+    return Phaser.Math.Distance.Between(pointX, pointY, closestX, closestY) <= radius;
+  }
+
+  private getEnemyGlowStyle(beast: Phaser.Physics.Arcade.Sprite): { color: number; alpha: number } {
+    if (Boolean(beast.getData("boss"))) return { color: 0xa45cff, alpha: 0.12 };
+    const kind = String(beast.getData("kind") ?? "bad_habit") as EnemyKind;
+    switch (kind) {
+      case "fomo":
+        return { color: 0xffeb72, alpha: 0.09 };
+      case "scam":
+        return { color: 0xa45cff, alpha: 0.1 };
+      case "smoke_brute":
+        return { color: 0xff8f6a, alpha: 0.09 };
+      case "mega_leak":
+        return { color: 0xffc857, alpha: 0.11 };
+      default:
+        return { color: 0x72ff57, alpha: 0.08 };
+    }
+  }
+
+  private removeGlow(beast: Phaser.Physics.Arcade.Sprite): void {
+    const glow = this.glows.get(beast);
+    if (!glow) return;
+    glow.destroy();
+    this.glows.delete(beast);
   }
 
   private removeShadow(beast: Phaser.Physics.Arcade.Sprite): void {
