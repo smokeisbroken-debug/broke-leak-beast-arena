@@ -27,71 +27,73 @@ interface RoundConfig {
   boss?: boolean;
 }
 
-const FLOOR_Y = GAME_HEIGHT - 76;
-const PLAYER_START_X = 190;
-const ENEMY_START_X = GAME_WIDTH - 205;
-const LEFT_BOUND = 74;
-const RIGHT_BOUND = GAME_WIDTH - 74;
+const FLOOR_Y = GAME_HEIGHT - 104;
+const PLAYER_DISPLAY_W = 102;
+const PLAYER_DISPLAY_H = 134;
+const PLAYER_START_X = 300;
+const ENEMY_START_X = GAME_WIDTH - 300;
+const LEFT_BOUND = GAME_WIDTH * 0.26;
+const RIGHT_BOUND = GAME_WIDTH * 0.74;
 
 const ROUNDS: RoundConfig[] = [
   {
-    name: "Impulse Buy Beast",
-    leakLabel: "DEFEAT IMPULSE SPENDING",
+    name: "Impulse Beast",
+    leakLabel: "DEFEAT IMPULSE",
     texture: "enemy-imp-01",
     animation: "enemy-bad-habit-move",
     hp: 70,
     damage: 7,
     speed: 104,
-    displayW: 156,
-    displayH: 156,
-    bodyW: 74,
-    bodyH: 94,
-    attackRange: 128,
+    displayW: 112,
+    displayH: 112,
+    bodyW: 58,
+    bodyH: 68,
+    attackRange: 112,
     color: 0x72ff57,
   },
   {
-    name: "Emotional Trading Beast",
-    leakLabel: "DEFEAT EMOTIONAL TRADING",
+    name: "Emotional Beast",
+    leakLabel: "DEFEAT EMOTION",
     texture: "enemy-runner-01",
     animation: "enemy-fomo-move",
     hp: 86,
     damage: 9,
     speed: 134,
-    displayW: 178,
-    displayH: 146,
-    bodyW: 90,
-    bodyH: 82,
-    attackRange: 148,
+    displayW: 164,
+    displayH: 136,
+    bodyW: 84,
+    bodyH: 74,
+    attackRange: 136,
     color: 0xffeb72,
   },
   {
     name: "Rug Pull Beast",
-    leakLabel: "DEFEAT RUG PULLS",
+    leakLabel: "DEFEAT RUG PULL",
     texture: "enemy-beast-01",
     animation: "enemy-scam-move",
     hp: 104,
     damage: 10,
     speed: 112,
-    displayW: 190,
-    displayH: 172,
-    bodyW: 96,
-    bodyH: 94,
-    attackRange: 158,
+    displayW: 188,
+    displayH: 164,
+    bodyW: 94,
+    bodyH: 90,
+    attackRange: 148,
     color: 0xa45cff,
   },
   {
-    name: "Wallet Destroyer Boss",
+    name: "Wallet Destroyer",
     leakLabel: "BOSS ROUND",
     texture: "boss-thorn-01",
     animation: "boss-thorn-move",
     hp: 148,
     damage: 13,
     speed: 94,
-    displayW: 236,
-    displayH: 222,
-    bodyW: 118,
-    bodyH: 118,
-    attackRange: 184,
+    displayW: 312,
+    displayH: 290,
+    bodyW: 152,
+    bodyH: 150,
+    attackRange: 190,
     color: 0xff4866,
     boss: true,
   },
@@ -202,62 +204,60 @@ export class ArenaScene extends Phaser.Scene {
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
       .setDepth(0);
 
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x102b10, 0.12)
+    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x102b10, 0.08)
       .setDepth(1);
 
-    this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 22, GAME_WIDTH, 78, 0x071707, 0.62)
+    this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 32, GAME_WIDTH, 92, 0x071707, 0.42)
       .setDepth(2);
-    this.add.line(0, 0, 0, FLOOR_Y - 6, GAME_WIDTH, FLOOR_Y - 6, 0x72ff57, 0.28)
+
+    // Clean calibrated floor. No large color blobs under fighters; only a subtle contact plane.
+    this.add.line(0, 0, 205, FLOOR_Y - 2, GAME_WIDTH - 205, FLOOR_Y - 2, 0x72ff57, 0.14)
       .setOrigin(0, 0)
       .setLineWidth(2)
       .setDepth(3);
-
-    // Clean side-view floor: no large green/purple blobs under the fighters.
-    this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 22, GAME_WIDTH, 2, 0x72ff57, 0.1)
-      .setDepth(3);
-    this.add.rectangle(98, 0, 180, GAME_HEIGHT, 0x72ff57, 0.015).setDepth(2);
-    this.add.rectangle(GAME_WIDTH - 98, 0, 180, GAME_HEIGHT, 0xa45cff, 0.015).setDepth(2);
+    this.add.rectangle(96, 0, 166, GAME_HEIGHT, 0x72ff57, 0.012).setDepth(2);
+    this.add.rectangle(GAME_WIDTH - 96, 0, 166, GAME_HEIGHT, 0xa45cff, 0.012).setDepth(2);
   }
 
   private createFighters(): void {
-    this.playerShadow = this.add.ellipse(PLAYER_START_X, FLOOR_Y - 4, 92, 24, 0x000000, 0.28).setDepth(9);
-    this.enemyShadow = this.add.ellipse(ENEMY_START_X, FLOOR_Y - 4, 112, 28, 0x000000, 0.3).setDepth(9);
+    this.playerShadow = this.add.ellipse(PLAYER_START_X, FLOOR_Y - 2, 84, 20, 0x000000, 0.24).setDepth(9);
+    this.enemyShadow = this.add.ellipse(ENEMY_START_X, FLOOR_Y - 2, 84, 20, 0x000000, 0.26).setDepth(9);
 
-    this.player = this.physics.add.sprite(PLAYER_START_X, FLOOR_Y - 74, "mascot-idle-front");
-    this.player.setDisplaySize(136, 178);
+    this.player = this.physics.add.sprite(PLAYER_START_X, FLOOR_Y - PLAYER_DISPLAY_H * 0.5, "mascot-idle-front");
+    this.player.setDisplaySize(PLAYER_DISPLAY_W, PLAYER_DISPLAY_H);
     this.player.setDepth(22);
     this.player.setCollideWorldBounds(false);
     this.player.setData("side", "player");
-    this.setBody(this.player, 58, 112, 26);
+    this.setBody(this.player, 42, 78, 20);
     if (this.anims.exists("mascot-idle-front-anim")) this.player.play("mascot-idle-front-anim", true);
 
-    this.enemy = this.physics.add.sprite(ENEMY_START_X, FLOOR_Y - 68, ROUNDS[0].texture);
+    this.enemy = this.physics.add.sprite(ENEMY_START_X, FLOOR_Y - ROUNDS[0].displayH * 0.5, ROUNDS[0].texture);
     this.enemy.setDepth(21);
     this.enemy.setCollideWorldBounds(false);
     this.enemy.setData("side", "enemy");
   }
 
   private createHud(): void {
-    this.add.rectangle(162, 36, 286, 54, 0x061006, 0.78)
+    this.add.rectangle(156, 34, 272, 50, 0x061006, 0.74)
       .setStrokeStyle(2, 0x72ff57, 0.36)
       .setDepth(80);
     this.add.text(30, 13, "BROKE MASCOT", {
       fontFamily: "Arial", fontSize: "12px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
     }).setDepth(81);
-    this.add.rectangle(162, 43, 246, 14, 0x1b251b, 1).setOrigin(0.5).setDepth(81);
-    this.playerHpFill = this.add.rectangle(39, 43, 244, 12, 0x72ff57, 1).setOrigin(0, 0.5).setDepth(82);
-    this.playerHpText = this.add.text(286, 28, "100/100", {
+    this.add.rectangle(156, 42, 228, 13, 0x1b251b, 1).setOrigin(0.5).setDepth(81);
+    this.playerHpFill = this.add.rectangle(42, 42, 226, 11, 0x72ff57, 1).setOrigin(0, 0.5).setDepth(82);
+    this.playerHpText = this.add.text(276, 27, "100/100", {
       fontFamily: "Arial", fontSize: "13px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
     }).setOrigin(1, 0).setDepth(83);
 
-    this.add.rectangle(GAME_WIDTH - 162, 36, 286, 54, 0x061006, 0.78)
+    this.add.rectangle(GAME_WIDTH - 156, 34, 272, 50, 0x061006, 0.74)
       .setStrokeStyle(2, 0xa45cff, 0.36)
       .setDepth(80);
     this.enemyHpText = this.add.text(GAME_WIDTH - 30, 13, "LEAK BEAST", {
       fontFamily: "Arial", fontSize: "12px", color: "#d9a7ff", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
     }).setOrigin(1, 0).setDepth(81);
-    this.add.rectangle(GAME_WIDTH - 162, 43, 246, 14, 0x21172b, 1).setOrigin(0.5).setDepth(81);
-    this.enemyHpFill = this.add.rectangle(GAME_WIDTH - 285, 43, 244, 12, 0xff4866, 1).setOrigin(0, 0.5).setDepth(82);
+    this.add.rectangle(GAME_WIDTH - 156, 42, 228, 13, 0x21172b, 1).setOrigin(0.5).setDepth(81);
+    this.enemyHpFill = this.add.rectangle(GAME_WIDTH - 270, 42, 226, 11, 0xff4866, 1).setOrigin(0, 0.5).setDepth(82);
 
     this.roundText = this.add.text(GAME_WIDTH / 2, 16, "ROUND 1", {
       fontFamily: "Arial", fontSize: "22px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
@@ -267,8 +267,8 @@ export class ArenaScene extends Phaser.Scene {
       fontFamily: "Arial", fontSize: "12px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(83);
 
-    this.statusText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 28, "PUNCH · KICK · BLOCK · DASH", {
-      fontFamily: "Arial", fontSize: "13px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    this.statusText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 24, "FIGHT", {
+      fontFamily: "Arial", fontSize: "12px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(84);
 
     this.comboText = this.add.text(PLAYER_START_X, FLOOR_Y - 188, "", {
@@ -300,7 +300,7 @@ export class ArenaScene extends Phaser.Scene {
     this.playerActionUntil = 0;
     this.playerInvincibleUntil = Date.now() + 600;
 
-    this.player.setPosition(PLAYER_START_X, FLOOR_Y - 74);
+    this.player.setPosition(PLAYER_START_X, FLOOR_Y - PLAYER_DISPLAY_H * 0.5);
     this.player.setVelocity(0, 0);
     this.player.setFlipX(false);
     this.player.setTint(0xffffff);
@@ -308,7 +308,7 @@ export class ArenaScene extends Phaser.Scene {
 
     this.enemy.setTexture(config.texture);
     this.enemy.setDisplaySize(config.displayW, config.displayH);
-    this.enemy.setPosition(ENEMY_START_X, FLOOR_Y - config.displayH * 0.46);
+    this.enemy.setPosition(ENEMY_START_X, FLOOR_Y - config.displayH * 0.5);
     this.enemy.setVelocity(0, 0);
     this.enemy.setFlipX(true);
     this.enemy.clearTint();
@@ -396,28 +396,28 @@ export class ArenaScene extends Phaser.Scene {
     if (now - this.lastPunchAt > 780) this.comboStep = 0;
     this.comboStep = (this.comboStep % 3) + 1;
     this.lastPunchAt = now;
-    this.punchCooldownUntil = now + (this.comboStep === 3 ? 380 : 245);
-    this.playerActionUntil = now + (this.comboStep === 3 ? 250 : 155);
+    this.punchCooldownUntil = now + (this.comboStep === 3 ? 390 : 235);
+    this.playerActionUntil = now + (this.comboStep === 3 ? 270 : 170);
     this.playerState = "punch";
-    this.player.setVelocityX(0);
+    this.player.setVelocityX(26);
     this.player.setTint(this.comboStep === 3 ? 0xd9a7ff : 0xffffff);
     this.playPlayerAnim("mascot-attack-anim");
     this.sfx.playSword(this.comboStep === 3);
     this.showPunchFx(this.comboStep);
-    this.tryHitEnemy(this.comboStep === 3 ? 13 : 7, this.comboStep === 3 ? 128 : 104, this.comboStep === 3 ? 240 : 135, this.comboStep === 3 ? "HEAVY PUNCH" : "PUNCH");
+    this.tryHitEnemy(this.comboStep === 3 ? 16 : 8, this.comboStep === 3 ? 146 : 114, this.comboStep === 3 ? 260 : 150, this.comboStep === 3 ? "HEAVY PUNCH" : "PUNCH");
   }
 
   private kick(now: number): void {
-    this.kickCooldownUntil = now + 620;
-    this.playerActionUntil = now + 260;
+    this.kickCooldownUntil = now + 660;
+    this.playerActionUntil = now + 300;
     this.playerState = "kick";
     this.comboStep = 0;
-    this.player.setVelocityX(40);
+    this.player.setVelocityX(74);
     this.player.setTint(0xffeb72);
     this.playPlayerAnim("mascot-attack-anim");
     this.sfx.playDashSlash();
     this.showKickFx();
-    this.tryHitEnemy(14, 146, 330, "KICK");
+    this.tryHitEnemy(18, 164, 360, "KICK");
   }
 
   private dash(now: number, inputX: number): void {
@@ -442,26 +442,42 @@ export class ArenaScene extends Phaser.Scene {
     if (this.enemyState === "defeated") return;
     const distance = Math.abs(this.enemy.x - this.player.x);
     if (distance > range) {
-      this.showFloatingText("MISS", this.player.x + 56, this.player.y - 72, "#fcfff7");
+      this.showFloatingText("MISS", this.player.x + 64, this.player.y - 84, "#fcfff7");
       this.statusText.setText(`${label} MISS`);
       return;
     }
 
-    const bonus = this.enemyState === "windup" ? 3 : 0;
+    const counterHit = this.enemyState === "windup";
+    const heavyHit = label.includes("HEAVY") || label === "KICK";
+    const bonus = counterHit ? 4 : 0;
     const finalDamage = damage + bonus;
     this.enemyHp = Math.max(0, this.enemyHp - finalDamage);
     this.enemyState = "hurt";
-    this.enemyAttackUntil = Date.now() + 120;
+    this.enemyAttackUntil = Date.now() + (heavyHit ? 210 : 165);
+    this.enemyCooldownUntil = Math.max(this.enemyCooldownUntil, Date.now() + (counterHit ? 720 : 470));
     this.enemy.setVelocityX(knockback);
-    this.enemy.setTint(0xffffff);
-    this.sfx.playHit(finalDamage >= 13);
-    this.score += finalDamage * 10 + (bonus > 0 ? 40 : 0);
-    this.showImpact(this.enemy.x - 34, this.enemy.y - 24, finalDamage >= 13 ? 0xffeb72 : 0x72ff57, finalDamage >= 13);
-    this.showFloatingText(`-${finalDamage}`, this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.56, finalDamage >= 13 ? "#ffeb72" : "#d7ffd0");
-    this.comboText.setText(label);
-    this.comboText.setPosition(this.player.x + 34, this.player.y - 104);
-    this.time.delayedCall(420, () => this.comboText.setText(""));
-    this.cameras.main.shake(finalDamage >= 13 ? 80 : 42, finalDamage >= 13 ? 0.0034 : 0.0018);
+    this.enemy.setTint(heavyHit ? 0xffeb72 : 0xffffff);
+    this.sfx.playHit(heavyHit);
+    this.score += finalDamage * 12 + (counterHit ? 70 : 0);
+
+    const impactX = this.enemy.x - Math.min(72, this.enemy.displayWidth * 0.38);
+    const impactY = this.enemy.y - this.enemy.displayHeight * 0.34;
+    this.showImpact(impactX, impactY, heavyHit ? 0xffeb72 : 0x72ff57, heavyHit);
+    this.showHitLine(this.player.x + 46, this.player.y - 42, impactX, impactY, heavyHit ? 0xffeb72 : 0x72ff57, heavyHit);
+    this.showFloatingText(`${label} -${finalDamage}`, this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.64, heavyHit ? "#ffeb72" : "#d7ffd0");
+    if (counterHit) this.showFloatingText("COUNTER", this.enemy.x - 8, this.enemy.y - this.enemy.displayHeight * 0.82, "#ffeb72");
+
+    this.comboText.setText(counterHit ? "COUNTER HIT" : label);
+    this.comboText.setPosition(this.player.x + 48, this.player.y - 120);
+    this.time.delayedCall(520, () => this.comboText.setText(""));
+    this.statusText.setText(counterHit ? "COUNTER HIT" : label);
+    this.cameras.main.shake(heavyHit ? 115 : 58, heavyHit ? 0.0042 : 0.0022);
+    if (heavyHit) this.cameras.main.flash(36, 255, 235, 114, false);
+
+    this.time.delayedCall(heavyHit ? 130 : 95, () => {
+      if (!this.enemy.active || this.enemyState === "defeated") return;
+      this.enemy.clearTint();
+    });
 
     if (this.enemyHp <= 0) {
       this.defeatEnemy();
@@ -541,7 +557,7 @@ export class ArenaScene extends Phaser.Scene {
       this.enemy.setVelocityX(dir * 110);
     }
 
-    this.showEnemyAttackFx(config.color);
+    this.showEnemyAttackFx(config.color, this.enemyAttack);
     this.time.delayedCall(90, () => {
       if (this.runFinished || this.enemyState === "defeated") return;
       const distance = Math.abs(this.player.x - this.enemy.x);
@@ -562,7 +578,9 @@ export class ArenaScene extends Phaser.Scene {
       this.sfx.playBlock();
       this.showBlockFx();
       this.showFloatingText("BLOCK", this.player.x, this.player.y - 100, "#72ff57");
-      this.playerInvincibleUntil = now + 160;
+      this.statusText.setText("BLOCK");
+      this.cameras.main.shake(48, 0.0018);
+      this.playerInvincibleUntil = now + 190;
       return;
     }
 
@@ -641,26 +659,26 @@ export class ArenaScene extends Phaser.Scene {
   private clampFighters(): void {
     this.player.x = Phaser.Math.Clamp(this.player.x, LEFT_BOUND, RIGHT_BOUND);
     this.enemy.x = Phaser.Math.Clamp(this.enemy.x, LEFT_BOUND, RIGHT_BOUND);
-    this.player.y = FLOOR_Y - 74;
+    this.player.y = FLOOR_Y - PLAYER_DISPLAY_H * 0.5;
     const config = ROUNDS[this.roundIndex];
-    this.enemy.y = FLOOR_Y - config.displayH * 0.46;
+    this.enemy.y = FLOOR_Y - config.displayH * 0.5;
   }
 
   private updateHud(): void {
     if (!this.playerHpFill || !this.enemyHpFill) return;
-    this.playerHpFill.width = 244 * Phaser.Math.Clamp(this.playerHp / 100, 0, 1);
-    this.enemyHpFill.width = 244 * Phaser.Math.Clamp(this.enemyHp / Math.max(1, this.enemyMaxHp), 0, 1);
+    this.playerHpFill.width = 226 * Phaser.Math.Clamp(this.playerHp / 100, 0, 1);
+    this.enemyHpFill.width = 226 * Phaser.Math.Clamp(this.enemyHp / Math.max(1, this.enemyMaxHp), 0, 1);
     this.playerHpText.setText(`${Math.max(0, this.playerHp)}/100`);
   }
 
   private updateShadows(): void {
     if (!this.playerShadow || !this.enemyShadow || !this.player || !this.enemy) return;
     const config = ROUNDS[this.roundIndex] ?? ROUNDS[0];
-    this.playerShadow.setPosition(this.player.x, FLOOR_Y - 5);
-    this.playerShadow.setDisplaySize(96, 24);
-    this.enemyShadow.setPosition(this.enemy.x, FLOOR_Y - 5);
-    this.enemyShadow.setDisplaySize(config.boss ? 178 : Math.max(122, config.displayW * 0.7), config.boss ? 38 : 30);
-    this.enemyShadow.setAlpha(config.boss ? 0.34 : 0.3);
+    this.playerShadow.setPosition(this.player.x, FLOOR_Y - 2);
+    this.playerShadow.setDisplaySize(PLAYER_DISPLAY_W * 0.82, 18);
+    this.enemyShadow.setPosition(this.enemy.x, FLOOR_Y - 2);
+    this.enemyShadow.setDisplaySize(Math.max(62, config.displayW * 0.62), config.boss ? 28 : 20);
+    this.enemyShadow.setAlpha(config.boss ? 0.3 : 0.24);
   }
 
   private setBody(sprite: Phaser.Physics.Arcade.Sprite, width: number, height: number, offsetY = 0): void {
@@ -675,63 +693,77 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private showPunchFx(combo: number): void {
-    const x = this.player.x + (combo === 3 ? 94 : 78);
-    const y = this.player.y - 28;
-    const slash = this.add.image(x, y, "arena-vfx-sheet", combo === 3 ? 2 : 1)
-      .setScale(combo === 3 ? 0.28 : 0.22)
-      .setRotation(combo === 3 ? 0.08 : -0.08)
-      .setAlpha(0.96)
+    const heavy = combo === 3;
+    const x = this.player.x + (heavy ? 108 : 86);
+    const y = this.player.y - (heavy ? 38 : 30);
+    const slash = this.add.image(x, y, "arena-vfx-sheet", heavy ? 2 : 1)
+      .setScale(heavy ? 0.36 : 0.27)
+      .setRotation(heavy ? 0.08 : -0.1)
+      .setAlpha(0.98)
       .setDepth(42);
-    const line = this.add.line(0, 0, this.player.x + 28, this.player.y - 36, x + 44, y, combo === 3 ? 0xffeb72 : 0x72ff57, 0.84)
+    const line = this.add.line(0, 0, this.player.x + 32, this.player.y - 42, x + (heavy ? 64 : 48), y, heavy ? 0xffeb72 : 0x72ff57, heavy ? 0.94 : 0.82)
       .setOrigin(0, 0)
-      .setLineWidth(combo === 3 ? 6 : 4)
+      .setLineWidth(heavy ? 8 : 5)
       .setDepth(43);
+    const spark = this.add.circle(x + (heavy ? 54 : 38), y, heavy ? 8 : 5, 0xfcfff7, heavy ? 0.58 : 0.44)
+      .setDepth(44);
     this.tweens.add({
-      targets: [slash, line],
+      targets: [slash, line, spark],
       alpha: 0,
-      scaleX: slash.scaleX * 1.15,
-      scaleY: slash.scaleY * 1.15,
-      duration: 150,
+      scaleX: slash.scaleX * 1.18,
+      scaleY: slash.scaleY * 1.18,
+      duration: heavy ? 185 : 145,
       onComplete: () => {
         slash.destroy();
         line.destroy();
+        spark.destroy();
       },
     });
   }
 
   private showKickFx(): void {
-    const x = this.player.x + 106;
-    const y = this.player.y - 18;
+    const x = this.player.x + 122;
+    const y = this.player.y - 24;
     const arc = this.add.image(x, y, "arena-vfx-sheet", 5)
-      .setScale(0.31)
-      .setAlpha(0.92)
+      .setScale(0.42)
+      .setAlpha(0.95)
+      .setTint(0xffeb72)
       .setDepth(42);
-    const trail = this.add.line(0, 0, this.player.x + 28, this.player.y - 14, x + 58, y - 8, 0xffeb72, 0.82)
+    const trail = this.add.line(0, 0, this.player.x + 30, this.player.y - 14, x + 78, y - 10, 0xffeb72, 0.9)
       .setOrigin(0, 0)
-      .setLineWidth(6)
+      .setLineWidth(9)
       .setDepth(43);
+    const shock = this.add.circle(x + 66, y - 2, 9, 0xfcfff7, 0.48)
+      .setStrokeStyle(3, 0xffeb72, 0.74)
+      .setDepth(44);
     this.tweens.add({
-      targets: [arc, trail],
+      targets: [arc, trail, shock],
       alpha: 0,
-      duration: 210,
+      duration: 240,
       onComplete: () => {
         arc.destroy();
         trail.destroy();
+        shock.destroy();
       },
     });
   }
 
-  private showEnemyAttackFx(color: number): void {
+  private showEnemyAttackFx(color: number, attack: EnemyAttack): void {
     const dir = this.player.x < this.enemy.x ? -1 : 1;
-    const x = this.enemy.x + dir * 72;
-    const y = this.enemy.y - 16;
-    const arc = this.add.image(x, y, "arena-vfx-sheet", 4)
-      .setScale(0.24)
+    const heavy = attack === "heavy";
+    const x = this.enemy.x + dir * (heavy ? 92 : 74);
+    const y = this.enemy.y - this.enemy.displayHeight * 0.28;
+    const arc = this.add.image(x, y, "arena-vfx-sheet", heavy ? 2 : 4)
+      .setScale(heavy ? 0.34 : 0.26)
       .setFlipX(dir < 0)
-      .setTint(color)
-      .setAlpha(0.92)
+      .setTint(heavy ? 0xff4866 : color)
+      .setAlpha(0.94)
       .setDepth(42);
-    this.tweens.add({ targets: arc, alpha: 0, duration: 170, onComplete: () => arc.destroy() });
+    const danger = this.add.line(0, 0, this.enemy.x + dir * 18, this.enemy.y - 34, this.enemy.x + dir * (heavy ? 138 : 112), this.enemy.y - 30, heavy ? 0xff4866 : color, heavy ? 0.86 : 0.68)
+      .setOrigin(0, 0)
+      .setLineWidth(heavy ? 8 : 5)
+      .setDepth(43);
+    this.tweens.add({ targets: [arc, danger], alpha: 0, duration: heavy ? 220 : 170, onComplete: () => { arc.destroy(); danger.destroy(); } });
   }
 
   private showEnemyWarning(text: string, color: number, durationMs: number): void {
@@ -753,14 +785,34 @@ export class ArenaScene extends Phaser.Scene {
     });
   }
 
+  private showHitLine(x1: number, y1: number, x2: number, y2: number, color: number, heavy = false): void {
+    const glow = this.add.line(0, 0, x1, y1, x2, y2, color, heavy ? 0.38 : 0.26)
+      .setOrigin(0, 0)
+      .setLineWidth(heavy ? 13 : 8)
+      .setDepth(47);
+    const core = this.add.line(0, 0, x1, y1, x2, y2, 0xfcfff7, heavy ? 0.92 : 0.72)
+      .setOrigin(0, 0)
+      .setLineWidth(heavy ? 4 : 3)
+      .setDepth(48);
+    this.tweens.add({
+      targets: [glow, core],
+      alpha: 0,
+      duration: heavy ? 135 : 105,
+      onComplete: () => {
+        glow.destroy();
+        core.destroy();
+      },
+    });
+  }
+
   private showImpact(x: number, y: number, color: number, heavy = false): void {
-    const ring = this.add.circle(x, y, heavy ? 18 : 12, color, 0.14)
-      .setStrokeStyle(heavy ? 5 : 3, color, 0.86)
+    const ring = this.add.circle(x, y, heavy ? 22 : 14, color, heavy ? 0.2 : 0.16)
+      .setStrokeStyle(heavy ? 6 : 4, color, 0.9)
       .setDepth(50);
-    const core = this.add.circle(x, y, heavy ? 7 : 5, 0xfcfff7, 0.78).setDepth(51);
+    const core = this.add.circle(x, y, heavy ? 9 : 6, 0xfcfff7, 0.84).setDepth(51);
     this.tweens.add({
       targets: ring,
-      radius: heavy ? 58 : 36,
+      radius: heavy ? 70 : 44,
       alpha: 0,
       duration: heavy ? 260 : 170,
       onComplete: () => ring.destroy(),
@@ -784,7 +836,7 @@ export class ArenaScene extends Phaser.Scene {
 
   private showFloatingText(text: string, x: number, y: number, color: string): void {
     const label = this.add.text(x, y, text, {
-      fontFamily: "Arial", fontSize: "17px", color, fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+      fontFamily: "Arial", fontSize: "19px", color, fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
     }).setOrigin(0.5).setDepth(92);
     this.tweens.add({
       targets: label,

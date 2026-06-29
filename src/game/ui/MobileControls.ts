@@ -13,8 +13,8 @@ export class MobileControls {
   private joystickBase: Phaser.GameObjects.Image;
   private joystickKnob: Phaser.GameObjects.Arc;
   private joystickPointerId: number | null = null;
-  private readonly joystickCenter = new Phaser.Math.Vector2(126, GAME_HEIGHT - 88);
-  private readonly joystickRadius = 72;
+  private readonly joystickCenter = new Phaser.Math.Vector2(118, GAME_HEIGHT - 82);
+  private readonly joystickRadius = 64;
 
   constructor(private scene: Phaser.Scene) {
     scene.input.addPointer(6);
@@ -22,12 +22,12 @@ export class MobileControls {
     this.createControlBackplates();
 
     this.joystickBase = scene.add.image(this.joystickCenter.x, this.joystickCenter.y, "combat-joystick-base")
-      .setDisplaySize(162, 162)
+      .setDisplaySize(144, 144)
       .setAlpha(0.96)
       .setDepth(80)
       .setScrollFactor(0);
 
-    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 24, 0x72ff57, 0.96)
+    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 22, 0x72ff57, 0.96)
       .setStrokeStyle(3, 0x041004, 0.8)
       .setDepth(81)
       .setScrollFactor(0);
@@ -55,120 +55,128 @@ export class MobileControls {
   }
 
   private createControlBackplates(): void {
-    this.scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 104, 0x061006, 0.24)
+    this.scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 90, 0x061006, 0.2)
       .setStrokeStyle(3, 0x72ff57, 0.18)
       .setDepth(78)
       .setScrollFactor(0);
 
-    this.scene.add.circle(GAME_WIDTH - 132, GAME_HEIGHT - 92, 150, 0x061006, 0.2)
+    this.scene.add.circle(GAME_WIDTH - 116, GAME_HEIGHT - 86, 126, 0x061006, 0.16)
       .setStrokeStyle(3, 0xa45cff, 0.16)
       .setDepth(78)
       .setScrollFactor(0);
-
-    this.scene.add.text(GAME_WIDTH - 154, GAME_HEIGHT - 214, "ARENA CONTROLS", {
-      fontFamily: "Arial",
-      fontSize: "12px",
-      color: "#fcfff7",
-      fontStyle: "bold",
-      stroke: "#041004",
-      strokeThickness: 4,
-    }).setOrigin(0.5).setDepth(81).setAlpha(0.84).setScrollFactor(0);
   }
 
   private createButtons(): void {
-    this.createImageButton(GAME_WIDTH - 186, GAME_HEIGHT - 94, "combat-button-slash", 112, 112, "PUNCH", () => {
+    this.createActionButton(GAME_WIDTH - 168, GAME_HEIGHT - 88, 104, "PUNCH", "HAND", 0x72ff57, () => {
       this.inputState.attack = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 92, GAME_HEIGHT - 158, "combat-button-pulse", 96, 96, "KICK", () => {
+    this.createActionButton(GAME_WIDTH - 86, GAME_HEIGHT - 148, 90, "KICK", "LEG", 0xffeb72, () => {
       this.inputState.pulse = true;
     });
 
-    this.createHoldButton(GAME_WIDTH - 92, GAME_HEIGHT - 42, "combat-button-shield", 96, 96, "BLOCK");
+    this.createHoldButton(GAME_WIDTH - 86, GAME_HEIGHT - 42, 90, "BLOCK", "HOLD", 0x72ff57);
 
-    this.createImageButton(GAME_WIDTH - 32, GAME_HEIGHT - 94, "combat-button-dash", 96, 96, "DASH", () => {
+    this.createActionButton(GAME_WIDTH - 34, GAME_HEIGHT - 88, 92, "DASH", "MOVE", 0xa45cff, () => {
       this.inputState.dodge = true;
     });
   }
 
-  private createImageButton(
+  private createActionButton(
     x: number,
     y: number,
-    texture: string,
-    width: number,
-    height: number,
+    size: number,
     label: string,
+    subLabel: string,
+    color: number,
     callback: () => void,
   ): void {
-    const hitZone = this.scene.add.circle(x, y, Math.max(width, height) * 0.54, 0x000000, 0.01)
-      .setDepth(92)
+    const hitZone = this.scene.add.circle(x, y, size * 0.56, 0x000000, 0.01)
+      .setDepth(94)
       .setScrollFactor(0)
       .setInteractive({ useHandCursor: true });
 
-    const button = this.scene.add.image(x, y, texture)
-      .setDisplaySize(width, height)
+    const glow = this.scene.add.circle(x, y, size * 0.52, color, 0.16)
+      .setStrokeStyle(3, color, 0.72)
       .setDepth(82)
-      .setAlpha(0.96)
       .setScrollFactor(0);
-
-    this.scene.add.text(x, y + height * 0.38, label, {
+    const base = this.scene.add.circle(x, y, size * 0.44, 0x061006, 0.88)
+      .setStrokeStyle(4, color, 0.92)
+      .setDepth(83)
+      .setScrollFactor(0);
+    const title = this.scene.add.text(x, y - 5, label, {
       fontFamily: "Arial",
-      fontSize: label === "PUNCH" ? "14px" : "12px",
+      fontSize: label.length > 5 ? "17px" : "20px",
       color: "#fcfff7",
       fontStyle: "bold",
       stroke: "#041004",
-      strokeThickness: 4,
-    }).setOrigin(0.5).setDepth(83).setScrollFactor(0);
+      strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(85).setScrollFactor(0);
+    const sub = this.scene.add.text(x, y + size * 0.26, subLabel, {
+      fontFamily: "Arial",
+      fontSize: "10px",
+      color: "#d7ffd0",
+      fontStyle: "bold",
+      stroke: "#041004",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(85).setScrollFactor(0);
 
     hitZone.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       pointer.event?.preventDefault();
       callback();
-      this.flashButton(button);
+      this.flashButton([glow, base, title, sub]);
     });
   }
 
-  private createHoldButton(x: number, y: number, texture: string, width: number, height: number, label: string): void {
-    const hitZone = this.scene.add.circle(x, y, Math.max(width, height) * 0.54, 0x000000, 0.01)
-      .setDepth(92)
+  private createHoldButton(x: number, y: number, size: number, label: string, subLabel: string, color: number): void {
+    const hitZone = this.scene.add.circle(x, y, size * 0.56, 0x000000, 0.01)
+      .setDepth(94)
       .setScrollFactor(0)
       .setInteractive({ useHandCursor: true });
 
-    const button = this.scene.add.image(x, y, texture)
-      .setDisplaySize(width, height)
+    const glow = this.scene.add.circle(x, y, size * 0.52, color, 0.14)
+      .setStrokeStyle(3, color, 0.68)
       .setDepth(82)
-      .setAlpha(0.94)
       .setScrollFactor(0);
-
-    const labelObject = this.scene.add.text(x, y + height * 0.38, label, {
+    const base = this.scene.add.circle(x, y, size * 0.44, 0x061006, 0.88)
+      .setStrokeStyle(4, color, 0.86)
+      .setDepth(83)
+      .setScrollFactor(0);
+    const title = this.scene.add.text(x, y - 5, label, {
       fontFamily: "Arial",
-      fontSize: "12px",
+      fontSize: "18px",
       color: "#fcfff7",
       fontStyle: "bold",
       stroke: "#041004",
-      strokeThickness: 4,
-    }).setOrigin(0.5).setDepth(83).setScrollFactor(0);
+      strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(85).setScrollFactor(0);
+    const sub = this.scene.add.text(x, y + size * 0.26, subLabel, {
+      fontFamily: "Arial",
+      fontSize: "10px",
+      color: "#d7ffd0",
+      fontStyle: "bold",
+      stroke: "#041004",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(85).setScrollFactor(0);
 
-    const press = (pointer?: Phaser.Input.Pointer) => {
-      pointer?.event?.preventDefault();
-      this.inputState.shield = true;
-      button.setAlpha(1);
-      button.setDisplaySize(width * 1.05, height * 1.05);
-      labelObject.setScale(1.03);
+    const setPressed = (pressed: boolean) => {
+      this.inputState.shield = pressed;
+      glow.setAlpha(pressed ? 0.26 : 0.14);
+      base.setStrokeStyle(pressed ? 5 : 4, color, pressed ? 1 : 0.86);
+      base.setScale(pressed ? 1.05 : 1);
+      glow.setScale(pressed ? 1.08 : 1);
+      title.setScale(pressed ? 1.03 : 1);
     };
 
-    const release = () => {
-      this.inputState.shield = false;
-      button.setAlpha(0.94);
-      button.setDisplaySize(width, height);
-      labelObject.setScale(1);
-    };
-
-    hitZone.on("pointerdown", press);
-    hitZone.on("pointerup", release);
-    hitZone.on("pointerout", release);
-    hitZone.on("pointerupoutside", release);
-    this.scene.input.on("pointerup", release);
-    this.scene.input.on("pointerupoutside", release);
+    hitZone.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      pointer.event?.preventDefault();
+      setPressed(true);
+    });
+    hitZone.on("pointerup", () => setPressed(false));
+    hitZone.on("pointerout", () => setPressed(false));
+    hitZone.on("pointerupoutside", () => setPressed(false));
+    this.scene.input.on("pointerup", () => setPressed(false));
+    this.scene.input.on("pointerupoutside", () => setPressed(false));
   }
 
   private createPointerControls(): void {
@@ -188,7 +196,7 @@ export class MobileControls {
     };
 
     this.scene.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (pointer.x > GAME_WIDTH * 0.44 || pointer.y < GAME_HEIGHT * 0.42) return;
+      if (pointer.x > GAME_WIDTH * 0.32 || pointer.y < GAME_HEIGHT * 0.48) return;
       this.joystickPointerId = pointer.id;
       updateJoystick(pointer);
     });
@@ -245,21 +253,20 @@ export class MobileControls {
     }
   }
 
-  private flashButton(target: Phaser.GameObjects.Image): void {
-    const originalAlpha = target.alpha;
-    const originalScaleX = target.scaleX;
-    const originalScaleY = target.scaleY;
+  private flashButton(targets: Phaser.GameObjects.GameObject[]): void {
     this.scene.tweens.add({
-      targets: target,
-      alpha: Math.max(0.72, originalAlpha - 0.18),
-      scaleX: originalScaleX * 1.05,
-      scaleY: originalScaleY * 1.05,
+      targets,
+      scaleX: 1.06,
+      scaleY: 1.06,
       duration: 64,
       yoyo: true,
       onComplete: () => {
-        target.setAlpha(originalAlpha);
-        target.setScale(originalScaleX, originalScaleY);
+        targets.forEach((target) => {
+          const scalable = target as Phaser.GameObjects.GameObject & { setScale?: (x: number, y?: number) => void };
+          scalable.setScale?.(1);
+        });
       },
     });
   }
+
 }
