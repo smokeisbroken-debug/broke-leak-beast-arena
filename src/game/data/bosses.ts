@@ -1,4 +1,5 @@
 import type { BossDefinition } from "../types/game";
+import type { BossMechanicProfileId } from "./bossMechanics";
 
 export type ArenaBossBehavior = "impulse" | "emotion" | "rug" | "destroyer" | "subscription" | "gambling" | "shopping" | "lifestyle" | "food";
 
@@ -27,6 +28,7 @@ export interface ArenaBossDefinition {
   unlockLevel: number;
   rewardTrophyId?: string;
   mechanics: string[];
+  mechanicProfileId: BossMechanicProfileId;
 }
 
 export const ARENA_BOSSES: ArenaBossDefinition[] = [
@@ -53,7 +55,8 @@ export const ARENA_BOSSES: ArenaBossDefinition[] = [
     color: 0x72ff57,
     unlockLevel: 1,
     rewardTrophyId: "trophy_impulse_buy_beast",
-    mechanics: ["fast_jabs", "short_rush", "low_recovery"],
+    mechanics: ["fast_jabs", "short_rush", "low_recovery", "cart_spree"],
+    mechanicProfileId: "impulse_rusher",
   },
   {
     id: "emotional_trading_beast",
@@ -78,7 +81,8 @@ export const ARENA_BOSSES: ArenaBossDefinition[] = [
     color: 0xffeb72,
     unlockLevel: 2,
     rewardTrophyId: "trophy_emotional_trading_beast",
-    mechanics: ["feint", "fomo_lunge", "chaotic_spacing"],
+    mechanics: ["feint", "fomo_lunge", "chaotic_spacing", "panic_spike"],
+    mechanicProfileId: "emotion_feinter",
   },
   {
     id: "rug_pull_beast",
@@ -103,7 +107,8 @@ export const ARENA_BOSSES: ArenaBossDefinition[] = [
     color: 0xa45cff,
     unlockLevel: 3,
     rewardTrophyId: "trophy_rug_pull_beast",
-    mechanics: ["heavy_attack", "long_warning", "guard_break_pressure"],
+    mechanics: ["heavy_attack", "long_warning", "guard_break_pressure", "liquidity_drop"],
+    mechanicProfileId: "rug_heavy",
   },
   {
     id: "wallet_destroyer_boss",
@@ -129,7 +134,8 @@ export const ARENA_BOSSES: ArenaBossDefinition[] = [
     boss: true,
     unlockLevel: 4,
     rewardTrophyId: "trophy_wallet_destroyer_boss",
-    mechanics: ["phase_2", "boss_guard", "heavy_rush"],
+    mechanics: ["phase_2", "phase_3", "boss_guard", "heavy_rush", "wallet_crush"],
+    mechanicProfileId: "wallet_destroyer",
   },
 ];
 

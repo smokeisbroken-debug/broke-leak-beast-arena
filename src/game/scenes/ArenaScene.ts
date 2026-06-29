@@ -5,14 +5,14 @@ import { requestAppFullscreen, toggleAppFullscreen } from "../../app/AppShell";
 import { MobileControls } from "../ui/MobileControls";
 import { SfxSystem } from "../systems/SfxSystem";
 import { ARENA_BATTLE_ROUNDS } from "../data/bosses";
-import { getSkillById, getSkinById, getSkinStatMultiplier, loadPlayerProfile } from "../data/gameRegistry";
+import { getBossMechanicProfile, getSkillById, getSkinById, getSkinStatMultiplier, loadPlayerProfile } from "../data/gameRegistry";
 import type { ArenaBossDefinition } from "../data/bosses";
-import type { SkillDefinition, SkinDefinition } from "../data/gameRegistry";
+import type { BossMechanicProfile, BossPhaseDefinition, SkillDefinition, SkinDefinition } from "../data/gameRegistry";
 import type { InputState, RunResult } from "../types/game";
 
 type FighterState = "idle" | "moving" | "punch" | "kick" | "block" | "dash" | "hurt" | "defeated";
 type EnemyState = "idle" | "approach" | "windup" | "attack" | "guard" | "backstep" | "hurt" | "defeated";
-type EnemyAttack = "jab" | "lunge" | "heavy";
+type EnemyAttack = "jab" | "lunge" | "heavy" | "special";
 
 type RoundConfig = ArenaBossDefinition;
 
@@ -69,6 +69,8 @@ export class ArenaScene extends Phaser.Scene {
   private enemyCooldownUntil = 0;
   private enemyGuardUntil = 0;
   private enemyBackstepUntil = 0;
+  private enemySpecialCooldownUntil = 0;
+  private activeBossPhaseIndex = -1;
   private playerInvincibleUntil = 0;
   private playerBlockUntil = 0;
   private playerActionUntil = 0;
@@ -139,6 +141,8 @@ export class ArenaScene extends Phaser.Scene {
     this.lastPunchAt = 0;
     this.comboStep = 0;
     this.bossPhaseShown = false;
+    this.enemySpecialCooldownUntil = 0;
+    this.activeBossPhaseIndex = -1;
 
     this.sfx = new SfxSystem();
     this.createArenaBackground();
@@ -292,6 +296,8 @@ export class ArenaScene extends Phaser.Scene {
     this.enemyCooldownUntil = Date.now() + 1400;
     this.enemyGuardUntil = 0;
     this.enemyBackstepUntil = 0;
+    this.enemySpecialCooldownUntil = Date.now() + 2200;
+    this.activeBossPhaseIndex = -1;
     this.fightStarted = false;
     this.playerState = "idle";
     this.playerActionUntil = 0;
@@ -342,7 +348,8 @@ export class ArenaScene extends Phaser.Scene {
     const objective = this.add.text(GAME_WIDTH / 2, 226, config.leakLabel, {
       fontFamily: "Arial", fontSize: "14px", color: "#d9a7ff", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(121);
-    const hint = this.add.text(GAME_WIDTH / 2, 258, config.introLine, {
+    const mechanics = this.getBossMechanics(config);
+    const hint = this.add.text(GAME_WIDTH / 2, 258, `${config.introLine}\n${mechanics.shortHint}`, {
       fontFamily: "Arial", fontSize: "12px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
       align: "center",
     }).setOrigin(0.5).setDepth(121).setAlpha(0.9);
@@ -640,20 +647,7 @@ export class ArenaScene extends Phaser.Scene {
     const config = ROUNDS[this.roundIndex];
     this.enemy.setFlipX(this.enemy.x > this.player.x);
 
-    if (config.boss && !this.bossPhaseShown && this.enemyHp <= this.enemyMaxHp * 0.5) {
-      this.bossPhaseShown = true;
-      this.enemy.setTint(0xff4866);
-      this.enemyCooldownUntil = Math.min(this.enemyCooldownUntil, now + 460);
-      this.objectiveText.setText("BOSS PHASE 2");
-      this.statusText.setText("BOSS ENRAGED");
-      this.showImpact(this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.32, 0xff4866, true);
-      this.showBossPhaseFx();
-      this.showFloatingText("PHASE 2", this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.68, "#ff9aaa");
-      this.cameras.main.shake(160, 0.0044);
-      this.time.delayedCall(190, () => {
-        if (this.enemy.active && this.enemyState !== "defeated") this.enemy.clearTint();
-      });
-    }
+    this.updateBossPhase(now, config);
 
     if (this.enemyState === "defeated") return;
 
@@ -710,7 +704,8 @@ export class ArenaScene extends Phaser.Scene {
     if (distance > attackDistance) {
       this.enemyState = "approach";
       const dir = this.player.x < this.enemy.x ? -1 : 1;
-      const phaseBoost = config.boss && this.bossPhaseShown ? 1.16 : 1;
+      const phase = this.getActiveBossPhase(config);
+      const phaseBoost = phase?.speedMultiplier ?? 1;
       const behaviorBoost = config.behavior === "emotion" ? 1.05 : config.behavior === "rug" ? 0.86 : 1;
       const feint = config.behavior === "emotion" ? Math.sin(now / 170) * 28 : 0;
       this.enemy.setVelocityX(dir * (config.speed * phaseBoost * behaviorBoost + feint));
@@ -736,25 +731,63 @@ export class ArenaScene extends Phaser.Scene {
     }
   }
 
+  private getBossMechanics(config: RoundConfig): BossMechanicProfile {
+    return getBossMechanicProfile(config.mechanicProfileId);
+  }
+
+  private getActiveBossPhase(config: RoundConfig): BossPhaseDefinition | undefined {
+    const mechanics = this.getBossMechanics(config);
+    return mechanics.phases[this.activeBossPhaseIndex];
+  }
+
+  private updateBossPhase(now: number, config: RoundConfig): void {
+    const mechanics = this.getBossMechanics(config);
+    if (!mechanics.phases.length || this.enemyMaxHp <= 0 || this.enemyState === "defeated") return;
+
+    const hpPercent = (this.enemyHp / this.enemyMaxHp) * 100;
+    let nextPhaseIndex = -1;
+    mechanics.phases.forEach((phase, index) => {
+      if (hpPercent <= phase.hpPercentAtOrBelow) nextPhaseIndex = index;
+    });
+
+    if (nextPhaseIndex <= this.activeBossPhaseIndex) return;
+    this.activeBossPhaseIndex = nextPhaseIndex;
+    this.bossPhaseShown = nextPhaseIndex >= 0;
+    const phase = mechanics.phases[nextPhaseIndex];
+    this.enemy.setTint(phase.color);
+    this.enemyCooldownUntil = Math.min(this.enemyCooldownUntil, now + 420);
+    this.objectiveText.setText(phase.label);
+    this.statusText.setText(phase.label);
+    this.showImpact(this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.32, phase.color, true);
+    this.showBossPhaseFx(phase);
+    this.showFloatingText(phase.label, this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.68, phase.color === 0xffeb72 ? "#ffeb72" : "#ff9aaa");
+    this.cameras.main.shake(170, 0.0046);
+    this.time.delayedCall(210, () => {
+      if (this.enemy.active && this.enemyState !== "defeated") this.enemy.clearTint();
+    });
+  }
+
   private beginEnemyWindup(now: number, config: RoundConfig): void {
     this.enemyAttack = this.pickEnemyAttack(config);
-    const phaseFast = config.boss && this.bossPhaseShown ? 0.82 : 1;
-    const windupMs = Math.round((this.enemyAttack === "heavy" ? 680 : this.enemyAttack === "lunge" ? 500 : 360) * phaseFast);
+    const mechanics = this.getBossMechanics(config);
+    const phase = this.getActiveBossPhase(config);
+    const phaseFast = phase ? phase.cooldownMultiplier : 1;
+    const windupBase = this.enemyAttack === "special" ? mechanics.special.windupMs : this.enemyAttack === "heavy" ? 680 : this.enemyAttack === "lunge" ? 500 : 360;
+    const windupMs = Math.round(windupBase * phaseFast);
     this.enemyState = "windup";
     this.enemyWindupUntil = now + windupMs;
-    this.enemy.setTint(this.enemyAttack === "heavy" ? 0xff4866 : config.color);
-    const label = this.enemyAttack === "heavy" ? this.getHeavyAttackName(config) : this.enemyAttack === "lunge" ? this.getLungeAttackName(config) : this.getJabAttackName(config);
-    this.showEnemyWarning(label, config.color, windupMs, this.enemyAttack);
+    this.enemy.setTint(this.enemyAttack === "heavy" || this.enemyAttack === "special" ? 0xff4866 : config.color);
+    const label = this.getAttackDamageLabel(config);
+    this.showEnemyWarning(label, this.enemyAttack === "special" ? mechanics.special.damageBonus > 7 ? 0xff4866 : config.color : config.color, windupMs, this.enemyAttack);
     this.statusText.setText(`${config.name}: ${label}`);
   }
 
   private shouldEnemyGuard(config: RoundConfig, distance: number): boolean {
     if (distance > config.attackRange * 0.82) return false;
+    const mechanics = this.getBossMechanics(config);
+    const phase = this.getActiveBossPhase(config);
     const roll = Phaser.Math.FloatBetween(0, 1);
-    if (config.behavior === "impulse") return roll < 0.1;
-    if (config.behavior === "emotion") return roll < 0.2;
-    if (config.behavior === "rug") return roll < 0.28;
-    return roll < (this.bossPhaseShown ? 0.18 : 0.24);
+    return roll < mechanics.guardChance + (phase?.guardChanceBonus ?? 0);
   }
 
   private beginEnemyGuard(now: number, config: RoundConfig): void {
@@ -769,26 +802,37 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private getBackstepSpeed(config: RoundConfig): number {
-    if (config.behavior === "emotion") return 150;
-    if (config.behavior === "rug") return 88;
-    if (config.boss) return this.bossPhaseShown ? 118 : 96;
-    return 126;
+    const mechanics = this.getBossMechanics(config);
+    const phase = this.getActiveBossPhase(config);
+    return Math.round(mechanics.backstepSpeed * (phase?.speedMultiplier ?? 1));
   }
 
   private getBackstepDuration(config: RoundConfig): number {
-    if (config.behavior === "impulse") return 230;
-    if (config.behavior === "emotion") return 310;
-    if (config.behavior === "rug") return 260;
-    return this.bossPhaseShown ? 220 : 280;
+    const mechanics = this.getBossMechanics(config);
+    const phase = this.getActiveBossPhase(config);
+    return Math.round(mechanics.backstepDurationMs * (phase?.cooldownMultiplier ?? 1));
   }
 
   private pickEnemyAttack(config: RoundConfig): EnemyAttack {
-    const attackRoll = Phaser.Math.FloatBetween(0, 1);
-    if (config.behavior === "impulse") return attackRoll > 0.72 ? "lunge" : "jab";
-    if (config.behavior === "emotion") return attackRoll > 0.52 ? "lunge" : attackRoll > 0.24 ? "jab" : "heavy";
-    if (config.behavior === "rug") return attackRoll > 0.36 ? "heavy" : "lunge";
-    if (config.boss && this.bossPhaseShown) return attackRoll > 0.42 ? "heavy" : "lunge";
-    return attackRoll > 0.62 ? "heavy" : attackRoll > 0.28 ? "lunge" : "jab";
+    const mechanics = this.getBossMechanics(config);
+    const now = Date.now();
+    if (now >= this.enemySpecialCooldownUntil && Phaser.Math.FloatBetween(0, 1) < this.getSpecialChance(config)) {
+      return "special";
+    }
+
+    const total = mechanics.jabWeight + mechanics.lungeWeight + mechanics.heavyWeight;
+    const attackRoll = Phaser.Math.FloatBetween(0, total);
+    if (attackRoll < mechanics.jabWeight) return "jab";
+    if (attackRoll < mechanics.jabWeight + mechanics.lungeWeight) return "lunge";
+    return "heavy";
+  }
+
+  private getSpecialChance(config: RoundConfig): number {
+    if (config.boss && this.activeBossPhaseIndex >= 1) return 0.42;
+    if (config.boss && this.bossPhaseShown) return 0.34;
+    if (config.behavior === "rug") return 0.2;
+    if (config.behavior === "emotion") return 0.18;
+    return 0.16;
   }
 
   private getJabAttackName(config: RoundConfig): string {
@@ -813,22 +857,40 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private getRecoveryDelay(config: RoundConfig): number {
-    if (config.behavior === "impulse") return 340;
-    if (config.behavior === "emotion") return 360;
-    if (config.behavior === "rug") return 520;
-    return this.bossPhaseShown ? 360 : 460;
+    const mechanics = this.getBossMechanics(config);
+    const phase = this.getActiveBossPhase(config);
+    return Math.round(mechanics.recoveryMs * (phase?.cooldownMultiplier ?? 1));
   }
 
   private performEnemyAttack(now: number, config: RoundConfig): void {
     this.enemyState = "attack";
-    this.enemyAttackUntil = now + 230;
+    this.enemyAttackUntil = now + (this.enemyAttack === "special" ? 310 : 230);
     this.enemyCooldownUntil = now + this.getEnemyCooldown(config);
     const dir = this.player.x < this.enemy.x ? -1 : 1;
-    const phaseBonus = config.boss && this.bossPhaseShown ? 2 : 0;
-    const damage = this.enemyAttack === "heavy" ? config.damage + 5 + phaseBonus : this.enemyAttack === "lunge" ? config.damage + 2 + phaseBonus : config.damage;
-    const range = this.enemyAttack === "heavy" ? config.attackRange + 20 : this.enemyAttack === "lunge" ? config.attackRange + 42 : config.attackRange;
+    const phase = this.getActiveBossPhase(config);
+    const mechanics = this.getBossMechanics(config);
+    const phaseDamage = phase?.damageBonus ?? 0;
+    const special = this.enemyAttack === "special" ? mechanics.special : undefined;
+    const damage = this.enemyAttack === "special"
+      ? config.damage + (special?.damageBonus ?? 0) + phaseDamage
+      : this.enemyAttack === "heavy"
+        ? config.damage + 5 + phaseDamage
+        : this.enemyAttack === "lunge"
+          ? config.damage + 2 + phaseDamage
+          : config.damage + phaseDamage;
+    const range = this.enemyAttack === "special"
+      ? config.attackRange + (special?.rangeBonus ?? 0)
+      : this.enemyAttack === "heavy"
+        ? config.attackRange + 20
+        : this.enemyAttack === "lunge"
+          ? config.attackRange + 42
+          : config.attackRange;
 
-    if (this.enemyAttack === "lunge") {
+    if (this.enemyAttack === "special") {
+      this.enemySpecialCooldownUntil = now + mechanics.special.cooldownMs;
+      const speed = mechanics.special.effect === "stun_dash" || mechanics.special.effect === "wallet_crush" ? 390 : 145;
+      this.enemy.setVelocityX(dir * speed);
+    } else if (this.enemyAttack === "lunge") {
       this.enemy.setVelocityX(dir * (config.behavior === "emotion" ? 380 : config.boss && this.bossPhaseShown ? 355 : 310));
     } else if (this.enemyAttack === "heavy") {
       this.enemy.setVelocityX(dir * (config.behavior === "rug" ? 170 : 120));
@@ -836,25 +898,99 @@ export class ArenaScene extends Phaser.Scene {
       this.enemy.setVelocityX(dir * 116);
     }
 
-    this.showEnemyAttackFx(config.color, this.enemyAttack);
-    this.time.delayedCall(90, () => {
+    this.showEnemyAttackFx(this.enemyAttack === "special" ? mechanics.special.damageBonus > 7 ? 0xff4866 : config.color : config.color, this.enemyAttack);
+    if (this.enemyAttack === "special") this.showBossSpecialFx(config, mechanics);
+
+    this.time.delayedCall(this.enemyAttack === "special" ? 120 : 90, () => {
       if (this.runFinished || this.enemyState === "defeated") return;
       const distance = Math.abs(this.player.x - this.enemy.x);
       if (distance <= range) this.damagePlayer(damage, this.getAttackDamageLabel(config));
+      if (this.enemyAttack === "special") this.applyBossSpecialEffect(config, mechanics, distance <= range);
     });
   }
 
   private getEnemyCooldown(config: RoundConfig): number {
-    if (config.behavior === "impulse") return 880;
-    if (config.behavior === "emotion") return 960;
-    if (config.behavior === "rug") return 1320;
-    return this.bossPhaseShown ? 790 : 1040;
+    const mechanics = this.getBossMechanics(config);
+    const phase = this.getActiveBossPhase(config);
+    return Math.round(mechanics.cooldownMs * (phase?.cooldownMultiplier ?? 1));
   }
 
   private getAttackDamageLabel(config: RoundConfig): string {
+    if (this.enemyAttack === "special") return this.getBossMechanics(config).special.name;
     if (this.enemyAttack === "heavy") return this.getHeavyAttackName(config);
     if (this.enemyAttack === "lunge") return this.getLungeAttackName(config);
     return this.getJabAttackName(config);
+  }
+
+  private applyBossSpecialEffect(config: RoundConfig, mechanics: BossMechanicProfile, hitPlayer: boolean): void {
+    const effect = mechanics.special.effect;
+    if (!hitPlayer && effect !== "hazard_zone" && effect !== "summon_pressure") return;
+
+    if (mechanics.special.energyDrain && hitPlayer) {
+      const before = this.playerEnergy;
+      this.playerEnergy = Phaser.Math.Clamp(this.playerEnergy - mechanics.special.energyDrain, 0, MAX_ENERGY);
+      const drained = before - this.playerEnergy;
+      if (drained > 0) this.showFloatingText(`-${drained} ENERGY`, this.player.x, this.player.y - 136, "#ffeb72");
+    }
+
+    if (effect === "risk_burst" && hitPlayer) {
+      const burst = Phaser.Math.Between(2, 7);
+      this.playerHp = Math.max(0, this.playerHp - burst);
+      this.showFloatingText(`RISK -${burst} HP`, this.player.x + 4, this.player.y - 124, "#ff9aaa");
+      this.cameras.main.shake(80, 0.0032);
+    }
+
+    if (effect === "guard_break" && hitPlayer && Date.now() < this.playerBlockUntil) {
+      this.playerBlockUntil = 0;
+      this.playerInvincibleUntil = Math.max(this.playerInvincibleUntil, Date.now() + 120);
+      this.showFloatingText("GUARD BROKEN", this.player.x, this.player.y - 144, "#ff4866");
+      this.cameras.main.flash(52, 255, 72, 102, false);
+    }
+
+    if (effect === "hazard_zone" || effect === "summon_pressure") {
+      this.spawnBossPressureZone(config, effect === "summon_pressure");
+    }
+
+    if (effect === "wallet_crush" && hitPlayer) {
+      this.ultimateActiveUntil = Math.min(this.ultimateActiveUntil, Date.now() + 900);
+      this.statusText.setText("WALLET CRUSHED");
+    }
+  }
+
+  private spawnBossPressureZone(config: RoundConfig, summonPressure: boolean): void {
+    const x = Phaser.Math.Clamp(this.player.x, LEFT_BOUND + 58, RIGHT_BOUND - 58);
+    const y = FLOOR_Y - 20;
+    const color = summonPressure ? 0xffeb72 : 0xff4866;
+    const radius = summonPressure ? 48 : 58;
+    const zone = this.add.circle(x, y, radius, color, 0.08)
+      .setStrokeStyle(4, color, 0.72)
+      .setDepth(38);
+    const label = this.add.text(x, y - 50, summonPressure ? "PRESSURE" : "LEAK ZONE", {
+      fontFamily: "Arial", fontSize: "13px", color: summonPressure ? "#ffeb72" : "#ff9aaa", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(91);
+
+    this.time.delayedCall(720, () => {
+      if (!zone.active || this.runFinished) return;
+      const distance = Math.abs(this.player.x - x);
+      if (distance <= radius + 18) {
+        const damage = summonPressure ? 5 : 8;
+        this.playerHp = Math.max(0, this.playerHp - damage);
+        this.showFloatingText(`ZONE -${damage} HP`, this.player.x, this.player.y - 116, summonPressure ? "#ffeb72" : "#ff9aaa");
+        this.cameras.main.shake(60, 0.0028);
+        if (this.playerHp <= 0) this.finishRun(false);
+      }
+    });
+
+    this.tweens.add({
+      targets: [zone, label],
+      alpha: 0,
+      delay: 920,
+      duration: 360,
+      onComplete: () => {
+        zone.destroy();
+        label.destroy();
+      },
+    });
   }
 
   private damagePlayer(amount: number, label: string): void {
@@ -866,13 +1002,14 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     if (now < this.playerBlockUntil) {
-      const blockMultiplier = this.isUltimateActive(now) ? Math.min(0.1, this.blockDamageTakenMultiplier * 0.55) : this.blockDamageTakenMultiplier;
+      const guardBreak = label === this.getBossMechanics(ROUNDS[this.roundIndex]).special.name && this.getBossMechanics(ROUNDS[this.roundIndex]).special.effect === "guard_break";
+      const blockMultiplier = guardBreak ? 0.72 : this.isUltimateActive(now) ? Math.min(0.1, this.blockDamageTakenMultiplier * 0.55) : this.blockDamageTakenMultiplier;
       const blocked = Math.max(1, Math.floor(amount * blockMultiplier));
       this.playerHp = Math.max(0, this.playerHp - blocked);
       this.sfx.playBlock();
       this.showBlockFx();
-      this.showFloatingText("BLOCK", this.player.x, this.player.y - 100, "#72ff57");
-      this.statusText.setText("BLOCK");
+      this.showFloatingText(guardBreak ? "GUARD CRACK" : "BLOCK", this.player.x, this.player.y - 100, guardBreak ? "#ffeb72" : "#72ff57");
+      this.statusText.setText(guardBreak ? "GUARD CRACK" : "BLOCK");
       this.cameras.main.shake(48, 0.0018);
       this.playerInvincibleUntil = now + 190;
       this.addEnergy(9, "block");
@@ -1239,7 +1376,7 @@ export class ArenaScene extends Phaser.Scene {
 
   private showEnemyAttackFx(color: number, attack: EnemyAttack): void {
     const dir = this.player.x < this.enemy.x ? -1 : 1;
-    const heavy = attack === "heavy";
+    const heavy = attack === "heavy" || attack === "special";
     const x = this.enemy.x + dir * (heavy ? 92 : 74);
     const y = this.enemy.y - this.enemy.displayHeight * 0.28;
     const arc = this.add.image(x, y, "arena-vfx-sheet", heavy ? 2 : 4)
@@ -1267,14 +1404,36 @@ export class ArenaScene extends Phaser.Scene {
     this.tweens.add({ targets: guardLine, alpha: 0, duration: 210, onComplete: () => guardLine.destroy() });
   }
 
-  private showBossPhaseFx(): void {
-    const ring = this.add.circle(this.enemy.x, FLOOR_Y - 86, 62, 0xff4866, 0.05)
-      .setStrokeStyle(7, 0xff4866, 0.76)
+  private showBossSpecialFx(config: RoundConfig, mechanics: BossMechanicProfile): void {
+    const color = mechanics.special.effect === "wallet_crush" || mechanics.special.effect === "guard_break" ? 0xff4866 : config.color;
+    const dir = this.player.x < this.enemy.x ? -1 : 1;
+    const originX = this.enemy.x + dir * 36;
+    const originY = this.enemy.y - this.enemy.displayHeight * 0.32;
+    const beam = this.add.line(0, 0, originX, originY, this.player.x, this.player.y - 40, color, 0.46)
+      .setOrigin(0, 0)
+      .setLineWidth(12)
+      .setDepth(47);
+    const ring = this.add.circle(originX, originY, 18, color, 0.08)
+      .setStrokeStyle(5, color, 0.84)
+      .setDepth(48);
+    const label = this.add.text(originX, originY - 54, mechanics.special.name, {
+      fontFamily: "Arial", fontSize: mechanics.special.name.length > 12 ? "12px" : "15px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(92);
+    this.tweens.add({ targets: beam, alpha: 0, duration: 230, onComplete: () => beam.destroy() });
+    this.tweens.add({ targets: ring, radius: 72, alpha: 0, duration: 330, onComplete: () => ring.destroy() });
+    this.tweens.add({ targets: label, y: label.y - 24, alpha: 0, duration: 620, onComplete: () => label.destroy() });
+  }
+
+  private showBossPhaseFx(phase?: BossPhaseDefinition): void {
+    const phaseColor = phase?.color ?? 0xff4866;
+    const phaseLabel = phase?.label ?? "BOSS ENRAGED";
+    const ring = this.add.circle(this.enemy.x, FLOOR_Y - 86, 62, phaseColor, 0.05)
+      .setStrokeStyle(7, phaseColor, 0.76)
       .setDepth(47);
     const pulse = this.add.circle(this.enemy.x, FLOOR_Y - 86, 28, 0xffeb72, 0.08)
       .setStrokeStyle(4, 0xffeb72, 0.58)
       .setDepth(48);
-    const warning = this.add.text(this.enemy.x, FLOOR_Y - 188, "BOSS ENRAGED", {
+    const warning = this.add.text(this.enemy.x, FLOOR_Y - 188, phaseLabel, {
       fontFamily: "Arial", fontSize: "24px", color: "#ff9aaa", fontStyle: "bold", stroke: "#041004", strokeThickness: 7,
     }).setOrigin(0.5).setDepth(92);
     this.tweens.add({ targets: ring, radius: 156, alpha: 0, duration: 520, onComplete: () => ring.destroy() });
@@ -1283,7 +1442,7 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private showEnemyWarning(text: string, color: number, durationMs: number, attack: EnemyAttack = "jab"): void {
-    const heavy = attack === "heavy";
+    const heavy = attack === "heavy" || attack === "special";
     const lunge = attack === "lunge";
     const dir = this.player.x < this.enemy.x ? -1 : 1;
     const warnColor = heavy ? 0xff4866 : lunge ? 0xffeb72 : color;
@@ -1299,7 +1458,7 @@ export class ArenaScene extends Phaser.Scene {
       .setLineWidth(heavy ? 9 : 6)
       .setDepth(88);
     const blockNow = heavy
-      ? this.add.text(this.player.x, this.player.y - 128, "BLOCK NOW", {
+      ? this.add.text(this.player.x, this.player.y - 128, attack === "special" ? this.getBossMechanics(ROUNDS[this.roundIndex]).special.warning : "BLOCK NOW", {
         fontFamily: "Arial", fontSize: "16px", color: "#ffeb72", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
       }).setOrigin(0.5).setDepth(91)
       : undefined;

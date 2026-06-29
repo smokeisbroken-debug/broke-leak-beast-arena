@@ -29,6 +29,8 @@ export type { ActiveSkillSlot, SkillDefinition, SkillEffect, SkillLoadoutIds, Sk
 
 export { ARENA_BOSSES, ARENA_BATTLE_ROUNDS, WEEKLY_BOSSES, getArenaBossById } from "./bosses";
 export type { ArenaBossBehavior, ArenaBossDefinition } from "./bosses";
+export { BOSS_MECHANIC_PROFILES, getBossMechanicProfile } from "./bossMechanics";
+export type { BossMechanicProfile, BossMechanicProfileId, BossPhaseDefinition, BossSpecialDefinition, BossSpecialEffect } from "./bossMechanics";
 
 export { STAGES, DEFAULT_STAGE_ID, getStageById } from "./stages";
 export type { StageDefinition, StageModifier } from "./stages";
