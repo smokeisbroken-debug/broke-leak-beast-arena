@@ -4,8 +4,11 @@ import { SCENE_KEYS } from "../../config/routes";
 import {
   applyFightResultToProfile,
   applyRewardChoiceToProfile,
+  getCampaignChapterForBoss,
+  getDailyMissionStates,
   getPostFightRewardChoices,
   getRewardChoiceRarityLabel,
+  getSelectedCampaignBoss,
   getXpProgress,
   loadPlayerProfile,
   savePlayerProfile,
@@ -22,6 +25,7 @@ export class ResultScene extends Phaser.Scene {
   private bonusClaimed = false;
   private profileText!: Phaser.GameObjects.Text;
   private bonusStatusText!: Phaser.GameObjects.Text;
+  private progressHintText!: Phaser.GameObjects.Text;
   private choiceCards: Phaser.GameObjects.GameObject[] = [];
 
   constructor() {
@@ -89,12 +93,13 @@ export class ResultScene extends Phaser.Scene {
       fontFamily: "Arial", fontSize: "15px", color: "#b66cff", fontStyle: "bold", stroke: "#050805", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(3);
 
-    this.add.rectangle(GAME_WIDTH / 2, 158, GAME_WIDTH - 100, 166, 0x050805, 0.84)
+    this.add.rectangle(GAME_WIDTH / 2, 158, GAME_WIDTH - 100, 166, 0x050805, 0.86)
       .setStrokeStyle(2, 0x39ff14, 0.26)
       .setDepth(2);
 
     this.createResultStats();
     this.createRewardSummary();
+    this.createProgressClarityPanel();
     this.createRewardChoiceCards();
     this.createFooterButtons();
   }
@@ -102,24 +107,39 @@ export class ResultScene extends Phaser.Scene {
   private createResultStats(): void {
     const bossesBroken = this.result.bossesBroken ?? 0;
     const stats = [
-      ["LEAKS BROKEN", this.result.leaksDefeated.toString()],
-      ["FIGHT TIME", `${this.result.survivedSeconds}s`],
+      ["LEAKS", this.result.leaksDefeated.toString()],
+      ["TIME", `${this.result.survivedSeconds}s`],
       ["BOSSES", bossesBroken.toString()],
       ["SCORE", this.result.score.toString()],
     ];
+
+    this.add.text(98, 82, "FIGHT RESULT", {
+      fontFamily: "Arial", fontSize: "13px", color: "#39ff14", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setDepth(3);
 
     stats.forEach(([label, value], index) => {
       const row = Math.floor(index / 2);
       const col = index % 2;
       const x = col === 0 ? 98 : 278;
-      const y = 102 + row * 48;
+      const y = 108 + row * 42;
       this.add.text(x, y, label, {
-        fontFamily: "Arial", fontSize: "11px", color: "#9cff8a", fontStyle: "bold",
+        fontFamily: "Arial", fontSize: "10px", color: "#9cff8a", fontStyle: "bold", stroke: "#050805", strokeThickness: 2,
       }).setDepth(3);
-      this.add.text(x + 138, y - 4, value, {
-        fontFamily: "Arial", fontSize: "22px", color: "#f5fff1", fontStyle: "bold",
+      this.add.text(x + 118, y - 4, value, {
+        fontFamily: "Arial", fontSize: "21px", color: "#f5fff1", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
       }).setOrigin(1, 0).setDepth(3);
     });
+
+    const detail = [
+      `BLOCKS ${this.result.blocks ?? 0}`,
+      `DODGES ${this.result.dodges ?? 0}`,
+      `SKILLS ${this.result.skillsUsed ?? 0}`,
+      `ULT ${this.result.ultimatesUsed ?? 0}`,
+    ].join("  ·  ");
+
+    this.add.text(98, 206, detail, {
+      fontFamily: "Arial", fontSize: "10px", color: "#d7ffd0", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setDepth(3);
   }
 
   private createRewardSummary(): void {
@@ -129,38 +149,73 @@ export class ResultScene extends Phaser.Scene {
     const levelText = this.rewardApplication.newLevel > this.rewardApplication.oldLevel
       ? `LEVEL UP ${this.rewardApplication.oldLevel} → ${this.rewardApplication.newLevel}`
       : `LEVEL ${profile.level}`;
-    const missionText = this.rewardApplication.completedMissionIds.length > 0
-      ? `MISSIONS DONE: ${this.rewardApplication.completedMissionIds.length}`
-      : "DAILY MISSIONS UPDATED";
     const unlockText = this.rewardApplication.unlocks.length > 0
-      ? `UNLOCKED: ${this.rewardApplication.unlocks.slice(0, 3).map((item) => item.split("_").join(" ").toUpperCase()).join(" · ")}`
+      ? `UNLOCKED: ${this.formatUnlockList(this.rewardApplication.unlocks, 3)}`
       : xpProgress.nextLevel
-        ? `NEXT LEVEL IN ${xpProgress.remaining} XP`
+        ? `${xpProgress.remaining} XP TO LEVEL ${xpProgress.nextLevel.level}`
         : "MAX LEVEL FOUNDATION";
 
-    this.add.text(506, 92, "REWARDS", {
+    this.add.text(506, 82, "BASE REWARDS", {
       fontFamily: "Arial", fontSize: "13px", color: "#39ff14", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
     }).setDepth(3);
 
-    const rewardLines = [
-      `+${reward.xp} XP`,
-      `+${reward.coins} COINS`,
-      `+${reward.leakPoints} LEAK POINTS`,
-      reward.skinShards > 0 ? `+${reward.skinShards} SKIN SHARD` : undefined,
-      reward.skillCards > 0 ? `+${reward.skillCards} SKILL CARD` : undefined,
-      this.rewardApplication.levelCoinReward > 0 ? `+${this.rewardApplication.levelCoinReward} LEVEL COINS` : undefined,
-    ].filter(Boolean) as string[];
+    const rewardChips = [
+      [`+${reward.xp}`, "XP", 0x72ff57],
+      [`+${reward.coins}`, "COINS", 0xffeb72],
+      [`+${reward.leakPoints}`, "LEAK", 0xd9a7ff],
+      [`+${reward.skillCards}`, "CARDS", 0x8cdcff],
+    ];
 
-    this.add.text(506, 118, rewardLines.join("  ·  "), {
-      fontFamily: "Arial", fontSize: "12px", color: "#f5fff1", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
-      wordWrap: { width: 330 },
-    }).setDepth(3);
+    rewardChips.forEach(([value, label, color], index) => {
+      const x = 506 + index * 78;
+      this.add.rectangle(x, 122, 70, 36, 0x071107, 0.9)
+        .setStrokeStyle(2, Number(color), 0.4)
+        .setDepth(3);
+      this.add.text(x, 114, String(value), {
+        fontFamily: "Arial", fontSize: "13px", color: "#f5fff1", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+      }).setOrigin(0.5).setDepth(4);
+      this.add.text(x, 132, String(label), {
+        fontFamily: "Arial", fontSize: "8px", color: "#d7ffd0", fontStyle: "bold", stroke: "#050805", strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(4);
+    });
 
-    this.profileText = this.add.text(506, 162, `${levelText}\nCOINS ${profile.coins} · XP ${profile.xp} · LEAK POINTS ${profile.leakPoints}\n${unlockText}`, {
-      fontFamily: "Arial", fontSize: "12px", color: "#d7ffd0", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    this.profileText = this.add.text(506, 154, `${levelText} · COINS ${profile.coins} · XP ${profile.xp}\n${unlockText}`, {
+      fontFamily: "Arial", fontSize: "11px", color: "#d7ffd0", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
       lineSpacing: 3,
       wordWrap: { width: 330 },
     }).setDepth(3);
+
+    this.createXpProgressBar(506, 197, 312, xpProgress.progress, xpProgress.nextLevel ? `LEVEL ${profile.level} PROGRESS` : "MAX LEVEL FOUNDATION");
+  }
+
+  private createProgressClarityPanel(): void {
+    const profile = this.profileAfterBase;
+    const missionStates = getDailyMissionStates(profile);
+    const completed = missionStates.filter((mission) => mission.completed && !mission.claimed).length;
+    const inProgress = missionStates
+      .filter((mission) => !mission.completed)
+      .sort((a, b) => (b.progress / Math.max(1, b.target)) - (a.progress / Math.max(1, a.target)))[0];
+
+    const nextBoss = getSelectedCampaignBoss(profile);
+    const chapter = getCampaignChapterForBoss(nextBoss.id);
+    const missionLine = completed > 0
+      ? `${completed} MISSION REWARD${completed === 1 ? "" : "S"} READY`
+      : inProgress
+        ? `${inProgress.definition.title.toUpperCase()}: ${inProgress.progress}/${inProgress.target}`
+        : "DAILY MISSIONS COMPLETE";
+
+    const bossLine = `NEXT: ${nextBoss.name.toUpperCase()} · ${chapter.name.toUpperCase()}`;
+
+    this.add.rectangle(232, 226, 316, 25, 0x071107, 0.88)
+      .setStrokeStyle(1, chapter.color, 0.42)
+      .setDepth(3);
+    this.add.text(232, 226, bossLine, {
+      fontFamily: "Arial", fontSize: "10px", color: chapter.uiColor, fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(4);
+
+    this.progressHintText = this.add.text(644, 226, missionLine, {
+      fontFamily: "Arial", fontSize: "10px", color: completed > 0 ? "#ffeb72" : "#d7ffd0", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(4);
   }
 
   private createRewardChoiceCards(): void {
@@ -169,18 +224,18 @@ export class ResultScene extends Phaser.Scene {
       this.add.text(GAME_WIDTH / 2, 256, "REWARD ALREADY CLAIMED", {
         fontFamily: "Arial", fontSize: "15px", color: "#ffeb72", fontStyle: "bold", stroke: "#050805", strokeThickness: 4,
       }).setOrigin(0.5).setDepth(4);
-      this.bonusStatusText = this.add.text(GAME_WIDTH / 2, 280, "This fight result was already processed. Start a new fight for new rewards.", {
+      this.bonusStatusText = this.add.text(GAME_WIDTH / 2, 280, "This result was already processed. Start a new fight for fresh rewards.", {
         fontFamily: "Arial", fontSize: "11px", color: "#d7ffd0", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
       }).setOrigin(0.5).setDepth(4);
       return;
     }
 
     const choices = getPostFightRewardChoices(this.profileAfterBase).slice(0, 3);
-    this.add.text(GAME_WIDTH / 2, 256, "CHOOSE 1 BONUS UPGRADE", {
+    this.add.text(GAME_WIDTH / 2, 256, "CHOOSE 1 POST-FIGHT BONUS", {
       fontFamily: "Arial", fontSize: "15px", color: "#ffeb72", fontStyle: "bold", stroke: "#050805", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(4);
 
-    this.bonusStatusText = this.add.text(GAME_WIDTH / 2, 274, "Permanent profile reward. One choice per fight.", {
+    this.bonusStatusText = this.add.text(GAME_WIDTH / 2, 274, "Base rewards are already saved. Pick one extra bonus.", {
       fontFamily: "Arial", fontSize: "11px", color: "#d7ffd0", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
     }).setOrigin(0.5).setDepth(4);
 
@@ -191,23 +246,29 @@ export class ResultScene extends Phaser.Scene {
   }
 
   private createRewardChoiceCard(choice: RewardChoiceDefinition, x: number, y: number): void {
-    const card = this.add.rectangle(x, y, 246, 70, 0x071107, 0.94)
-      .setStrokeStyle(2, choice.color, 0.58)
+    const card = this.add.rectangle(x, y, 246, 76, 0x071107, 0.94)
+      .setStrokeStyle(2, choice.color, 0.62)
       .setDepth(4)
       .setInteractive({ useHandCursor: true });
-    const rarity = this.add.text(x, y - 25, getRewardChoiceRarityLabel(choice).toUpperCase(), {
+    const amount = this.add.text(x - 106, y - 28, this.getChoiceAmountLabel(choice), {
       fontFamily: "Arial", fontSize: "9px", color: choice.uiColor, fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(5);
-    const title = this.add.text(x, y - 7, choice.name.toUpperCase(), {
+    }).setOrigin(0, 0.5).setDepth(5);
+    const rarity = this.add.text(x + 106, y - 28, getRewardChoiceRarityLabel(choice).toUpperCase(), {
+      fontFamily: "Arial", fontSize: "8px", color: choice.uiColor, fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setOrigin(1, 0.5).setDepth(5);
+    const title = this.add.text(x, y - 8, choice.name.toUpperCase(), {
       fontFamily: "Arial", fontSize: "13px", color: "#f5fff1", fontStyle: "bold", stroke: "#050805", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(5);
-    const desc = this.add.text(x, y + 16, choice.description, {
-      fontFamily: "Arial", fontSize: "10px", color: "#d7ffd0", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    const desc = this.add.text(x, y + 13, choice.description, {
+      fontFamily: "Arial", fontSize: "9px", color: "#d7ffd0", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
       align: "center",
       wordWrap: { width: 212 },
     }).setOrigin(0.5).setDepth(5);
+    const claim = this.add.text(x, y + 30, "TAP TO CLAIM", {
+      fontFamily: "Arial", fontSize: "8px", color: "#ffeb72", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(5);
 
-    const objects = [card, rarity, title, desc];
+    const objects = [card, amount, rarity, title, desc, claim];
     this.choiceCards.push(...objects);
 
     card.on("pointerdown", () => this.claimRewardChoice(choice));
@@ -235,8 +296,47 @@ export class ResultScene extends Phaser.Scene {
         ? `LEVEL UP ${application.oldLevel} → ${application.newLevel}`
         : "BONUS SAVED";
 
-    this.profileText.setText(`LEVEL ${this.profileAfterBase.level}\nCOINS ${this.profileAfterBase.coins} · XP ${this.profileAfterBase.xp} · LEAK POINTS ${this.profileAfterBase.leakPoints}\n${unlockText}`);
+    const xpProgress = getXpProgress(this.profileAfterBase.xp);
+    this.profileText.setText(`LEVEL ${this.profileAfterBase.level} · COINS ${this.profileAfterBase.coins} · XP ${this.profileAfterBase.xp}\n${unlockText}`);
+    if (this.progressHintText) {
+      const nextBoss = getSelectedCampaignBoss(this.profileAfterBase);
+      this.progressHintText.setText(xpProgress.nextLevel ? `${xpProgress.remaining} XP TO LEVEL ${xpProgress.nextLevel.level}` : `NEXT FIGHT: ${nextBoss.name.toUpperCase()}`);
+      this.progressHintText.setColor("#ffeb72");
+    }
     this.cameras.main.flash(80, 114, 255, 87, false);
+  }
+
+  private createXpProgressBar(x: number, y: number, width: number, progress: number, label: string): void {
+    const clamped = Phaser.Math.Clamp(progress, 0, 1);
+    this.add.text(x, y - 15, label, {
+      fontFamily: "Arial", fontSize: "9px", color: "#9cff8a", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setDepth(4);
+    this.add.rectangle(x, y, width, 10, 0x122112, 1)
+      .setOrigin(0, 0.5)
+      .setStrokeStyle(1, 0x72ff57, 0.38)
+      .setDepth(4);
+    this.add.rectangle(x, y, Math.max(4, width * clamped), 8, 0x72ff57, 1)
+      .setOrigin(0, 0.5)
+      .setDepth(5);
+    this.add.text(x + width + 8, y - 6, `${Math.round(clamped * 100)}%`, {
+      fontFamily: "Arial", fontSize: "10px", color: "#f5fff1", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setDepth(5);
+  }
+
+  private getChoiceAmountLabel(choice: RewardChoiceDefinition): string {
+    if (choice.kind === "coins") return `+${choice.amount} COINS`;
+    if (choice.kind === "xp") return `+${choice.amount} XP`;
+    if (choice.kind === "leak_points") return `+${choice.amount} LEAK`;
+    if (choice.kind === "skill_unlock") return "UNLOCK SKILL";
+    if (choice.kind === "stage_unlock") return "UNLOCK STAGE";
+    if (choice.kind === "skin_unlock") return "UNLOCK SKIN";
+    return "BONUS";
+  }
+
+  private formatUnlockList(unlocks: string[], limit = 3): string {
+    const visible = unlocks.slice(0, limit).map((item) => item.split("_").join(" ").toUpperCase());
+    const hiddenCount = Math.max(0, unlocks.length - visible.length);
+    return `${visible.join(" · ")}${hiddenCount > 0 ? ` +${hiddenCount}` : ""}`;
   }
 
   private createFooterButtons(): void {
@@ -254,7 +354,7 @@ export class ResultScene extends Phaser.Scene {
       this.time.delayedCall(1300, () => shareText.setText("COPY RESULT"));
     });
 
-    const again = this.add.text(488, GAME_HEIGHT - 34, "PLAY AGAIN", {
+    const again = this.add.text(488, GAME_HEIGHT - 34, "NEXT FIGHT", {
       fontFamily: "Arial", fontSize: "14px", color: "#050505", backgroundColor: "#39ff14", padding: { x: 22, y: 9 }, fontStyle: "bold",
     }).setOrigin(0.5).setDepth(4);
     again.setInteractive({ useHandCursor: true });
@@ -281,6 +381,8 @@ export class ResultScene extends Phaser.Scene {
       `Pickups: ${pickupsCollected}`,
       `Level: ${this.profileAfterBase.level}`,
       `Coins: ${this.profileAfterBase.coins}`,
+      `XP: ${this.profileAfterBase.xp}`,
+      `Next boss: ${getSelectedCampaignBoss(this.profileAfterBase).name}`,
       "https://broke-leak-beast-arena.vercel.app/",
       "$BROKE",
     ].join("\n");
