@@ -29,6 +29,25 @@ export type { ActiveSkillSlot, SkillDefinition, SkillEffect, SkillLoadoutIds, Sk
 
 export { ARENA_BOSSES, ARENA_BATTLE_ROUNDS, WEEKLY_BOSSES, getArenaBossById } from "./bosses";
 export type { ArenaBossBehavior, ArenaBossDefinition } from "./bosses";
+
+export {
+  CAMPAIGN_CHAPTERS,
+  DEFAULT_CAMPAIGN_BOSS_ID,
+  DEFAULT_CAMPAIGN_ID,
+  getCampaignBattleRounds,
+  getCampaignBossState,
+  getCampaignBosses,
+  getCampaignChapterById,
+  getCampaignChapterForBoss,
+  getCampaignProgress,
+  getCampaignUnlockLabel,
+  getRecommendedCampaignBoss,
+  getSelectedCampaignBoss,
+  isCampaignBossUnlocked,
+  isCampaignChapterComplete,
+  isCampaignChapterUnlocked,
+} from "./campaigns";
+export type { CampaignChapterDefinition, CampaignProfileState } from "./campaigns";
 export { BOSS_MECHANIC_PROFILES, getBossMechanicProfile } from "./bossMechanics";
 export type { BossMechanicProfile, BossMechanicProfileId, BossPhaseDefinition, BossSpecialDefinition, BossSpecialEffect } from "./bossMechanics";
 
@@ -69,6 +88,7 @@ export {
   selectProfileSkill,
   selectProfileSkin,
   selectProfileStage,
+  selectProfileCampaignBoss,
   unlockProfileSkill,
   unlockProfileSkin,
   unlockProfileStage,

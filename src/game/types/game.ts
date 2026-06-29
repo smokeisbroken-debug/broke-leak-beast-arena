@@ -41,6 +41,9 @@ export interface RunResult {
   pickupsCollected?: number;
   bossesBroken?: number;
   victory?: boolean;
+  selectedBossId?: string;
+  selectedCampaignId?: string;
+  defeatedBossIds?: string[];
 }
 
 export interface AttackSpec {

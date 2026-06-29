@@ -3,6 +3,15 @@ import { DEFAULT_LOADOUT, SKILLS, STARTER_SKILL_IDS, getSkillById, type ActiveSk
 import { DEFAULT_SKIN_ID, SKINS, STARTER_SKIN_IDS } from "./skins";
 import { DEFAULT_STAGE_ID, STARTER_STAGE_IDS, STAGES, getStageById } from "./stages";
 import {
+  DEFAULT_CAMPAIGN_BOSS_ID,
+  DEFAULT_CAMPAIGN_ID,
+  getCampaignBattleRounds,
+  getCampaignChapterForBoss,
+  getCampaignProgress,
+  getRecommendedCampaignBoss,
+  isCampaignBossUnlocked,
+} from "./campaigns";
+import {
   DEFAULT_REWARD_CHOICES,
   LEVELS,
   calculateFightReward,
@@ -20,6 +29,8 @@ export interface PlayerProfile {
   unlockedSkillIds: string[];
   selectedStageId: string;
   unlockedStageIds: string[];
+  selectedCampaignId: string;
+  selectedBossId: string;
   coins: number;
   xp: number;
   level: number;
@@ -43,6 +54,7 @@ export interface FightRewardInput {
   bossesBroken: number;
   leaksDefeated: number;
   survivedSeconds: number;
+  defeatedBossIds?: string[];
 }
 
 export interface FightRewardApplication {
@@ -74,6 +86,8 @@ export const DEFAULT_PLAYER_PROFILE: PlayerProfile = {
   unlockedSkillIds: STARTER_SKILL_IDS,
   selectedStageId: DEFAULT_STAGE_ID,
   unlockedStageIds: STARTER_STAGE_IDS,
+  selectedCampaignId: DEFAULT_CAMPAIGN_ID,
+  selectedBossId: DEFAULT_CAMPAIGN_BOSS_ID,
   coins: 0,
   xp: 0,
   level: 1,
@@ -150,6 +164,19 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
   const selectedStage = getStageById(normalized.selectedStageId);
   if (!normalized.unlockedStageIds.includes(selectedStage.id) && normalized.level < selectedStage.unlockLevel) {
     normalized.selectedStageId = DEFAULT_STAGE_ID;
+  }
+
+  normalized.campaignProgress = {
+    ...normalized.campaignProgress,
+    ...getCampaignProgress(normalized),
+  };
+
+  if (!isCampaignBossUnlocked(normalized, normalized.selectedBossId)) {
+    const recommendedBoss = getRecommendedCampaignBoss(normalized);
+    normalized.selectedBossId = recommendedBoss.id;
+    normalized.selectedCampaignId = getCampaignChapterForBoss(recommendedBoss.id).id;
+  } else {
+    normalized.selectedCampaignId = getCampaignChapterForBoss(normalized.selectedBossId).id;
   }
 
   return normalized;
@@ -240,6 +267,22 @@ export function unlockProfileStage(profile: PlayerProfile, stageId: string): Pla
   return normalized;
 }
 
+export function selectProfileCampaignBoss(profile: PlayerProfile, bossId: string): PlayerProfile {
+  const normalized = normalizeProfile(profile);
+  if (!isCampaignBossUnlocked(normalized, bossId)) return normalized;
+  const boss = getCampaignBattleRounds({ ...normalized, selectedBossId: bossId })[0];
+  const chapter = getCampaignChapterForBoss(boss.id);
+  normalized.selectedCampaignId = chapter.id;
+  normalized.selectedBossId = boss.id;
+
+  const bossStage = getStageById(boss.stageId);
+  if (normalized.unlockedStageIds.includes(bossStage.id) || normalized.level >= bossStage.unlockLevel) {
+    normalized.selectedStageId = bossStage.id;
+  }
+
+  return normalizeProfile(normalized);
+}
+
 export function applyFightResultToProfile(profile: PlayerProfile, input: FightRewardInput): FightRewardApplication {
   const normalized = normalizeProfile(profile);
   const oldLevel = normalized.level;
@@ -253,16 +296,27 @@ export function applyFightResultToProfile(profile: PlayerProfile, input: FightRe
   normalized.bestScore = Math.max(normalized.bestScore, input.score);
   normalized.totalWins += input.victory ? 1 : 0;
   normalized.totalLosses += input.victory ? 0 : 1;
-  normalized.campaignProgress.daily_leaks = Math.max(normalized.campaignProgress.daily_leaks ?? 0, input.leaksDefeated);
-
-  if (input.leaksDefeated >= 1) normalized.bossProgress.impulse_buy_beast = true;
-  if (input.leaksDefeated >= 2) normalized.bossProgress.emotional_trading_beast = true;
-  if (input.leaksDefeated >= 3) normalized.bossProgress.rug_pull_beast = true;
-  if (input.victory || input.bossesBroken > 0) normalized.bossProgress.wallet_destroyer = true;
-
-  for (const trophy of baseRewards.bossTrophies) {
-    normalized.bossProgress[trophy] = true;
+  const defeatedBossIds = Array.from(new Set(input.defeatedBossIds ?? []));
+  for (const bossId of defeatedBossIds) {
+    normalized.bossProgress[bossId] = true;
   }
+
+  // Backward-compatible fallback for older result payloads.
+  if (!defeatedBossIds.length) {
+    if (input.leaksDefeated >= 1) normalized.bossProgress.impulse_buy_beast = true;
+    if (input.leaksDefeated >= 2) normalized.bossProgress.emotional_trading_beast = true;
+    if (input.leaksDefeated >= 3) normalized.bossProgress.rug_pull_beast = true;
+    if (input.victory || input.bossesBroken > 0) normalized.bossProgress.wallet_destroyer_boss = true;
+  }
+
+  normalized.campaignProgress = {
+    ...normalized.campaignProgress,
+    ...getCampaignProgress(normalized),
+  };
+
+  const nextBoss = getRecommendedCampaignBoss(normalized);
+  normalized.selectedBossId = nextBoss.id;
+  normalized.selectedCampaignId = getCampaignChapterForBoss(nextBoss.id).id;
 
   const synced = syncLevelUnlocks(normalized, oldLevel);
   return { ...synced, baseRewards };

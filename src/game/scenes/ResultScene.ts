@@ -46,6 +46,7 @@ export class ResultScene extends Phaser.Scene {
       bossesBroken: this.result.bossesBroken ?? 0,
       leaksDefeated: this.result.leaksDefeated,
       survivedSeconds: this.result.survivedSeconds,
+      defeatedBossIds: this.result.defeatedBossIds,
     });
     this.profileAfterBase = this.rewardApplication.profile;
     savePlayerProfile(this.profileAfterBase);

@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import { requestAppFullscreen } from "../../app/AppShell";
-import { formatSkinBonuses, getSkinById, getStageById, getStageModifierLabel, loadPlayerProfile } from "../data/gameRegistry";
+import { formatSkinBonuses, getCampaignChapterForBoss, getSelectedCampaignBoss, getSkinById, getStageById, getStageModifierLabel, loadPlayerProfile } from "../data/gameRegistry";
 
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -13,6 +13,8 @@ export class MainMenuScene extends Phaser.Scene {
     const profile = loadPlayerProfile();
     const activeSkin = getSkinById(profile.selectedSkinId);
     const activeStage = getStageById(profile.selectedStageId);
+    const activeBoss = getSelectedCampaignBoss(profile);
+    const activeChapter = getCampaignChapterForBoss(activeBoss.id);
 
     this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "menu-start-screen")
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
@@ -45,7 +47,7 @@ export class MainMenuScene extends Phaser.Scene {
       strokeThickness: 3,
     }).setOrigin(0.5).setDepth(5);
 
-    this.add.text(objectivePanel.x, 152, "Choose skin\nPick active skills\nDefeat leak bosses", {
+    this.add.text(objectivePanel.x, 152, "Choose campaign\nPick skin and skills\nDefeat leak bosses", {
       fontFamily: "Arial",
       fontSize: "17px",
       color: "#f5fff1",
@@ -73,9 +75,18 @@ export class MainMenuScene extends Phaser.Scene {
       strokeThickness: 3,
     }).setOrigin(0.5).setDepth(5);
 
-    this.add.text(objectivePanel.x, 258, `STAGE: ${activeStage.name.toUpperCase()} · ${getStageModifierLabel(activeStage).toUpperCase()}`, {
+    this.add.text(objectivePanel.x, 258, `BOSS: ${activeBoss.name.toUpperCase()}`, {
       fontFamily: "Arial",
       fontSize: "10px",
+      color: activeChapter.uiColor,
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(5);
+
+    this.add.text(objectivePanel.x, 274, `STAGE: ${activeStage.name.toUpperCase()} · ${getStageModifierLabel(activeStage).toUpperCase()}`, {
+      fontFamily: "Arial",
+      fontSize: "9px",
       color: activeStage.uiColor,
       fontStyle: "bold",
       stroke: "#050805",
@@ -93,6 +104,20 @@ export class MainMenuScene extends Phaser.Scene {
     });
     play.on("pointerover", () => play.setScale(1.03));
     play.on("pointerout", () => play.setScale(1));
+
+    const campaignButton = this.add.rectangle(320, 376, 108, 34, 0x071107, 0.9)
+      .setStrokeStyle(2, activeChapter.color, 0.55)
+      .setDepth(5)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(320, 376, "CAMPAIGN", {
+      fontFamily: "Arial",
+      fontSize: "11px",
+      color: "#fcfff7",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(6);
+    campaignButton.on("pointerdown", () => this.scene.start(SCENE_KEYS.campaign));
 
     const skinButton = this.add.rectangle(438, 376, 108, 34, 0x071107, 0.9)
       .setStrokeStyle(2, activeSkin.auraColor, 0.55)

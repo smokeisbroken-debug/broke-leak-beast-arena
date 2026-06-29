@@ -5,7 +5,7 @@ import { requestAppFullscreen, toggleAppFullscreen } from "../../app/AppShell";
 import { MobileControls } from "../ui/MobileControls";
 import { SfxSystem } from "../systems/SfxSystem";
 import { ARENA_BATTLE_ROUNDS } from "../data/bosses";
-import { getBossMechanicProfile, getSkillById, getSkinById, getSkinStatMultiplier, getStageById, getStageModifierLabel, loadPlayerProfile } from "../data/gameRegistry";
+import { getBossMechanicProfile, getCampaignBattleRounds, getCampaignChapterForBoss, getSkillById, getSkinById, getSkinStatMultiplier, getStageById, getStageModifierLabel, loadPlayerProfile } from "../data/gameRegistry";
 import type { ArenaBossDefinition } from "../data/bosses";
 import type { BossMechanicProfile, BossPhaseDefinition, SkillDefinition, SkinDefinition, StageDefinition } from "../data/gameRegistry";
 import type { InputState, RunResult } from "../types/game";
@@ -23,7 +23,7 @@ const PLAYER_START_X = 290;
 const ENEMY_START_X = GAME_WIDTH - 286;
 const LEFT_BOUND = GAME_WIDTH * 0.26;
 const RIGHT_BOUND = GAME_WIDTH * 0.74;
-const ROUNDS: RoundConfig[] = ARENA_BATTLE_ROUNDS;
+const FALLBACK_ROUNDS: RoundConfig[] = ARENA_BATTLE_ROUNDS;
 const MAX_ENERGY = 100;
 const ULTIMATE_DURATION_MS = 5200;
 
@@ -43,6 +43,9 @@ export class ArenaScene extends Phaser.Scene {
   private skill1!: SkillDefinition;
   private skill2!: SkillDefinition;
   private ultimateSkill!: SkillDefinition;
+  private activeRounds: RoundConfig[] = FALLBACK_ROUNDS;
+  private selectedCampaignId = "daily_leaks";
+  private selectedBossId = "impulse_buy_beast";
 
   private playerHp = 100;
   private playerMaxHp = 100;
@@ -59,6 +62,7 @@ export class ArenaScene extends Phaser.Scene {
   private score = 0;
   private activeElapsedMs = 0;
   private defeatedLeaks = 0;
+  private defeatedBossIds: string[] = [];
   private runFinished = false;
   private fightStarted = false;
 
@@ -111,6 +115,9 @@ export class ArenaScene extends Phaser.Scene {
   create(): void {
     const profile = loadPlayerProfile();
     this.selectedSkin = getSkinById(profile.selectedSkinId);
+    this.activeRounds = getCampaignBattleRounds(profile);
+    this.selectedBossId = this.activeRounds[0]?.id ?? profile.selectedBossId;
+    this.selectedCampaignId = getCampaignChapterForBoss(this.selectedBossId).id;
     this.selectedStage = getStageById(profile.selectedStageId);
     this.skill1 = getSkillById(profile.selectedSkillIds.skill1);
     this.skill2 = getSkillById(profile.selectedSkillIds.skill2);
@@ -133,6 +140,7 @@ export class ArenaScene extends Phaser.Scene {
     this.score = 0;
     this.activeElapsedMs = 0;
     this.defeatedLeaks = 0;
+    this.defeatedBossIds = [];
     this.runFinished = false;
     this.fightStarted = false;
     this.playerState = "idle";
@@ -233,7 +241,7 @@ export class ArenaScene extends Phaser.Scene {
     this.setBody(this.player, 42, 78, 20);
     if (this.anims.exists("mascot-idle-front-anim")) this.player.play("mascot-idle-front-anim", true);
 
-    this.enemy = this.physics.add.sprite(ENEMY_START_X, FLOOR_Y - ROUNDS[0].displayH * 0.5, ROUNDS[0].texture);
+    this.enemy = this.physics.add.sprite(ENEMY_START_X, FLOOR_Y - this.getRound(0).displayH * 0.5, this.getRound(0).texture);
     this.enemy.setDepth(21);
     this.enemy.setCollideWorldBounds(false);
     this.enemy.setData("side", "enemy");
@@ -310,7 +318,7 @@ export class ArenaScene extends Phaser.Scene {
 
   private startRound(index: number): void {
     this.roundIndex = index;
-    const config = ROUNDS[index];
+    const config = this.getRound(index);
     this.enemyMaxHp = config.hp;
     this.enemyHp = config.hp;
     this.enemyState = "idle";
@@ -348,7 +356,7 @@ export class ArenaScene extends Phaser.Scene {
     this.setBody(this.enemy, config.bodyW, config.bodyH, Math.max(0, config.displayH * 0.18));
     if (this.anims.exists(config.animation)) this.enemy.play(config.animation, true);
 
-    this.roundText.setText(config.boss ? "BOSS ROUND" : `ROUND ${index + 1}`);
+    this.roundText.setText(config.boss ? "BOSS MISSION" : `MISSION ${index + 1}`);
     this.objectiveText.setText(config.leakLabel);
     this.enemyHpText.setText(config.name.toUpperCase());
     this.enemyHpText.setColor(config.boss ? "#ff9aaa" : config.behavior === "emotion" ? "#ffeb72" : config.behavior === "rug" ? "#d9a7ff" : "#d7ffd0");
@@ -361,7 +369,7 @@ export class ArenaScene extends Phaser.Scene {
   private showRoundIntro(config: RoundConfig): void {
     const shade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.38)
       .setDepth(120);
-    const title = this.add.text(GAME_WIDTH / 2, 148, config.boss ? "BOSS FIGHT" : `ROUND ${this.roundIndex + 1}`, {
+    const title = this.add.text(GAME_WIDTH / 2, 148, config.boss ? "BOSS FIGHT" : "CAMPAIGN FIGHT", {
       fontFamily: "Arial", fontSize: "42px", color: config.boss ? "#ff8fa3" : "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 8,
     }).setOrigin(0.5).setDepth(121);
     const sub = this.add.text(GAME_WIDTH / 2, 194, `BROKE MASCOT  VS  ${config.name.toUpperCase()}`, {
@@ -666,7 +674,7 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private updateEnemy(now: number): void {
-    const config = ROUNDS[this.roundIndex];
+    const config = this.getRound(this.roundIndex);
     this.enemy.setFlipX(this.enemy.x > this.player.x);
 
     this.updateBossPhase(now, config);
@@ -1061,7 +1069,7 @@ export class ArenaScene extends Phaser.Scene {
       return;
     }
     if (this.selectedStage.modifier === "boss_arena") {
-      this.spawnBossPressureZone(ROUNDS[this.roundIndex], true);
+      this.spawnBossPressureZone(this.getRound(this.roundIndex), true);
     }
   }
 
@@ -1204,7 +1212,7 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     if (now < this.playerBlockUntil) {
-      const guardBreak = label === this.getBossMechanics(ROUNDS[this.roundIndex]).special.name && this.getBossMechanics(ROUNDS[this.roundIndex]).special.effect === "guard_break";
+      const guardBreak = label === this.getBossMechanics(this.getRound(this.roundIndex)).special.name && this.getBossMechanics(this.getRound(this.roundIndex)).special.effect === "guard_break";
       const blockMultiplier = guardBreak ? 0.72 : this.isUltimateActive(now) ? Math.min(0.1, this.blockDamageTakenMultiplier * 0.55) : this.blockDamageTakenMultiplier;
       const blocked = Math.max(1, Math.floor(amount * blockMultiplier));
       this.playerHp = Math.max(0, this.playerHp - blocked);
@@ -1243,11 +1251,12 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private defeatEnemy(): void {
-    const config = ROUNDS[this.roundIndex];
+    const config = this.getRound(this.roundIndex);
     this.enemyState = "defeated";
     this.enemy.setVelocity(0, 0);
     this.enemy.setTint(0xffffff);
     this.defeatedLeaks += 1;
+    if (!this.defeatedBossIds.includes(config.id)) this.defeatedBossIds.push(config.id);
     this.score += config.boss ? 1500 : 700;
     this.addEnergy(config.boss ? 28 : 18, "round");
     this.showImpact(this.enemy.x, this.enemy.y - 42, config.boss ? 0xffeb72 : 0x72ff57, true);
@@ -1256,7 +1265,7 @@ export class ArenaScene extends Phaser.Scene {
     this.cameras.main.shake(180, 0.0045);
     this.enemy.setAlpha(0.62);
 
-    if (this.roundIndex >= ROUNDS.length - 1) {
+    if (this.roundIndex >= this.activeRounds.length - 1) {
       this.time.delayedCall(1350, () => this.finishRun(true));
       return;
     }
@@ -1269,7 +1278,7 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private showRoundClear(config: RoundConfig): void {
-    const nextText = this.roundIndex >= ROUNDS.length - 1 ? "FINAL LEAK BROKEN" : "NEXT LEAK INCOMING";
+    const nextText = this.roundIndex >= this.activeRounds.length - 1 ? "FINAL LEAK BROKEN" : "NEXT LEAK INCOMING";
     const panel = this.add.rectangle(GAME_WIDTH / 2, 128, 410, 70, 0x061006, 0.78)
       .setStrokeStyle(2, config.color, 0.48)
       .setDepth(122);
@@ -1311,10 +1320,13 @@ export class ArenaScene extends Phaser.Scene {
       leaksDefeated: this.defeatedLeaks,
       survivedSeconds: Math.floor(this.activeElapsedMs / 1000),
       safePoints: victory ? 100 : 0,
-      bossDamage: victory ? 999 : Math.max(0, ROUNDS[this.roundIndex].hp - this.enemyHp),
+      bossDamage: victory ? 999 : Math.max(0, this.getRound(this.roundIndex).hp - this.enemyHp),
       upgradesChosen: 0,
       pickupsCollected: 0,
-      bossesBroken: victory ? 1 : 0,
+      bossesBroken: this.defeatedBossIds.length,
+      selectedBossId: this.selectedBossId,
+      selectedCampaignId: this.selectedCampaignId,
+      defeatedBossIds: [...this.defeatedBossIds],
       victory,
     };
 
@@ -1337,7 +1349,7 @@ export class ArenaScene extends Phaser.Scene {
     const energyLabel = this.playerEnergy >= MAX_ENERGY ? "ULT READY" : `ENERGY ${Math.floor(this.playerEnergy)}`;
     this.playerEnergyText.setText(energyLabel);
     this.playerEnergyText.setColor(this.playerEnergy >= MAX_ENERGY ? "#72ff57" : "#ffeb72");
-    const config = ROUNDS[this.roundIndex] ?? ROUNDS[0];
+    const config = this.getRound(this.roundIndex) ?? this.getRound(0);
     if (this.enemyHp > 0) {
       const enemyPercent = Math.ceil((this.enemyHp / Math.max(1, this.enemyMaxHp)) * 100);
       this.enemyHpText.setText(`${config.name.toUpperCase()} · ${enemyPercent}%`);
@@ -1368,7 +1380,7 @@ export class ArenaScene extends Phaser.Scene {
 
   private updateShadows(): void {
     if (!this.playerShadow || !this.enemyShadow || !this.player || !this.enemy) return;
-    const config = ROUNDS[this.roundIndex] ?? ROUNDS[0];
+    const config = this.getRound(this.roundIndex) ?? this.getRound(0);
     this.playerShadow.setPosition(this.player.x, FLOOR_Y - 2);
     this.playerShadow.setDisplaySize(PLAYER_DISPLAY_W * 0.84, 18);
     this.enemyShadow.setPosition(this.enemy.x, FLOOR_Y - 2);
@@ -1459,7 +1471,7 @@ export class ArenaScene extends Phaser.Scene {
     this.playerAuraOuter.setAlpha(Phaser.Math.Linear(this.playerAuraOuter.alpha, auraOuterAlpha, 0.18));
     this.playerAuraInner.setAlpha(Phaser.Math.Linear(this.playerAuraInner.alpha, auraInnerAlpha, 0.18));
 
-    const config = ROUNDS[this.roundIndex] ?? ROUNDS[0];
+    const config = this.getRound(this.roundIndex) ?? this.getRound(0);
     const enemyPulse = 1 + Math.sin(time / 220) * 0.01;
     const enemyTargetScaleX = this.enemyState === "attack" ? 1.055 : this.enemyState === "windup" ? 1.035 : this.enemyState === "guard" ? 1.02 : this.enemyState === "backstep" ? 0.98 : this.enemyState === "hurt" ? 0.965 : enemyPulse;
     const enemyTargetScaleY = this.enemyState === "attack" ? 0.97 : this.enemyState === "windup" ? 1.018 : this.enemyState === "guard" ? 1.025 : this.enemyState === "backstep" ? 1.008 : this.enemyState === "hurt" ? 1.025 : enemyPulse;
@@ -1490,6 +1502,10 @@ export class ArenaScene extends Phaser.Scene {
         onComplete: () => ghost.destroy(),
       });
     }
+  }
+
+  private getRound(index: number): RoundConfig {
+    return this.activeRounds[index] ?? this.activeRounds[0] ?? FALLBACK_ROUNDS[0];
   }
 
   private setBody(sprite: Phaser.Physics.Arcade.Sprite, width: number, height: number, offsetY = 0): void {
@@ -1661,7 +1677,7 @@ export class ArenaScene extends Phaser.Scene {
       .setLineWidth(heavy ? 9 : 6)
       .setDepth(88);
     const blockNow = heavy
-      ? this.add.text(this.player.x, this.player.y - 128, attack === "special" ? this.getBossMechanics(ROUNDS[this.roundIndex]).special.warning : "BLOCK NOW", {
+      ? this.add.text(this.player.x, this.player.y - 128, attack === "special" ? this.getBossMechanics(this.getRound(this.roundIndex)).special.warning : "BLOCK NOW", {
         fontFamily: "Arial", fontSize: "16px", color: "#ffeb72", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
       }).setOrigin(0.5).setDepth(91)
       : undefined;

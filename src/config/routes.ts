@@ -5,6 +5,7 @@ export const SCENE_KEYS = {
   skinSelect: "SkinSelectScene",
   skillLoadout: "SkillLoadoutScene",
   stageSelect: "StageSelectScene",
+  campaign: "CampaignScene",
   arena: "ArenaScene",
   result: "ResultScene",
 } as const;
