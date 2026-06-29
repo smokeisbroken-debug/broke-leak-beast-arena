@@ -1,1147 +1,801 @@
 import Phaser from "phaser";
-import { GAME_HEIGHT, GAME_WIDTH, WORLD_HEIGHT, WORLD_WIDTH } from "../../config/game";
+import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import { requestAppFullscreen, toggleAppFullscreen } from "../../app/AppShell";
-import { PlayerMascot } from "../entities/PlayerMascot";
-import { createCollectible } from "../entities/Collectible";
-import { WaveSystem } from "../systems/WaveSystem";
-import { SfxSystem } from "../systems/SfxSystem";
 import { MobileControls } from "../ui/MobileControls";
-import { Hud } from "../ui/Hud";
-import type { AttackSpec, PickupType, PlayerUpgradeId, RunResult } from "../types/game";
+import { SfxSystem } from "../systems/SfxSystem";
+import type { InputState, RunResult } from "../types/game";
 
-type UpgradeRarity = "core" | "rare" | "survival";
+type FighterState = "idle" | "moving" | "punch" | "kick" | "block" | "dash" | "hurt" | "defeated";
+type EnemyState = "idle" | "approach" | "windup" | "attack" | "hurt" | "defeated";
+type EnemyAttack = "jab" | "lunge" | "heavy";
 
-interface UpgradeOption {
-  id: PlayerUpgradeId;
-  title: string;
-  description: string;
-  rarity: UpgradeRarity;
-  tag: string;
+interface RoundConfig {
+  name: string;
+  leakLabel: string;
+  texture: string;
+  animation: string;
+  hp: number;
+  damage: number;
+  speed: number;
+  displayW: number;
+  displayH: number;
+  bodyW: number;
+  bodyH: number;
+  attackRange: number;
+  color: number;
+  boss?: boolean;
 }
 
-interface EnemyDefeatEvent {
-  x: number;
-  y: number;
-  boss: boolean;
-  kind: string;
-  score: number;
-}
+const FLOOR_Y = GAME_HEIGHT - 76;
+const PLAYER_START_X = 190;
+const ENEMY_START_X = GAME_WIDTH - 190;
+const LEFT_BOUND = 74;
+const RIGHT_BOUND = GAME_WIDTH - 74;
 
-const UPGRADE_POOL: UpgradeOption[] = [
-  { id: "damage", title: "Razor Combo", description: "+1 damage on every combo hit", rarity: "core", tag: "DAMAGE" },
-  { id: "attack_speed", title: "Quick Hands", description: "combo attacks recover faster", rarity: "core", tag: "COMBO" },
-  { id: "wide_swing", title: "Wide Swing", description: "larger attack arc and range", rarity: "core", tag: "AREA" },
-  { id: "speed", title: "Clean Footwork", description: "+movement speed for kiting", rarity: "core", tag: "MOVE" },
-  { id: "dash", title: "Leak Step", description: "dodge cooldown reduced", rarity: "rare", tag: "DODGE" },
-  { id: "pulse", title: "Safe Pulse+", description: "pulse hits harder and wider", rarity: "rare", tag: "SKILL" },
-  { id: "shield_battery", title: "Shield Battery", description: "+1 shield block and longer shield", rarity: "survival", tag: "BLOCK" },
-  { id: "heart", title: "Wallet HP", description: "+max HP and heal now", rarity: "survival", tag: "HP" },
-  { id: "boss_breaker", title: "Boss Breaker", description: "skills hit harder for mini-boss waves", rarity: "rare", tag: "BOSS" },
+const ROUNDS: RoundConfig[] = [
+  {
+    name: "Impulse Buy Beast",
+    leakLabel: "DEFEAT IMPULSE SPENDING",
+    texture: "enemy-imp-01",
+    animation: "enemy-bad-habit-move",
+    hp: 70,
+    damage: 7,
+    speed: 104,
+    displayW: 118,
+    displayH: 118,
+    bodyW: 56,
+    bodyH: 72,
+    attackRange: 104,
+    color: 0x72ff57,
+  },
+  {
+    name: "Emotional Trading Beast",
+    leakLabel: "DEFEAT EMOTIONAL TRADING",
+    texture: "enemy-runner-01",
+    animation: "enemy-fomo-move",
+    hp: 86,
+    damage: 9,
+    speed: 134,
+    displayW: 138,
+    displayH: 112,
+    bodyW: 70,
+    bodyH: 64,
+    attackRange: 122,
+    color: 0xffeb72,
+  },
+  {
+    name: "Rug Pull Beast",
+    leakLabel: "DEFEAT RUG PULLS",
+    texture: "enemy-beast-01",
+    animation: "enemy-scam-move",
+    hp: 104,
+    damage: 10,
+    speed: 112,
+    displayW: 140,
+    displayH: 126,
+    bodyW: 72,
+    bodyH: 72,
+    attackRange: 126,
+    color: 0xa45cff,
+  },
+  {
+    name: "Wallet Destroyer Boss",
+    leakLabel: "BOSS ROUND",
+    texture: "boss-thorn-01",
+    animation: "boss-thorn-move",
+    hp: 148,
+    damage: 13,
+    speed: 94,
+    displayW: 178,
+    displayH: 168,
+    bodyW: 88,
+    bodyH: 88,
+    attackRange: 146,
+    color: 0xff4866,
+    boss: true,
+  },
 ];
 
 export class ArenaScene extends Phaser.Scene {
-  private player!: PlayerMascot;
-  private waves!: WaveSystem;
   private controls!: MobileControls;
-  private hud!: Hud;
-  private countdownText!: Phaser.GameObjects.Text;
-  private arenaBackground!: Phaser.GameObjects.Image;
-  private arenaShade!: Phaser.GameObjects.Rectangle;
-  private pauseButton!: Phaser.GameObjects.Container;
-  private fullscreenButton!: Phaser.GameObjects.Container;
-  private pauseOverlay?: Phaser.GameObjects.Container;
-  private currentArenaBackgroundKey = "";
-  private pickups!: Phaser.Physics.Arcade.Group;
   private sfx!: SfxSystem;
 
+  private player!: Phaser.Physics.Arcade.Sprite;
+  private enemy!: Phaser.Physics.Arcade.Sprite;
+  private playerAura!: Phaser.GameObjects.Arc;
+  private enemyAura!: Phaser.GameObjects.Arc;
+
+  private playerHp = 100;
+  private enemyHp = 1;
+  private enemyMaxHp = 1;
+  private roundIndex = 0;
   private score = 0;
-  private hp = 5;
   private activeElapsedMs = 0;
+  private defeatedLeaks = 0;
   private runFinished = false;
   private fightStarted = false;
-  private fightPaused = false;
-  private lastShownWave = 1;
-  private lastUpgradeWave = 1;
-  private upgradeChoicesTaken = 0;
-  private nextUpgradeDefeatedTarget = 7;
-  private upgradeOverlayActive = false;
-  private contactDamageReadyAt = 0;
-  private hazardDamageReadyAt = 0;
-  private rangedDamageReadyAt = 0;
-  private pickupsCollected = 0;
-  private bossesBroken = 0;
+
+  private playerState: FighterState = "idle";
+  private enemyState: EnemyState = "idle";
+  private enemyAttack: EnemyAttack = "jab";
+  private enemyWindupUntil = 0;
+  private enemyAttackUntil = 0;
+  private enemyCooldownUntil = 0;
+  private playerInvincibleUntil = 0;
+  private playerBlockUntil = 0;
+  private playerActionUntil = 0;
+  private punchCooldownUntil = 0;
+  private kickCooldownUntil = 0;
+  private dashCooldownUntil = 0;
+  private lastPunchAt = 0;
+  private comboStep = 0;
+
+  private playerHpFill!: Phaser.GameObjects.Rectangle;
+  private enemyHpFill!: Phaser.GameObjects.Rectangle;
+  private playerHpText!: Phaser.GameObjects.Text;
+  private enemyHpText!: Phaser.GameObjects.Text;
+  private roundText!: Phaser.GameObjects.Text;
+  private objectiveText!: Phaser.GameObjects.Text;
+  private statusText!: Phaser.GameObjects.Text;
+  private comboText!: Phaser.GameObjects.Text;
 
   constructor() {
     super(SCENE_KEYS.arena);
   }
 
   create(): void {
+    this.playerHp = 100;
+    this.enemyHp = 1;
+    this.enemyMaxHp = 1;
+    this.roundIndex = 0;
     this.score = 0;
-    this.hp = 5;
     this.activeElapsedMs = 0;
+    this.defeatedLeaks = 0;
     this.runFinished = false;
     this.fightStarted = false;
-    this.fightPaused = false;
-    this.lastShownWave = 1;
-    this.lastUpgradeWave = 1;
-    this.upgradeChoicesTaken = 0;
-    this.nextUpgradeDefeatedTarget = 7;
-    this.upgradeOverlayActive = false;
-    this.contactDamageReadyAt = 0;
-    this.hazardDamageReadyAt = 0;
-    this.rangedDamageReadyAt = 0;
-    this.pickupsCollected = 0;
-    this.bossesBroken = 0;
-    this.currentArenaBackgroundKey = "";
+    this.playerState = "idle";
+    this.enemyState = "idle";
+    this.playerInvincibleUntil = 0;
+    this.playerBlockUntil = 0;
+    this.playerActionUntil = 0;
+    this.punchCooldownUntil = 0;
+    this.kickCooldownUntil = 0;
+    this.dashCooldownUntil = 0;
+    this.lastPunchAt = 0;
+    this.comboStep = 0;
 
-    this.createArenaBackground();
-    this.pickups = this.physics.add.group();
     this.sfx = new SfxSystem();
-
-    this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.player = new PlayerMascot(this, WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
-    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.cameras.main.startFollow(this.player.sprite, true, 0.14, 0.14);
-    this.waves = new WaveSystem(this);
+    this.createArenaBackground();
+    this.createFighters();
+    this.createHud();
     this.controls = new MobileControls(this);
-    this.hud = new Hud(this);
-    this.createPauseButton();
+    this.createPauseAndFullscreenButtons();
+
     this.input.once("pointerdown", () => {
       this.sfx.unlock();
       void requestAppFullscreen(document.documentElement);
     });
 
-    this.hud.update(this.getHudState());
-    if (this.shouldShowFirstRunTutorial()) {
-      this.showFirstRunTutorial();
-    } else {
-      this.createCountdown();
-      this.startCountdown();
-    }
-
-    this.physics.add.overlap(
-      this.player.sprite,
-      this.waves.group,
-      (_, enemy) => this.onEnemyContact(enemy as Phaser.Physics.Arcade.Sprite),
-    );
-
-    this.physics.add.overlap(
-      this.player.sprite,
-      this.waves.projectiles,
-      (_, projectile) => this.onProjectileHit(projectile as Phaser.Physics.Arcade.Sprite),
-    );
-
-    this.physics.add.overlap(
-      this.player.sprite,
-      this.pickups,
-      (_, collectible) => this.collectPickup(collectible as Phaser.Physics.Arcade.Sprite),
-    );
-
-    this.events.on("enemy-defeated", this.handleEnemyDefeated, this);
-    this.events.on("player-ranged-hit", this.handlePlayerRangedHit, this);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.events.off("enemy-defeated", this.handleEnemyDefeated, this);
-      this.events.off("player-ranged-hit", this.handlePlayerRangedHit, this);
-    });
+    this.startRound(0);
   }
 
   update(_time: number, delta: number): void {
     if (this.runFinished) return;
 
-    if (!this.fightStarted || this.fightPaused) {
-      this.hud.update(this.getHudState());
-      return;
-    }
+    this.updateAuras();
+    this.updateHud();
 
-    const input = this.controls.getInputState();
-    if (input.attack || input.slash) {
-      const aimDirection = this.waves.getNearestEnemyDirection(this.player.sprite.x, this.player.sprite.y);
-      if (aimDirection) this.player.setFacing(aimDirection);
-    }
-    this.player.update(input, delta);
-    if (this.player.keepInsideArena()) {
-      this.cameras.main.centerOn(this.player.sprite.x, this.player.sprite.y);
-    }
-
-    const attack = this.player.consumeAttackStarted();
-    if (attack) {
-      this.resolvePlayerAttack(attack);
-    }
-
-    const slash = this.player.consumeSlashStarted();
-    if (slash) {
-      this.resolveDashSlash(slash);
-    }
-
-    if (this.player.consumePulseStarted()) {
-      this.resolveSafePulse();
-    }
-
-    if (this.player.consumeShieldStarted()) {
-      this.resolveLeakShield();
-    }
+    if (!this.fightStarted) return;
 
     this.activeElapsedMs += delta;
-    this.waves.update(this.activeElapsedMs, delta, this.player.sprite.x, this.player.sprite.y, this.fightPaused);
-    this.checkHazardDamage();
+    const input = this.controls.getInputState();
+    const now = Date.now();
 
-    if (this.waves.currentWave !== this.lastShownWave) {
-      this.lastShownWave = this.waves.currentWave;
-      this.updateArenaBackgroundForWave(this.lastShownWave);
-      this.showWaveBanner(this.lastShownWave);
-
-      if (this.lastShownWave >= 2 && this.lastShownWave % 2 === 0 && this.lastUpgradeWave !== this.lastShownWave) {
-        this.time.delayedCall(450, () => this.showUpgradeChoice(`Wave ${this.lastShownWave} cleared`));
-      }
-    }
-
-    this.score += Math.floor(delta / 120);
-
-    const bossRewardWave = this.waves.consumeBossRewardWave();
-    if (bossRewardWave > 0 && !this.upgradeOverlayActive && !this.fightPaused) {
-      this.time.delayedCall(420, () => this.showUpgradeChoice(`Boss wave ${bossRewardWave} cleared`));
-    } else {
-      this.maybeOfferDefeatUpgrade();
-    }
-
-    this.cullExpiredPickups();
-    this.hud.update(this.getHudState());
+    this.updatePlayer(input, now);
+    this.updateEnemy(now);
+    this.clampFighters();
   }
 
   private createArenaBackground(): void {
-    this.arenaBackground = this.add.image(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, "arena-bg-01")
-      .setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT)
+    this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "arena-bg-01")
+      .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
       .setDepth(0);
 
-    this.arenaShade = this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0x103010, 0.08)
+    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x102b10, 0.12)
       .setDepth(1);
 
-    // Clean battlefield: no big guide circles over the arena.
-    // The world is now 2 screens wide and 2 screens tall; camera follows the mascot.
-    this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0x72ff57, 0.018)
+    this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 22, GAME_WIDTH, 78, 0x071707, 0.62)
       .setDepth(2);
+    this.add.line(0, 0, 0, FLOOR_Y - 6, GAME_WIDTH, FLOOR_Y - 6, 0x72ff57, 0.42)
+      .setOrigin(0, 0)
+      .setLineWidth(3)
+      .setDepth(3);
 
-    this.updateArenaBackgroundForWave(1);
+    this.add.ellipse(GAME_WIDTH / 2, FLOOR_Y + 24, 650, 88, 0x72ff57, 0.05)
+      .setStrokeStyle(2, 0x72ff57, 0.14)
+      .setDepth(3);
+    this.add.ellipse(GAME_WIDTH / 2, FLOOR_Y + 26, 450, 54, 0xa45cff, 0.035)
+      .setStrokeStyle(1, 0xa45cff, 0.12)
+      .setDepth(3);
+
+    this.add.rectangle(98, 0, 180, GAME_HEIGHT, 0x72ff57, 0.025).setDepth(2);
+    this.add.rectangle(GAME_WIDTH - 98, 0, 180, GAME_HEIGHT, 0xa45cff, 0.025).setDepth(2);
   }
 
-  private fixed<T extends Phaser.GameObjects.GameObject>(obj: T): T {
-    const fixedObj = obj as T & { setScrollFactor?: (x: number, y?: number) => T };
-    fixedObj.setScrollFactor?.(0);
-    return obj;
+  private createFighters(): void {
+    this.playerAura = this.add.circle(PLAYER_START_X, FLOOR_Y - 58, 58, 0x72ff57, 0.1).setDepth(9);
+    this.enemyAura = this.add.circle(ENEMY_START_X, FLOOR_Y - 58, 62, 0xa45cff, 0.08).setDepth(9);
+
+    this.player = this.physics.add.sprite(PLAYER_START_X, FLOOR_Y - 74, "mascot-idle-front");
+    this.player.setDisplaySize(136, 178);
+    this.player.setDepth(22);
+    this.player.setCollideWorldBounds(false);
+    this.player.setData("side", "player");
+    this.setBody(this.player, 58, 112, 26);
+    if (this.anims.exists("mascot-idle-front-anim")) this.player.play("mascot-idle-front-anim", true);
+
+    this.enemy = this.physics.add.sprite(ENEMY_START_X, FLOOR_Y - 68, ROUNDS[0].texture);
+    this.enemy.setDepth(21);
+    this.enemy.setCollideWorldBounds(false);
+    this.enemy.setData("side", "enemy");
   }
 
-  private createPauseButton(): void {
-    const fullBg = this.fixed(this.add.circle(GAME_WIDTH - 86, 34, 18, 0x050805, 0.72))
-      .setStrokeStyle(2, 0xb66cff, 0.3);
-    const fullIcon = this.fixed(this.add.text(GAME_WIDTH - 86, 34, "⛶", {
-      fontFamily: "Arial",
-      fontSize: "18px",
-      color: "#f5fff1",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 4,
-    })).setOrigin(0.5);
+  private createHud(): void {
+    this.add.rectangle(162, 36, 286, 54, 0x061006, 0.78)
+      .setStrokeStyle(2, 0x72ff57, 0.36)
+      .setDepth(80);
+    this.add.text(30, 13, "BROKE MASCOT", {
+      fontFamily: "Arial", fontSize: "12px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+    }).setDepth(81);
+    this.add.rectangle(162, 43, 246, 14, 0x1b251b, 1).setOrigin(0.5).setDepth(81);
+    this.playerHpFill = this.add.rectangle(39, 43, 244, 12, 0x72ff57, 1).setOrigin(0, 0.5).setDepth(82);
+    this.playerHpText = this.add.text(286, 28, "100/100", {
+      fontFamily: "Arial", fontSize: "13px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+    }).setOrigin(1, 0).setDepth(83);
 
-    this.fullscreenButton = this.fixed(this.add.container(0, 0, [fullBg, fullIcon])).setDepth(85);
-    fullBg.setInteractive({ useHandCursor: true });
-    fullBg.on("pointerdown", () => {
-      void toggleAppFullscreen(document.documentElement);
-    });
+    this.add.rectangle(GAME_WIDTH - 162, 36, 286, 54, 0x061006, 0.78)
+      .setStrokeStyle(2, 0xa45cff, 0.36)
+      .setDepth(80);
+    this.enemyHpText = this.add.text(GAME_WIDTH - 30, 13, "LEAK BEAST", {
+      fontFamily: "Arial", fontSize: "12px", color: "#d9a7ff", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+    }).setOrigin(1, 0).setDepth(81);
+    this.add.rectangle(GAME_WIDTH - 162, 43, 246, 14, 0x21172b, 1).setOrigin(0.5).setDepth(81);
+    this.enemyHpFill = this.add.rectangle(GAME_WIDTH - 285, 43, 244, 12, 0xff4866, 1).setOrigin(0, 0.5).setDepth(82);
 
-    const bg = this.fixed(this.add.circle(GAME_WIDTH - 34, 34, 20, 0x050805, 0.72))
-      .setStrokeStyle(2, 0x39ff14, 0.3);
-    const bars = this.fixed(this.add.text(GAME_WIDTH - 34, 34, "II", {
-      fontFamily: "Arial",
-      fontSize: "20px",
-      color: "#f5fff1",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 4,
-    })).setOrigin(0.5);
+    this.roundText = this.add.text(GAME_WIDTH / 2, 16, "ROUND 1", {
+      fontFamily: "Arial", fontSize: "22px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(83);
 
-    this.pauseButton = this.fixed(this.add.container(0, 0, [bg, bars])).setDepth(85);
-    bg.setInteractive({ useHandCursor: true });
-    bg.on("pointerdown", () => this.togglePauseState());
+    this.objectiveText = this.add.text(GAME_WIDTH / 2, 44, "DEFEAT THE LEAK", {
+      fontFamily: "Arial", fontSize: "12px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(83);
+
+    this.statusText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 28, "PUNCH · KICK · BLOCK · DASH", {
+      fontFamily: "Arial", fontSize: "13px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(84);
+
+    this.comboText = this.add.text(PLAYER_START_X, FLOOR_Y - 188, "", {
+      fontFamily: "Arial", fontSize: "18px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(84);
   }
 
-  private togglePauseState(): void {
-    if (!this.fightStarted || this.runFinished || this.upgradeOverlayActive) return;
-
-    this.fightPaused = !this.fightPaused;
-
-    if (this.fightPaused) {
-      this.physics.pause();
-      const dim = this.fixed(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.45));
-      const panel = this.fixed(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 260, 118, 0x050805, 0.9))
-        .setStrokeStyle(2, 0x39ff14, 0.35);
-      const title = this.fixed(this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 18, "PAUSED", {
-        fontFamily: "Arial", fontSize: "28px", color: "#39ff14", fontStyle: "bold", stroke: "#050805", strokeThickness: 5,
-      })).setOrigin(0.5);
-      const hint = this.fixed(this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 20, "Tap pause again to continue", {
-        fontFamily: "Arial", fontSize: "14px", color: "#f5fff1", stroke: "#050805", strokeThickness: 3,
-      })).setOrigin(0.5);
-      this.pauseOverlay = this.fixed(this.add.container(0, 0, [dim, panel, title, hint])).setDepth(149);
-    } else {
-      this.physics.resume();
-      this.pauseOverlay?.destroy(true);
-      this.pauseOverlay = undefined;
-    }
+  private createPauseAndFullscreenButtons(): void {
+    const fullBg = this.add.circle(GAME_WIDTH - 86, 86, 18, 0x061006, 0.78)
+      .setStrokeStyle(2, 0xa45cff, 0.38)
+      .setDepth(88)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(GAME_WIDTH - 86, 86, "⛶", {
+      fontFamily: "Arial", fontSize: "18px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(89).setScrollFactor(0);
+    fullBg.on("pointerdown", () => void toggleAppFullscreen(document.documentElement));
   }
 
-  private updateArenaBackgroundForWave(wave: number): void {
-    const index = Phaser.Math.Clamp(Math.floor((wave - 1) / 2) + 1, 1, 10);
-    const nextKey = `arena-bg-${String(index).padStart(2, "0")}`;
-    if (this.currentArenaBackgroundKey === nextKey) return;
-    this.currentArenaBackgroundKey = nextKey;
-    this.arenaBackground.setTexture(nextKey);
-
-    const shadeAlpha = wave % 3 === 0 ? 0.12 : 0.08;
-    this.arenaShade.setFillStyle(0x103010, shadeAlpha);
-  }
-
-  private createCountdown(): void {
-    this.countdownText = this.fixed(this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 18, "3", {
-      fontFamily: "Arial",
-      fontSize: "72px",
-      color: "#39ff14",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 8,
-    })).setOrigin(0.5).setDepth(120);
-  }
-
-  private getHudState() {
-    const cooldowns = this.player?.getCooldownState() ?? {
-      attackReady: true,
-      dodgeReady: true,
-      pulseReady: true,
-      shieldReady: true,
-      slashReady: true,
-      shieldActive: false,
-      shieldCharges: 0,
-    };
-
-    return {
-      hp: this.hp,
-      maxHp: 5 + (this.player?.getMaxHpBonus() ?? 0),
-      score: this.score,
-      wave: this.waves?.currentWave ?? 1,
-      defeated: this.waves?.defeatedCount ?? 0,
-      survivedSeconds: Math.floor(this.activeElapsedMs / 1000),
-      bossActive: Boolean(this.waves?.bossActive),
-      comboStep: this.player?.getComboStep() ?? 0,
-      upgradeCount: this.upgradeChoicesTaken,
-      nextUpgradeIn: Math.max(0, this.nextUpgradeDefeatedTarget - (this.waves?.defeatedCount ?? 0)),
-      ...cooldowns,
-    };
-  }
-
-  private startCountdown(): void {
-    const steps = ["3", "2", "1", "FIGHT"];
-    steps.forEach((label, index) => {
-      this.time.delayedCall(index * 700, () => {
-        this.countdownText.setText(label);
-        this.countdownText.setScale(label === "FIGHT" ? 0.9 : 1.15);
-        this.tweens.add({
-          targets: this.countdownText,
-          scale: label === "FIGHT" ? 1.06 : 0.92,
-          duration: 240,
-          yoyo: true,
-        });
-      });
-    });
-
-    this.time.delayedCall(steps.length * 700, () => {
-      this.fightStarted = true;
-      this.activeElapsedMs = 0;
-      this.waves.spawnOpeningPack(this.player.sprite.x, this.player.sprite.y);
-      this.showFloatingText("OPENING WAVE", GAME_WIDTH / 2, 84, "#39ff14");
-      this.tweens.add({
-        targets: this.countdownText,
-        alpha: 0,
-        duration: 260,
-        onComplete: () => this.countdownText.destroy(),
-      });
-    });
-  }
-
-
-
-  private shouldShowFirstRunTutorial(): boolean {
-    try {
-      return window.localStorage.getItem("lba-playtest-tutorial-seen") !== "yes";
-    } catch {
-      return true;
-    }
-  }
-
-  private markTutorialSeen(): void {
-    try {
-      window.localStorage.setItem("lba-playtest-tutorial-seen", "yes");
-    } catch {
-      // Local storage can be blocked in some WebViews. The tutorial can still start normally.
-    }
-  }
-
-  private showFirstRunTutorial(): void {
+  private startRound(index: number): void {
+    this.roundIndex = index;
+    const config = ROUNDS[index];
+    this.enemyMaxHp = config.hp;
+    this.enemyHp = config.hp;
+    this.enemyState = "idle";
+    this.enemyCooldownUntil = Date.now() + 1400;
     this.fightStarted = false;
-    this.fightPaused = true;
+    this.playerState = "idle";
+    this.playerActionUntil = 0;
+    this.playerInvincibleUntil = Date.now() + 600;
 
-    const objects: Phaser.GameObjects.GameObject[] = [];
-    const add = <T extends Phaser.GameObjects.GameObject>(obj: T): T => {
-      this.fixed(obj);
-      objects.push(obj);
-      return obj;
-    };
+    this.player.setPosition(PLAYER_START_X, FLOOR_Y - 74);
+    this.player.setVelocity(0, 0);
+    this.player.setFlipX(false);
+    this.player.setTint(0xffffff);
+    this.playPlayerAnim("mascot-idle-front-anim");
 
-    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.62).setDepth(170));
-    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH - 90, GAME_HEIGHT - 74, 0x061006, 0.96)
-      .setStrokeStyle(2, 0x39ff14, 0.46)
-      .setDepth(171));
+    this.enemy.setTexture(config.texture);
+    this.enemy.setDisplaySize(config.displayW, config.displayH);
+    this.enemy.setPosition(ENEMY_START_X, FLOOR_Y - config.displayH * 0.46);
+    this.enemy.setVelocity(0, 0);
+    this.enemy.setFlipX(true);
+    this.enemy.clearTint();
+    this.setBody(this.enemy, config.bodyW, config.bodyH, Math.max(0, config.displayH * 0.18));
+    if (this.anims.exists(config.animation)) this.enemy.play(config.animation, true);
 
-    add(this.add.text(GAME_WIDTH / 2, 64, "SURVIVE THE LEAK", {
-      fontFamily: "Arial",
-      fontSize: "28px",
-      color: "#39ff14",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 6,
-    }).setOrigin(0.5).setDepth(172));
+    this.roundText.setText(config.boss ? "BOSS ROUND" : `ROUND ${index + 1}`);
+    this.objectiveText.setText(config.leakLabel);
+    this.enemyHpText.setText(config.name.toUpperCase());
+    this.statusText.setText("GET READY");
+    this.updateHud();
+    this.showRoundIntro(config);
+  }
 
-    add(this.add.text(GAME_WIDTH / 2, 95, "First public playtest", {
-      fontFamily: "Arial",
-      fontSize: "13px",
-      color: "#d7ffd0",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(172));
+  private showRoundIntro(config: RoundConfig): void {
+    const shade = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.38)
+      .setDepth(120);
+    const title = this.add.text(GAME_WIDTH / 2, 148, config.boss ? "BOSS FIGHT" : `ROUND ${this.roundIndex + 1}`, {
+      fontFamily: "Arial", fontSize: "42px", color: config.boss ? "#ff8fa3" : "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 8,
+    }).setOrigin(0.5).setDepth(121);
+    const sub = this.add.text(GAME_WIDTH / 2, 198, `BROKE MASCOT  VS  ${config.name.toUpperCase()}`, {
+      fontFamily: "Arial", fontSize: "17px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(121);
+    const objective = this.add.text(GAME_WIDTH / 2, 234, config.leakLabel, {
+      fontFamily: "Arial", fontSize: "14px", color: "#d9a7ff", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(121);
 
-    const cards = [
-      { title: "MOVE", body: "Use the left joystick\nto kite enemies", color: 0x39ff14 },
-      { title: "FIGHT", body: "SLASH hits forward\nPULSE clears space", color: 0xb66cff },
-      { title: "SURVIVE", body: "DASH avoids danger\nSHIELD blocks hits", color: 0x7dffb5 },
-      { title: "COLLECT", body: "Pick up drops\nand break the boss", color: 0xfff17d },
-    ];
-
-    cards.forEach((card, index) => {
-      const x = 146 + index * 170;
-      const y = 206;
-      add(this.add.rectangle(x, y, 148, 126, 0x050805, 0.9)
-        .setStrokeStyle(2, card.color, 0.48)
-        .setDepth(172));
-      add(this.add.circle(x, y - 38, 18, card.color, 0.18)
-        .setStrokeStyle(2, card.color, 0.7)
-        .setDepth(173));
-      add(this.add.text(x, y - 4, card.title, {
-        fontFamily: "Arial",
-        fontSize: "16px",
-        color: "#f5fff1",
-        fontStyle: "bold",
-        stroke: "#050805",
-        strokeThickness: 4,
-      }).setOrigin(0.5).setDepth(173));
-      add(this.add.text(x, y + 35, card.body, {
-        fontFamily: "Arial",
-        fontSize: "12px",
-        color: "#d7ffd0",
-        align: "center",
-        lineSpacing: 3,
-        stroke: "#050805",
-        strokeThickness: 3,
-      }).setOrigin(0.5).setDepth(173));
-    });
-
-    const start = add(this.add.rectangle(GAME_WIDTH / 2, 365, 240, 48, 0x39ff14, 0.96)
-      .setStrokeStyle(2, 0xf5fff1, 0.35)
-      .setDepth(173)
-      .setInteractive({ useHandCursor: true }));
-    add(this.add.text(GAME_WIDTH / 2, 365, "START RUN", {
-      fontFamily: "Arial",
-      fontSize: "19px",
-      color: "#050805",
-      fontStyle: "bold",
-    }).setOrigin(0.5).setDepth(174));
-
-    start.on("pointerdown", () => {
-      this.sfx.unlock();
-      this.markTutorialSeen();
-      objects.forEach((obj) => obj.destroy());
-      this.fightPaused = false;
-      this.createCountdown();
-      this.startCountdown();
+    this.time.delayedCall(1150, () => {
+      this.fightStarted = true;
+      this.statusText.setText("FIGHT");
+      this.tweens.add({
+        targets: [shade, title, sub, objective],
+        alpha: 0,
+        duration: 280,
+        onComplete: () => {
+          shade.destroy();
+          title.destroy();
+          sub.destroy();
+          objective.destroy();
+        },
+      });
     });
   }
 
-  private handleEnemyDefeated(event: EnemyDefeatEvent): void {
-    const dropRoll = Phaser.Math.FloatBetween(0, 1);
-    const maxHp = 5 + this.player.getMaxHpBonus();
-    const missingHp = maxHp - this.hp;
+  private updatePlayer(input: InputState, now: number): void {
+    const blockHeld = Boolean(input.shield);
 
-    if (event.boss) {
-      this.bossesBroken += 1;
-      this.spawnPickup("safe_point", event.x - 18, event.y - 8, 110);
-      this.spawnPickup("cooldown", event.x + 18, event.y - 6);
-      this.spawnPickup(missingHp >= 2 ? "heart" : "speed", event.x, event.y + 10);
-      if (Phaser.Math.Between(0, 1) === 1) this.spawnPickup("shield", event.x + Phaser.Math.Between(-22, 22), event.y + 14);
+    if (blockHeld && now > this.playerActionUntil - 120) {
+      this.playerState = "block";
+      this.playerBlockUntil = now + 120;
+      this.player.setVelocity(0, 0);
+      this.player.setTint(0x72ff57);
+      this.playPlayerAnim("mascot-pulse-front-anim");
+      this.statusText.setText("BLOCK");
       return;
     }
 
-    if (dropRoll < 0.38) {
-      this.spawnPickup("safe_point", event.x, event.y, 24 + Math.floor(event.score * 0.15));
+    if (input.dodge && now >= this.dashCooldownUntil) {
+      this.dash(now, input.x);
       return;
     }
 
-    if (missingHp >= 2 && dropRoll < 0.5) {
-      this.spawnPickup("heart", event.x, event.y);
+    if (input.pulse && now >= this.kickCooldownUntil) {
+      this.kick(now);
       return;
     }
 
-    if (dropRoll < 0.6) {
-      this.spawnPickup("shield", event.x, event.y);
+    if (input.attack && now >= this.punchCooldownUntil) {
+      this.punch(now);
       return;
     }
 
-    if (dropRoll < 0.69) {
-      this.spawnPickup("cooldown", event.x, event.y);
-      return;
-    }
+    if (now < this.playerActionUntil) return;
 
-    if (dropRoll < 0.78) {
-      this.spawnPickup("speed", event.x, event.y);
-    }
+    this.player.clearTint();
+    this.playerState = Math.abs(input.x) > 0.08 ? "moving" : "idle";
+    const speed = 260;
+    this.player.setVelocityX(input.x * speed);
+    this.player.setVelocityY(0);
+    this.player.setFlipX(false);
+    this.playPlayerAnim(this.playerState === "moving" ? "mascot-run-front-anim" : "mascot-idle-front-anim");
   }
 
-  private spawnPickup(type: PickupType, x: number, y: number, value = 1): void {
-    createCollectible(this, this.pickups, x, y, type, value);
+  private punch(now: number): void {
+    if (now - this.lastPunchAt > 780) this.comboStep = 0;
+    this.comboStep = (this.comboStep % 3) + 1;
+    this.lastPunchAt = now;
+    this.punchCooldownUntil = now + (this.comboStep === 3 ? 380 : 245);
+    this.playerActionUntil = now + (this.comboStep === 3 ? 250 : 155);
+    this.playerState = "punch";
+    this.player.setVelocityX(0);
+    this.player.setTint(this.comboStep === 3 ? 0xd9a7ff : 0xffffff);
+    this.playPlayerAnim("mascot-attack-anim");
+    this.sfx.playSword(this.comboStep === 3);
+    this.showPunchFx(this.comboStep);
+    this.tryHitEnemy(this.comboStep === 3 ? 13 : 7, this.comboStep === 3 ? 128 : 104, this.comboStep === 3 ? 240 : 135, this.comboStep === 3 ? "HEAVY PUNCH" : "PUNCH");
   }
 
-  private collectPickup(collectible: Phaser.Physics.Arcade.Sprite): void {
-    if (!collectible.active) return;
-    const type = String(collectible.getData("type")) as PickupType;
-    const value = Number(collectible.getData("value") ?? 1);
-    const shadow = collectible.getData("shadow") as Phaser.GameObjects.GameObject | undefined;
-    shadow?.destroy();
-
-    collectible.disableBody(true, true);
-    this.pickupsCollected += 1;
-
-    this.sfx.playPickup();
-
-    switch (type) {
-      case "safe_point":
-        this.score += value;
-        this.showFloatingText(`SAFE +${value}`, this.player.sprite.x, this.player.sprite.y - 64, "#39ff14");
-        break;
-      case "heart":
-        this.hp = Math.min(this.hp + 1, 5 + this.player.getMaxHpBonus());
-        this.showFloatingText("+1 HP", this.player.sprite.x, this.player.sprite.y - 64, "#ff88aa");
-        break;
-      case "shield":
-        this.player.grantShieldPickup(1, 2500);
-        this.showFloatingText("SHIELD", this.player.sprite.x, this.player.sprite.y - 64, "#7dffb5");
-        break;
-      case "cooldown":
-        this.player.reduceCooldowns(1400);
-        this.showFloatingText("COOLDOWN", this.player.sprite.x, this.player.sprite.y - 64, "#d6a8ff");
-        break;
-      case "speed":
-        this.player.applySpeedBoost(46, 3600);
-        this.showFloatingText("SPEED", this.player.sprite.x, this.player.sprite.y - 64, "#fff17d");
-        break;
-      default:
-        break;
-    }
-
-    this.showPickupBurst(this.player.sprite.x, this.player.sprite.y, type);
-  }
-
-  private showPickupBurst(x: number, y: number, type: PickupType): void {
-    const color = type === "heart" ? 0xff6688 : type === "shield" ? 0x7dffb5 : type === "cooldown" ? 0xb66cff : type === "speed" ? 0xfff17d : 0x39ff14;
-    const ring = this.add.circle(x, y, 8, color, 0.08).setStrokeStyle(3, color, 0.85).setDepth(40);
-    this.tweens.add({
-      targets: ring,
-      radius: 28,
-      alpha: 0,
-      duration: 220,
-      onComplete: () => ring.destroy(),
-    });
-  }
-
-  private cullExpiredPickups(): void {
-    this.pickups.children.iterate((child) => {
-      const collectible = child as Phaser.Physics.Arcade.Sprite | null;
-      if (!collectible || !collectible.active) return true;
-      const shadow = collectible.getData("shadow") as Phaser.GameObjects.Ellipse | undefined;
-      if (shadow?.active) shadow.setPosition(collectible.x, collectible.y + 12);
-      if (Date.now() > Number(collectible.getData("expireAt") ?? 0)) {
-        shadow?.destroy();
-        collectible.disableBody(true, true);
-      }
-      return true;
-    });
-  }
-
-  private resolvePlayerAttack(attack: AttackSpec): void {
-    this.sfx.playSword(attack.comboStep >= 3);
-    this.showAttackArc(attack);
-
-    const hitResult = this.waves.hitEnemiesInArc(this.player.sprite.x, this.player.sprite.y, attack);
-    if (hitResult.hits <= 0) {
-      return;
-    }
-
-    const points = hitResult.score + hitResult.hits * 6 + (attack.comboStep === 3 ? 28 : 0);
-    this.score += points;
-    this.cameras.main.flash(42, 57, 255, 20, false);
-    if (attack.comboStep === 3 || hitResult.bossHit) this.cameras.main.shake(45, 0.0014);
-    this.showFloatingText(
-      `HIT x${hitResult.hits} +${points}`,
-      this.player.sprite.x,
-      this.player.sprite.y - 64,
-      hitResult.bossHit ? "#b66cff" : "#39ff14",
-    );
-    if (hitResult.defeated > 0) this.maybeOfferDefeatUpgrade();
-  }
-
-  private resolveDashSlash(attack: AttackSpec): void {
+  private kick(now: number): void {
+    this.kickCooldownUntil = now + 620;
+    this.playerActionUntil = now + 260;
+    this.playerState = "kick";
+    this.comboStep = 0;
+    this.player.setVelocityX(40);
+    this.player.setTint(0xffeb72);
+    this.playPlayerAnim("mascot-attack-anim");
     this.sfx.playDashSlash();
-    this.showDashSlash(attack);
-    const hitResult = this.waves.hitEnemiesInArc(this.player.sprite.x, this.player.sprite.y, attack);
-    const points = hitResult.score + hitResult.hits * 18 + (hitResult.bossHit ? 55 : 0);
-    this.score += points;
-
-    if (hitResult.hits > 0) {
-      this.cameras.main.shake(hitResult.bossHit ? 95 : 64, hitResult.bossHit ? 0.003 : 0.0019);
-      this.showFloatingText(`SLASH x${hitResult.hits} +${points}`, this.player.sprite.x, this.player.sprite.y - 70, "#39ff14");
-    }
-    if (hitResult.defeated > 0) this.maybeOfferDefeatUpgrade();
+    this.showKickFx();
+    this.tryHitEnemy(14, 146, 330, "KICK");
   }
 
-  private resolveSafePulse(): void {
-    this.sfx.playPulse();
-    this.showSafePulse();
-    const damage = this.player.getPulsePower();
-    const hitResult = this.waves.hitEnemiesNear(this.player.sprite.x, this.player.sprite.y, this.player.getPulseRadius(), damage, 12);
-    const points = hitResult.score + hitResult.hits * 12 + (hitResult.bossHit ? 40 : 0);
-    this.score += points;
-
-    if (hitResult.hits > 0) {
-      this.cameras.main.shake(hitResult.bossHit ? 90 : 58, hitResult.bossHit ? 0.0028 : 0.0016);
-    }
-    this.showFloatingText(hitResult.hits > 0 ? `PULSE x${hitResult.hits} +${points}` : "PULSE", this.player.sprite.x, this.player.sprite.y - 70, "#39ff14");
-    if (hitResult.defeated > 0) this.maybeOfferDefeatUpgrade();
+  private dash(now: number, inputX: number): void {
+    this.dashCooldownUntil = now + 860;
+    this.playerActionUntil = now + 230;
+    this.playerInvincibleUntil = now + 280;
+    this.playerState = "dash";
+    const dir = inputX < -0.15 ? -1 : 1;
+    this.player.setVelocityX(dir * 520);
+    this.player.setAlpha(0.6);
+    this.player.setTint(0xa45cff);
+    this.playPlayerAnim("mascot-dash-anim");
+    this.statusText.setText("DASH");
+    this.time.delayedCall(230, () => {
+      if (!this.player.active) return;
+      this.player.setAlpha(1);
+      this.player.clearTint();
+    });
   }
 
-  private resolveLeakShield(): void {
-    this.sfx.playShield();
-    this.showLeakShield();
-    this.showFloatingText(`SHIELD x${this.player.getShieldCapacity()}`, this.player.sprite.x, this.player.sprite.y - 70, "#39ff14");
-  }
-
-  private onEnemyContact(enemy: Phaser.Physics.Arcade.Sprite): void {
-    if (this.runFinished || !this.fightStarted || this.fightPaused || !enemy.active) return;
-    if (this.player.isInvincible) return;
-
-    const now = Date.now();
-    if (now < this.contactDamageReadyAt) return;
-    this.contactDamageReadyAt = now + 620;
-
-    const damage = Boolean(enemy.getData("boss")) ? 2 : Number(enemy.getData("contactDamage") ?? 1);
-    this.damagePlayer(damage, damage > 1 ? "BIG HIT" : "HIT");
-
-    const push = new Phaser.Math.Vector2(this.player.sprite.x - enemy.x, this.player.sprite.y - enemy.y);
-    if (push.lengthSq() <= 0) push.set(1, 0);
-    push.normalize().scale(265);
-    this.player.sprite.setVelocity(push.x, push.y);
-  }
-
-  private handlePlayerRangedHit(payload: { damage: number; label?: string }): void {
-    if (this.runFinished || !this.fightStarted || this.fightPaused) return;
-    const now = Date.now();
-    if (now < this.rangedDamageReadyAt) return;
-    this.rangedDamageReadyAt = now + 260;
-    this.damagePlayer(payload.damage, payload.label ?? "SHOT");
-  }
-
-  private onProjectileHit(projectile: Phaser.Physics.Arcade.Sprite): void {
-    if (this.runFinished || !this.fightStarted || this.fightPaused || !projectile.active) return;
-    projectile.disableBody(true, true);
-    if (this.player.isInvincible) {
-      this.showFloatingText("DODGED", this.player.sprite.x, this.player.sprite.y - 58, "#b66cff");
+  private tryHitEnemy(damage: number, range: number, knockback: number, label: string): void {
+    if (this.enemyState === "defeated") return;
+    const distance = Math.abs(this.enemy.x - this.player.x);
+    if (distance > range) {
+      this.showFloatingText("MISS", this.player.x + 56, this.player.y - 72, "#fcfff7");
+      this.statusText.setText(`${label} MISS`);
       return;
     }
 
-    this.damagePlayer(Number(projectile.getData("damage") ?? 1), "SCAM HIT");
+    const bonus = this.enemyState === "windup" ? 3 : 0;
+    const finalDamage = damage + bonus;
+    this.enemyHp = Math.max(0, this.enemyHp - finalDamage);
+    this.enemyState = "hurt";
+    this.enemyAttackUntil = Date.now() + 120;
+    this.enemy.setVelocityX(knockback);
+    this.enemy.setTint(0xffffff);
+    this.sfx.playHit(finalDamage >= 13);
+    this.score += finalDamage * 10 + (bonus > 0 ? 40 : 0);
+    this.showImpact(this.enemy.x - 34, this.enemy.y - 24, finalDamage >= 13 ? 0xffeb72 : 0x72ff57, finalDamage >= 13);
+    this.showFloatingText(`-${finalDamage}`, this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.56, finalDamage >= 13 ? "#ffeb72" : "#d7ffd0");
+    this.comboText.setText(label);
+    this.comboText.setPosition(this.player.x + 34, this.player.y - 104);
+    this.time.delayedCall(420, () => this.comboText.setText(""));
+    this.cameras.main.shake(finalDamage >= 13 ? 80 : 42, finalDamage >= 13 ? 0.0034 : 0.0018);
+
+    if (this.enemyHp <= 0) {
+      this.defeatEnemy();
+    }
   }
 
-  private checkHazardDamage(): void {
-    if (this.player.isInvincible || !this.waves.isPointInActiveHazard(this.player.sprite.x, this.player.sprite.y)) return;
+  private updateEnemy(now: number): void {
+    const config = ROUNDS[this.roundIndex];
+    this.enemy.setFlipX(this.enemy.x > this.player.x);
 
-    const now = Date.now();
-    if (now < this.hazardDamageReadyAt) return;
-    this.hazardDamageReadyAt = now + 900;
-    this.damagePlayer(1, "SMOKE");
+    if (this.enemyState === "defeated") return;
+
+    if (this.enemyState === "hurt") {
+      if (now < this.enemyAttackUntil) return;
+      this.enemy.clearTint();
+      this.enemyState = "idle";
+      this.enemyCooldownUntil = Math.max(this.enemyCooldownUntil, now + 420);
+    }
+
+    if (this.enemyState === "windup") {
+      this.enemy.setVelocityX(0);
+      if (now >= this.enemyWindupUntil) {
+        this.performEnemyAttack(now, config);
+      }
+      return;
+    }
+
+    if (this.enemyState === "attack") {
+      if (now >= this.enemyAttackUntil) {
+        this.enemyState = "idle";
+        this.enemy.clearTint();
+      }
+      return;
+    }
+
+    const distance = Math.abs(this.player.x - this.enemy.x);
+    if (distance > config.attackRange * 0.82) {
+      this.enemyState = "approach";
+      const dir = this.player.x < this.enemy.x ? -1 : 1;
+      this.enemy.setVelocityX(dir * config.speed);
+      if (this.anims.exists(config.animation)) this.enemy.play(config.animation, true);
+      return;
+    }
+
+    this.enemy.setVelocityX(0);
+    this.enemyState = "idle";
+
+    if (now >= this.enemyCooldownUntil) {
+      this.beginEnemyWindup(now, config);
+    }
+  }
+
+  private beginEnemyWindup(now: number, config: RoundConfig): void {
+    const attackRoll = Phaser.Math.FloatBetween(0, 1);
+    this.enemyAttack = config.boss && this.enemyHp <= this.enemyMaxHp * 0.5
+      ? Phaser.Math.RND.pick(["heavy", "lunge"] as EnemyAttack[])
+      : attackRoll > 0.68 ? "heavy" : attackRoll > 0.38 ? "lunge" : "jab";
+
+    const windupMs = this.enemyAttack === "heavy" ? 640 : this.enemyAttack === "lunge" ? 480 : 360;
+    this.enemyState = "windup";
+    this.enemyWindupUntil = now + windupMs;
+    this.enemy.setTint(this.enemyAttack === "heavy" ? 0xff4866 : config.color);
+    this.showEnemyWarning(this.enemyAttack === "heavy" ? "HEAVY" : this.enemyAttack === "lunge" ? "LUNGE" : "JAB", config.color, windupMs);
+  }
+
+  private performEnemyAttack(now: number, config: RoundConfig): void {
+    this.enemyState = "attack";
+    this.enemyAttackUntil = now + 230;
+    this.enemyCooldownUntil = now + (config.boss ? 1050 : 1250);
+    const dir = this.player.x < this.enemy.x ? -1 : 1;
+    const damage = this.enemyAttack === "heavy" ? config.damage + 5 : this.enemyAttack === "lunge" ? config.damage + 2 : config.damage;
+    const range = this.enemyAttack === "heavy" ? config.attackRange + 18 : this.enemyAttack === "lunge" ? config.attackRange + 34 : config.attackRange;
+
+    if (this.enemyAttack === "lunge") {
+      this.enemy.setVelocityX(dir * 300);
+    } else {
+      this.enemy.setVelocityX(dir * 110);
+    }
+
+    this.showEnemyAttackFx(config.color);
+    this.time.delayedCall(90, () => {
+      if (this.runFinished || this.enemyState === "defeated") return;
+      const distance = Math.abs(this.player.x - this.enemy.x);
+      if (distance <= range) this.damagePlayer(damage, this.enemyAttack.toUpperCase());
+    });
   }
 
   private damagePlayer(amount: number, label: string): void {
-    if (this.player.tryBlockDamage()) {
-      this.sfx.playBlock();
-      this.cameras.main.shake(70, 0.003);
-      this.showBlockFlash();
-      this.showFloatingText("BLOCK", this.player.sprite.x, this.player.sprite.y - 62, "#39ff14");
+    const now = Date.now();
+    if (now < this.playerInvincibleUntil) {
+      this.showFloatingText("DODGE", this.player.x, this.player.y - 92, "#d9a7ff");
       return;
     }
 
-    this.hp -= amount;
-    this.sfx.playHit(amount > 1);
-    this.player.flashHit();
-    this.cameras.main.flash(70, 255, 51, 85, false);
-    this.cameras.main.shake(105, 0.0042);
-    this.showFloatingText(`-${amount} HP`, this.player.sprite.x, this.player.sprite.y - 58, "#ff3355");
-    this.showFloatingText(label, this.player.sprite.x, this.player.sprite.y - 78, "#ff9aaa");
-
-    if (this.hp <= 0) {
-      this.finishRun();
+    if (now < this.playerBlockUntil) {
+      const blocked = Math.max(1, Math.floor(amount * 0.25));
+      this.playerHp = Math.max(0, this.playerHp - blocked);
+      this.sfx.playBlock();
+      this.showBlockFx();
+      this.showFloatingText("BLOCK", this.player.x, this.player.y - 100, "#72ff57");
+      this.playerInvincibleUntil = now + 160;
+      return;
     }
-  }
 
-  private showAttackArc(attack: AttackSpec): void {
-    const direction = attack.direction.clone().normalize();
-    const centerX = this.player.sprite.x + direction.x * (attack.range * 0.48);
-    const centerY = this.player.sprite.y + direction.y * (attack.range * 0.42);
-    const frame = attack.comboStep === 3 ? 2 : 1;
-    const fx = this.add.image(centerX, centerY, "arena-vfx-sheet", frame)
-      .setScale(attack.comboStep === 3 ? 0.24 : 0.2)
-      .setRotation(direction.angle())
-      .setDepth(30)
-      .setAlpha(0.95);
+    this.playerHp = Math.max(0, this.playerHp - amount);
+    this.playerState = "hurt";
+    this.playerActionUntil = now + 220;
+    this.playerInvincibleUntil = now + 360;
+    this.player.setVelocityX(-210);
+    this.player.setTint(0xff4866);
+    this.playPlayerAnim("mascot-hurt-anim");
+    this.sfx.playHit(amount >= 12);
+    this.cameras.main.flash(70, 255, 72, 102, false);
+    this.cameras.main.shake(95, 0.004);
+    this.showImpact(this.player.x + 24, this.player.y - 18, 0xff4866, amount >= 12);
+    this.showFloatingText(`-${amount} HP`, this.player.x, this.player.y - 108, "#ff9aaa");
+    this.statusText.setText(label);
 
-    const streak = this.add.line(0, 0, this.player.sprite.x, this.player.sprite.y, centerX, centerY, 0x39ff14, attack.comboStep === 3 ? 0.72 : 0.46)
-      .setOrigin(0, 0)
-      .setLineWidth(attack.comboStep === 3 ? 5 : 3)
-      .setDepth(36);
-
-    this.tweens.add({
-      targets: streak,
-      alpha: 0,
-      duration: 120,
-      onComplete: () => streak.destroy(),
+    this.time.delayedCall(220, () => {
+      if (!this.player.active) return;
+      this.player.clearTint();
     });
 
-    this.tweens.add({
-      targets: fx,
-      scaleX: fx.scaleX * 1.18,
-      scaleY: fx.scaleY * 1.18,
-      alpha: 0,
-      duration: 170,
-      onComplete: () => fx.destroy(),
-    });
+    if (this.playerHp <= 0) this.finishRun(false);
   }
 
-  private showDashSlash(attack: AttackSpec): void {
-    const direction = attack.direction.clone().normalize();
-    const midX = this.player.sprite.x + direction.x * 86;
-    const midY = this.player.sprite.y + direction.y * 86;
-    const endX = this.player.sprite.x + direction.x * 170;
-    const endY = this.player.sprite.y + direction.y * 170;
+  private defeatEnemy(): void {
+    const config = ROUNDS[this.roundIndex];
+    this.enemyState = "defeated";
+    this.enemy.setVelocity(0, 0);
+    this.enemy.setTint(0xffffff);
+    this.defeatedLeaks += 1;
+    this.score += config.boss ? 1500 : 700;
+    this.showImpact(this.enemy.x, this.enemy.y - 42, config.boss ? 0xffeb72 : 0x72ff57, true);
+    this.showFloatingText("LEAK BROKEN", this.enemy.x, this.enemy.y - 130, "#72ff57");
+    this.cameras.main.shake(180, 0.0045);
+    this.enemy.setAlpha(0.62);
 
-    const trail = this.add.image(midX, midY, "arena-vfx-sheet", 5)
-      .setScale(0.26)
-      .setRotation(direction.angle())
-      .setDepth(37)
-      .setAlpha(0.92);
-    const impact = this.add.image(endX, endY, "arena-vfx-sheet", 2)
-      .setScale(0.24)
-      .setRotation(direction.angle())
-      .setDepth(38);
-    const line = this.add.line(0, 0, this.player.sprite.x, this.player.sprite.y, endX, endY, 0x39ff14, 0.74)
-      .setOrigin(0, 0)
-      .setLineWidth(5)
-      .setDepth(39);
+    if (this.roundIndex >= ROUNDS.length - 1) {
+      this.time.delayedCall(1200, () => this.finishRun(true));
+      return;
+    }
 
-    this.tweens.add({
-      targets: [trail, impact, line],
-      alpha: 0,
-      duration: 230,
-      onComplete: () => {
-        trail.destroy();
-        impact.destroy();
-      },
+    this.playerHp = Math.min(100, this.playerHp + 18);
+    this.time.delayedCall(1350, () => {
+      this.enemy.setAlpha(1);
+      this.startRound(this.roundIndex + 1);
     });
   }
 
-  private showSafePulse(): void {
-    const logicRadius = this.player.getPulseRadius();
-    const visualRadius = Math.min(76, Math.max(44, logicRadius * 0.34));
-    const ring = this.add.circle(this.player.sprite.x, this.player.sprite.y, 10, 0x39ff14, 0.08)
-      .setStrokeStyle(5, 0x78ff62, 0.82)
-      .setDepth(35);
-    const innerRing = this.add.circle(this.player.sprite.x, this.player.sprite.y, 8, 0xbfff8d, 0.04)
-      .setStrokeStyle(2, 0xf5fff1, 0.36)
-      .setDepth(36);
-    const glow = this.add.circle(this.player.sprite.x, this.player.sprite.y, 8, 0xbfff8d, 0.22)
-      .setDepth(34);
+  private finishRun(victory: boolean): void {
+    if (this.runFinished) return;
+    this.runFinished = true;
+    this.fightStarted = false;
+    this.player.setVelocity(0, 0);
+    this.enemy.setVelocity(0, 0);
 
-    this.tweens.add({
-      targets: ring,
-      radius: visualRadius,
-      alpha: 0,
-      duration: 220,
-      ease: "Cubic.easeOut",
-      onComplete: () => ring.destroy(),
-    });
+    const title = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 28, victory ? "WALLET PROTECTED" : "WALLET HIT", {
+      fontFamily: "Arial", fontSize: "42px", color: victory ? "#72ff57" : "#ff4866", fontStyle: "bold", stroke: "#041004", strokeThickness: 8,
+    }).setOrigin(0.5).setDepth(140);
+    this.tweens.add({ targets: title, scaleX: 1.04, scaleY: 1.04, duration: 360, yoyo: true, repeat: 1 });
 
-    this.tweens.add({
-      targets: innerRing,
-      radius: visualRadius * 0.72,
-      alpha: 0,
-      duration: 190,
-      ease: "Cubic.easeOut",
-      onComplete: () => innerRing.destroy(),
-    });
-
-    this.tweens.add({
-      targets: glow,
-      radius: visualRadius * 0.55,
-      alpha: 0,
-      duration: 210,
-      ease: "Cubic.easeOut",
-      onComplete: () => glow.destroy(),
-    });
-  }
-
-  private showLeakShield(): void {
-    const shield = this.add.circle(this.player.sprite.x, this.player.sprite.y, 20, 0x39ff14, 0.04)
-      .setStrokeStyle(3, 0x39ff14, 0.42)
-      .setDepth(34);
-
-    this.tweens.add({
-      targets: shield,
-      radius: 26,
-      alpha: 0.12,
-      duration: 2850,
-      onUpdate: () => {
-        if (!this.player?.sprite.active) return;
-        shield.setPosition(this.player.sprite.x, this.player.sprite.y);
-      },
-      onComplete: () => shield.destroy(),
-    });
-  }
-
-  private showBlockFlash(): void {
-    const block = this.add.image(this.player.sprite.x, this.player.sprite.y, "arena-vfx-sheet", 8)
-      .setScale(0.18)
-      .setDepth(36)
-      .setAlpha(0.9);
-    const guard = this.add.circle(this.player.sprite.x, this.player.sprite.y, 22, 0x39ff14, 0.03)
-      .setStrokeStyle(4, 0x39ff14, 0.65)
-      .setDepth(37);
-
-    this.tweens.add({
-      targets: [block, guard],
-      scaleX: 1.35,
-      scaleY: 1.35,
-      alpha: 0,
-      duration: 220,
-      onComplete: () => {
-        block.destroy();
-        guard.destroy();
-      },
-    });
-  }
-
-  private showWaveBanner(wave: number): void {
-    const isBossWave = wave % 3 === 0;
-    const text = this.fixed(this.add.text(GAME_WIDTH / 2, 86, isBossWave ? `WAVE ${wave}: BOSS` : `WAVE ${wave}`, {
-      fontFamily: "Arial",
-      fontSize: isBossWave ? "20px" : "20px",
-      color: isBossWave ? "#b66cff" : "#39ff14",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 5,
-    })).setOrigin(0.5).setDepth(100);
-
-    this.tweens.add({
-      targets: text,
-      y: 64,
-      alpha: 0,
-      duration: 1150,
-      ease: "Cubic.easeOut",
-      onComplete: () => text.destroy(),
-    });
-  }
-
-  private maybeOfferDefeatUpgrade(): void {
-    if (this.runFinished || this.fightPaused || this.upgradeOverlayActive) return;
-    if ((this.waves?.defeatedCount ?? 0) < this.nextUpgradeDefeatedTarget) return;
-    this.showUpgradeChoice(`${this.nextUpgradeDefeatedTarget} leaks defeated`);
-  }
-
-  private showUpgradeChoice(reason: string): void {
-    if (this.runFinished || this.fightPaused || this.upgradeOverlayActive) return;
-    if (this.waves?.currentWave) this.lastUpgradeWave = this.waves.currentWave;
-    this.upgradeOverlayActive = true;
-    this.fightPaused = true;
-    this.physics.pause();
-
-    const overlayObjects: Phaser.GameObjects.GameObject[] = [];
-    const add = <T extends Phaser.GameObjects.GameObject>(obj: T): T => {
-      this.fixed(obj);
-      overlayObjects.push(obj);
-      return obj;
+    const result: RunResult = {
+      score: this.score,
+      leaksDefeated: this.defeatedLeaks,
+      survivedSeconds: Math.floor(this.activeElapsedMs / 1000),
+      safePoints: victory ? 100 : 0,
+      bossDamage: victory ? 999 : Math.max(0, ROUNDS[this.roundIndex].hp - this.enemyHp),
+      upgradesChosen: 0,
+      pickupsCollected: 0,
+      bossesBroken: victory ? 1 : 0,
     };
 
-    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.66).setDepth(150));
-    add(this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH - 74, GAME_HEIGHT - 70, 0x061006, 0.98)
-      .setStrokeStyle(2, 0x39ff14, 0.52)
-      .setDepth(151));
-    add(this.add.rectangle(GAME_WIDTH / 2, 84, GAME_WIDTH - 132, 58, 0x0b190b, 0.82)
-      .setStrokeStyle(1, 0xb66cff, 0.25)
-      .setDepth(151));
-
-    add(this.add.text(GAME_WIDTH / 2, 66, "CHOOSE UPGRADE", {
-      fontFamily: "Arial",
-      fontSize: "28px",
-      color: "#39ff14",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 5,
-    }).setOrigin(0.5).setDepth(152));
-
-    add(this.add.text(GAME_WIDTH / 2, 100, reason.toUpperCase(), {
-      fontFamily: "Arial",
-      fontSize: "12px",
-      color: "#d7ffd0",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(152));
-
-    const options = this.pickUpgradeOptions();
-    const cardWidth = 206;
-    const cardHeight = 198;
-    const startX = GAME_WIDTH / 2 - cardWidth - 20;
-    const cardY = 250;
-
-    options.forEach((option, index) => {
-      const x = startX + index * (cardWidth + 20);
-      const stroke = this.getUpgradeStroke(option.rarity);
-      const fill = this.getUpgradeFill(option.rarity);
-      const labelColor = this.getUpgradeTextColor(option.rarity);
-
-      const glow = add(this.add.circle(x, cardY - 48, 68, stroke, 0.08).setDepth(151));
-      const card = add(this.add.rectangle(x, cardY, cardWidth, cardHeight, fill, 0.98)
-        .setStrokeStyle(2, stroke, 0.72)
-        .setDepth(152)
-        .setInteractive({ useHandCursor: true }));
-
-      add(this.add.text(x - cardWidth / 2 + 16, cardY - 84, option.rarity.toUpperCase(), {
-        fontFamily: "Arial",
-        fontSize: "10px",
-        color: labelColor,
-        fontStyle: "bold",
-        stroke: "#050805",
-        strokeThickness: 3,
-      }).setDepth(153));
-
-      add(this.add.circle(x, cardY - 46, 32, stroke, 0.16)
-        .setStrokeStyle(2, stroke, 0.58)
-        .setDepth(153));
-      add(this.add.text(x, cardY - 47, this.getUpgradeIcon(option.id), {
-        fontFamily: "Arial",
-        fontSize: "20px",
-        color: "#f5fff1",
-        fontStyle: "bold",
-        stroke: "#050805",
-        strokeThickness: 4,
-      }).setOrigin(0.5).setDepth(154));
-
-      add(this.add.text(x, cardY - 6, option.title.toUpperCase(), {
-        fontFamily: "Arial",
-        fontSize: "15px",
-        color: "#f5fff1",
-        fontStyle: "bold",
-        stroke: "#050805",
-        strokeThickness: 4,
-        align: "center",
-        wordWrap: { width: cardWidth - 28 },
-      }).setOrigin(0.5).setDepth(154));
-
-      add(this.add.text(x, cardY + 31, option.description, {
-        fontFamily: "Arial",
-        fontSize: "11px",
-        color: "#d7ffd0",
-        align: "center",
-        wordWrap: { width: cardWidth - 26 },
-        lineSpacing: 2,
-      }).setOrigin(0.5, 0).setDepth(154));
-
-      const pickBg = add(this.add.rectangle(x, cardY + 80, cardWidth - 54, 30, stroke, 0.95)
-        .setDepth(154)
-        .setInteractive({ useHandCursor: true }));
-      add(this.add.text(x, cardY + 80, "PICK", {
-        fontFamily: "Arial",
-        fontSize: "14px",
-        color: "#050805",
-        fontStyle: "bold",
-      }).setOrigin(0.5).setDepth(155));
-
-      const choose = () => {
-        const message = this.player.applyUpgrade(option.id);
-        this.upgradeChoicesTaken += 1;
-        this.nextUpgradeDefeatedTarget += 7 + Math.min(5, this.upgradeChoicesTaken * 2);
-
-        if (option.id === "heart") {
-          this.hp = Math.min(this.hp + 2, 5 + this.player.getMaxHpBonus());
-        }
-
-        overlayObjects.forEach((obj) => obj.destroy());
-        this.physics.resume();
-        this.upgradeOverlayActive = false;
-        this.fightPaused = false;
-        this.showUpgradeToast(option.title, message);
-        this.hud.update(this.getHudState());
-      };
-
-      card.on("pointerdown", choose);
-      pickBg.on("pointerdown", choose);
-      card.on("pointerover", () => {
-        this.tweens.add({ targets: [card, glow], scaleX: 1.035, scaleY: 1.035, duration: 90 });
-      });
-      card.on("pointerout", () => {
-        this.tweens.add({ targets: [card, glow], scaleX: 1, scaleY: 1, duration: 90 });
-      });
-    });
+    this.time.delayedCall(1350, () => this.scene.start(SCENE_KEYS.result, result));
   }
 
-  private getUpgradeStroke(rarity: UpgradeRarity): number {
-    if (rarity === "rare") return 0xb66cff;
-    if (rarity === "survival") return 0xff6688;
-    return 0x39ff14;
+  private clampFighters(): void {
+    this.player.x = Phaser.Math.Clamp(this.player.x, LEFT_BOUND, RIGHT_BOUND);
+    this.enemy.x = Phaser.Math.Clamp(this.enemy.x, LEFT_BOUND, RIGHT_BOUND);
+    this.player.y = FLOOR_Y - 74;
+    const config = ROUNDS[this.roundIndex];
+    this.enemy.y = FLOOR_Y - config.displayH * 0.46;
   }
 
-  private getUpgradeFill(rarity: UpgradeRarity): number {
-    if (rarity === "rare") return 0x160926;
-    if (rarity === "survival") return 0x21090f;
-    return 0x0d210d;
+  private updateHud(): void {
+    if (!this.playerHpFill || !this.enemyHpFill) return;
+    this.playerHpFill.width = 244 * Phaser.Math.Clamp(this.playerHp / 100, 0, 1);
+    this.enemyHpFill.width = 244 * Phaser.Math.Clamp(this.enemyHp / Math.max(1, this.enemyMaxHp), 0, 1);
+    this.playerHpText.setText(`${Math.max(0, this.playerHp)}/100`);
   }
 
-  private getUpgradeTextColor(rarity: UpgradeRarity): string {
-    if (rarity === "rare") return "#d6a8ff";
-    if (rarity === "survival") return "#ff9aaa";
-    return "#9cff8a";
+  private updateAuras(): void {
+    if (!this.playerAura || !this.enemyAura || !this.player || !this.enemy) return;
+    const config = ROUNDS[this.roundIndex] ?? ROUNDS[0];
+    this.playerAura.setPosition(this.player.x, this.player.y + 26);
+    this.enemyAura.setPosition(this.enemy.x, this.enemy.y + config.displayH * 0.18);
+    this.enemyAura.setFillStyle(config.color, config.boss ? 0.11 : 0.08);
+    this.enemyAura.setRadius(config.boss ? 78 : 62);
   }
 
-  private getUpgradeIcon(id: PlayerUpgradeId): string {
-    switch (id) {
-      case "damage": return "DMG";
-      case "speed": return "SPD";
-      case "dash": return "DASH";
-      case "pulse": return "AOE";
-      case "heart": return "HP";
-      case "attack_speed": return "ATK";
-      case "wide_swing": return "ARC";
-      case "shield_battery": return "DEF";
-      case "boss_breaker": return "BOSS";
-      default: return "UP";
-    }
+  private setBody(sprite: Phaser.Physics.Arcade.Sprite, width: number, height: number, offsetY = 0): void {
+    const body = sprite.body as Phaser.Physics.Arcade.Body | null;
+    if (!body) return;
+    body.setSize(width, height, true);
+    body.setOffset((sprite.width - width) / 2, (sprite.height - height) / 2 + offsetY);
   }
 
-  private pickUpgradeOptions(): UpgradeOption[] {
-    const pool = [...UPGRADE_POOL];
-    const rareCount = this.upgradeChoicesTaken >= 1 ? 1 : 0;
-    const rareOptions = Phaser.Utils.Array.Shuffle(pool.filter((option) => option.rarity === "rare")).slice(0, rareCount);
-    const remaining = Phaser.Utils.Array.Shuffle(pool.filter((option) => !rareOptions.includes(option)));
-    return Phaser.Utils.Array.Shuffle([...rareOptions, ...remaining]).slice(0, 3);
+  private playPlayerAnim(key: string): void {
+    if (this.anims.exists(key)) this.player.play(key, true);
   }
 
-  private showUpgradeToast(title: string, message: string): void {
-    const panel = this.fixed(this.add.rectangle(GAME_WIDTH / 2, 86, 426, 60, 0x071107, 0.95))
-      .setStrokeStyle(2, 0x39ff14, 0.5)
-      .setDepth(155);
-    const icon = this.fixed(this.add.circle(GAME_WIDTH / 2 - 178, 86, 19, 0x39ff14, 0.14))
-      .setStrokeStyle(2, 0x39ff14, 0.6)
-      .setDepth(156);
-    const iconText = this.fixed(this.add.text(GAME_WIDTH / 2 - 178, 86, "UP", {
-      fontFamily: "Arial",
-      fontSize: "10px",
-      color: "#39ff14",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 3,
-    })).setOrigin(0.5).setDepth(157);
-    const titleText = this.fixed(this.add.text(GAME_WIDTH / 2 - 144, 76, title.toUpperCase(), {
-      fontFamily: "Arial",
-      fontSize: "14px",
-      color: "#39ff14",
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 3,
-    })).setOrigin(0, 0.5).setDepth(156);
-    const bodyText = this.fixed(this.add.text(GAME_WIDTH / 2 - 144, 98, message, {
-      fontFamily: "Arial",
-      fontSize: "11px",
-      color: "#f5fff1",
-      align: "left",
-      wordWrap: { width: 320 },
-    })).setOrigin(0, 0.5).setDepth(156);
-
+  private showPunchFx(combo: number): void {
+    const x = this.player.x + (combo === 3 ? 94 : 78);
+    const y = this.player.y - 28;
+    const slash = this.add.image(x, y, "arena-vfx-sheet", combo === 3 ? 2 : 1)
+      .setScale(combo === 3 ? 0.28 : 0.22)
+      .setRotation(combo === 3 ? 0.08 : -0.08)
+      .setAlpha(0.96)
+      .setDepth(42);
+    const line = this.add.line(0, 0, this.player.x + 28, this.player.y - 36, x + 44, y, combo === 3 ? 0xffeb72 : 0x72ff57, 0.84)
+      .setOrigin(0, 0)
+      .setLineWidth(combo === 3 ? 6 : 4)
+      .setDepth(43);
     this.tweens.add({
-      targets: [panel, icon, iconText, titleText, bodyText],
-      y: "-=18",
+      targets: [slash, line],
       alpha: 0,
-      delay: 1150,
-      duration: 520,
+      scaleX: slash.scaleX * 1.15,
+      scaleY: slash.scaleY * 1.15,
+      duration: 150,
       onComplete: () => {
-        panel.destroy();
-        icon.destroy();
-        iconText.destroy();
-        titleText.destroy();
-        bodyText.destroy();
+        slash.destroy();
+        line.destroy();
       },
     });
+  }
+
+  private showKickFx(): void {
+    const x = this.player.x + 106;
+    const y = this.player.y - 18;
+    const arc = this.add.image(x, y, "arena-vfx-sheet", 5)
+      .setScale(0.31)
+      .setAlpha(0.92)
+      .setDepth(42);
+    const trail = this.add.line(0, 0, this.player.x + 28, this.player.y - 14, x + 58, y - 8, 0xffeb72, 0.82)
+      .setOrigin(0, 0)
+      .setLineWidth(6)
+      .setDepth(43);
+    this.tweens.add({
+      targets: [arc, trail],
+      alpha: 0,
+      duration: 210,
+      onComplete: () => {
+        arc.destroy();
+        trail.destroy();
+      },
+    });
+  }
+
+  private showEnemyAttackFx(color: number): void {
+    const dir = this.player.x < this.enemy.x ? -1 : 1;
+    const x = this.enemy.x + dir * 72;
+    const y = this.enemy.y - 16;
+    const arc = this.add.image(x, y, "arena-vfx-sheet", 4)
+      .setScale(0.24)
+      .setFlipX(dir < 0)
+      .setTint(color)
+      .setAlpha(0.92)
+      .setDepth(42);
+    this.tweens.add({ targets: arc, alpha: 0, duration: 170, onComplete: () => arc.destroy() });
+  }
+
+  private showEnemyWarning(text: string, color: number, durationMs: number): void {
+    const label = this.add.text(this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.62, text, {
+      fontFamily: "Arial", fontSize: "15px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(90);
+    const marker = this.add.rectangle(this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.34, 78, 5, color, 0.92)
+      .setDepth(89);
+    this.tweens.add({
+      targets: [label, marker],
+      alpha: 0.28,
+      duration: Math.max(140, durationMs * 0.5),
+      yoyo: true,
+      repeat: 1,
+      onComplete: () => {
+        label.destroy();
+        marker.destroy();
+      },
+    });
+  }
+
+  private showImpact(x: number, y: number, color: number, heavy = false): void {
+    const ring = this.add.circle(x, y, heavy ? 18 : 12, color, 0.14)
+      .setStrokeStyle(heavy ? 5 : 3, color, 0.86)
+      .setDepth(50);
+    const core = this.add.circle(x, y, heavy ? 7 : 5, 0xfcfff7, 0.78).setDepth(51);
+    this.tweens.add({
+      targets: ring,
+      radius: heavy ? 58 : 36,
+      alpha: 0,
+      duration: heavy ? 260 : 170,
+      onComplete: () => ring.destroy(),
+    });
+    this.tweens.add({
+      targets: core,
+      alpha: 0,
+      scaleX: heavy ? 2.6 : 1.9,
+      scaleY: heavy ? 2.6 : 1.9,
+      duration: heavy ? 180 : 120,
+      onComplete: () => core.destroy(),
+    });
+  }
+
+  private showBlockFx(): void {
+    const shield = this.add.circle(this.player.x + 42, this.player.y - 26, 24, 0x72ff57, 0.06)
+      .setStrokeStyle(4, 0x72ff57, 0.78)
+      .setDepth(48);
+    this.tweens.add({ targets: shield, radius: 44, alpha: 0, duration: 220, onComplete: () => shield.destroy() });
   }
 
   private showFloatingText(text: string, x: number, y: number, color: string): void {
     const label = this.add.text(x, y, text, {
-      fontFamily: "Arial",
-      fontSize: "14px",
-      color,
-      fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 4,
-    }).setOrigin(0.5).setDepth(160);
-
+      fontFamily: "Arial", fontSize: "17px", color, fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(92);
     this.tweens.add({
       targets: label,
       y: y - 28,
       alpha: 0,
-      duration: 760,
+      duration: 580,
+      ease: "Cubic.easeOut",
       onComplete: () => label.destroy(),
     });
-  }
-
-  private finishRun(): void {
-    if (this.runFinished) return;
-    this.runFinished = true;
-    this.sfx.playGameOver();
-    this.pauseOverlay?.destroy(true);
-    this.waves.clearAll();
-    this.physics.pause();
-
-    const result: RunResult = {
-      score: this.score,
-      leaksDefeated: this.waves.defeatedCount,
-      survivedSeconds: Math.floor(this.activeElapsedMs / 1000),
-      bossDamage: Math.floor(this.score * 0.14),
-      safePoints: Math.floor(this.score * 0.08),
-      upgradesChosen: this.upgradeChoicesTaken,
-      pickupsCollected: this.pickupsCollected,
-      bossesBroken: this.bossesBroken,
-    };
-
-    this.scene.start(SCENE_KEYS.result, result);
   }
 }

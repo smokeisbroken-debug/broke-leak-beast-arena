@@ -4,105 +4,91 @@ import type { InputState } from "../types/game";
 
 export class MobileControls {
   private inputState: InputState = { x: 0, y: 0, attack: false, dodge: false, pulse: false, shield: false, slash: false };
-  private attackToggled = false;
-  private attackBufferedUntil = 0;
-  private attackButton?: Phaser.GameObjects.Image;
-  private attackIndicator?: Phaser.GameObjects.Arc;
   private keys?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd?: Record<"left" | "right" | "up" | "down", Phaser.Input.Keyboard.Key>;
-  private keyboardAttack?: Phaser.Input.Keyboard.Key;
+  private keyboardPunch?: Phaser.Input.Keyboard.Key;
+  private keyboardKick?: Phaser.Input.Keyboard.Key;
+  private keyboardBlock?: Phaser.Input.Keyboard.Key;
+  private keyboardDash?: Phaser.Input.Keyboard.Key;
   private joystickBase: Phaser.GameObjects.Image;
   private joystickKnob: Phaser.GameObjects.Arc;
   private joystickPointerId: number | null = null;
-  private readonly joystickCenter = new Phaser.Math.Vector2(128, GAME_HEIGHT - 88);
+  private readonly joystickCenter = new Phaser.Math.Vector2(126, GAME_HEIGHT - 88);
   private readonly joystickRadius = 72;
-  private readonly autoButtonSize = 84;
 
   constructor(private scene: Phaser.Scene) {
     scene.input.addPointer(6);
 
     this.createControlBackplates();
 
-    this.joystickBase = this.fixed(scene.add.image(this.joystickCenter.x, this.joystickCenter.y, "combat-joystick-base"))
-      .setDisplaySize(160, 160)
-      .setAlpha(0.97)
-      .setDepth(80);
+    this.joystickBase = scene.add.image(this.joystickCenter.x, this.joystickCenter.y, "combat-joystick-base")
+      .setDisplaySize(162, 162)
+      .setAlpha(0.96)
+      .setDepth(80)
+      .setScrollFactor(0);
 
-    this.joystickKnob = this.fixed(scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 24, 0x72ff57, 0.96))
-      .setStrokeStyle(3, 0x071107, 0.76)
-      .setDepth(81);
+    this.joystickKnob = scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 24, 0x72ff57, 0.96)
+      .setStrokeStyle(3, 0x041004, 0.8)
+      .setDepth(81)
+      .setScrollFactor(0);
 
     this.createButtons();
     this.createPointerControls();
     this.createKeyboardFallback();
   }
 
-  private fixed<T extends Phaser.GameObjects.GameObject>(obj: T): T {
-    const fixedObj = obj as T & { setScrollFactor?: (x: number, y?: number) => T };
-    fixedObj.setScrollFactor?.(0);
-    return obj;
-  }
-
   getInputState(): InputState {
     this.applyKeyboardState();
 
-    const manualAttackBuffered = Date.now() < this.attackBufferedUntil;
-    const snapshot = {
-      ...this.inputState,
-      attack: this.attackToggled || Boolean(this.keyboardAttack?.isDown) || this.inputState.attack || manualAttackBuffered,
-    };
+    const snapshot = { ...this.inputState };
+    snapshot.attack = snapshot.attack || Boolean(this.keyboardPunch?.isDown);
+    snapshot.pulse = snapshot.pulse || Boolean(this.keyboardKick?.isDown);
+    snapshot.shield = snapshot.shield || Boolean(this.keyboardBlock?.isDown);
+    snapshot.dodge = snapshot.dodge || Boolean(this.keyboardDash?.isDown);
 
     this.inputState.attack = false;
     this.inputState.dodge = false;
     this.inputState.pulse = false;
-    this.inputState.shield = false;
     this.inputState.slash = false;
+    // shield is intentionally not reset here: it is a hold button.
     return snapshot;
   }
 
   private createControlBackplates(): void {
-    this.fixed(this.scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 102, 0x061306, 0.24))
-      .setStrokeStyle(3, 0x39ff14, 0.16)
-      .setDepth(78);
+    this.scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 104, 0x061006, 0.24)
+      .setStrokeStyle(3, 0x72ff57, 0.18)
+      .setDepth(78)
+      .setScrollFactor(0);
 
-    this.fixed(this.scene.add.circle(GAME_WIDTH - 132, GAME_HEIGHT - 92, 142, 0x061306, 0.22))
-      .setStrokeStyle(3, 0xb66cff, 0.14)
-      .setDepth(78);
+    this.scene.add.circle(GAME_WIDTH - 132, GAME_HEIGHT - 92, 150, 0x061006, 0.2)
+      .setStrokeStyle(3, 0xa45cff, 0.16)
+      .setDepth(78)
+      .setScrollFactor(0);
 
-    this.fixed(this.scene.add.text(GAME_WIDTH - 162, GAME_HEIGHT - 204, "SKILLS", {
+    this.scene.add.text(GAME_WIDTH - 154, GAME_HEIGHT - 214, "ARENA CONTROLS", {
       fontFamily: "Arial",
       fontSize: "12px",
-      color: "#d7ffd0",
+      color: "#fcfff7",
       fontStyle: "bold",
-      stroke: "#050805",
-      strokeThickness: 3,
-    })).setOrigin(0.5).setDepth(81).setAlpha(0.78);
+      stroke: "#041004",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(81).setAlpha(0.84).setScrollFactor(0);
   }
 
   private createButtons(): void {
-    // Main sword swing is now a direct ATTACK button. It works even when the player is not moving.
-    this.createImageButton(GAME_WIDTH - 182, GAME_HEIGHT - 92, "combat-button-slash", 114, 114, "ATTACK", () => {
-      this.queueAttack();
+    this.createImageButton(GAME_WIDTH - 186, GAME_HEIGHT - 94, "combat-button-slash", 112, 112, "PUNCH", () => {
+      this.inputState.attack = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 104, GAME_HEIGHT - 160, "combat-button-shield", 94, 94, "SHIELD", () => {
-      this.inputState.shield = true;
-    });
-
-    this.createImageButton(GAME_WIDTH - 104, GAME_HEIGHT - 42, "combat-button-pulse", 94, 94, "PULSE", () => {
+    this.createImageButton(GAME_WIDTH - 92, GAME_HEIGHT - 158, "combat-button-pulse", 96, 96, "KICK", () => {
       this.inputState.pulse = true;
     });
 
-    this.createImageButton(GAME_WIDTH - 36, GAME_HEIGHT - 92, "combat-button-dash", 98, 98, "DASH", () => {
+    this.createHoldButton(GAME_WIDTH - 92, GAME_HEIGHT - 42, "combat-button-shield", 96, 96, "BLOCK");
+
+    this.createImageButton(GAME_WIDTH - 32, GAME_HEIGHT - 94, "combat-button-dash", 96, 96, "DASH", () => {
       this.inputState.dodge = true;
     });
-
-    this.createAttackToggleButton(GAME_WIDTH - 260, GAME_HEIGHT - 46, this.autoButtonSize);
-  }
-
-  private queueAttack(): void {
-    this.inputState.attack = true;
-    this.attackBufferedUntil = Date.now() + 180;
   }
 
   private createImageButton(
@@ -114,70 +100,70 @@ export class MobileControls {
     label: string,
     callback: () => void,
   ): void {
-    const hitZone = this.fixed(this.scene.add.circle(x, y, Math.max(width, height) * 0.64, 0x000000, 0.001))
-      .setDepth(79)
+    const hitZone = this.scene.add.circle(x, y, Math.max(width, height) * 0.54, 0x000000, 0.01)
+      .setDepth(92)
+      .setScrollFactor(0)
       .setInteractive({ useHandCursor: true });
 
-    const image = this.fixed(this.scene.add.image(x, y, texture))
+    const button = this.scene.add.image(x, y, texture)
       .setDisplaySize(width, height)
-      .setDepth(80);
+      .setDepth(82)
+      .setAlpha(0.96)
+      .setScrollFactor(0);
 
-    this.fixed(this.scene.add.text(x, y + height * 0.42, label, {
+    this.scene.add.text(x, y + height * 0.38, label, {
       fontFamily: "Arial",
-      fontSize: label === "ATTACK" ? "12px" : "11px",
-      color: "#f5fff1",
+      fontSize: label === "PUNCH" ? "14px" : "12px",
+      color: "#fcfff7",
       fontStyle: "bold",
-      stroke: "#050805",
+      stroke: "#041004",
       strokeThickness: 4,
-    })).setOrigin(0.5).setDepth(81).setAlpha(0.9);
+    }).setOrigin(0.5).setDepth(83).setScrollFactor(0);
 
     hitZone.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       pointer.event?.preventDefault();
       callback();
-      this.flashButton(image);
+      this.flashButton(button);
     });
   }
 
-  private createAttackToggleButton(x: number, y: number, size: number): void {
-    const hitZone = this.fixed(this.scene.add.circle(x, y, size * 0.7, 0x000000, 0.001))
-      .setDepth(79)
+  private createHoldButton(x: number, y: number, texture: string, width: number, height: number, label: string): void {
+    const hitZone = this.scene.add.circle(x, y, Math.max(width, height) * 0.54, 0x000000, 0.01)
+      .setDepth(92)
+      .setScrollFactor(0)
       .setInteractive({ useHandCursor: true });
 
-    this.attackButton = this.fixed(this.scene.add.image(x, y, "combat-button-auto"))
-      .setDisplaySize(size, size)
-      .setDepth(80)
-      .setAlpha(0.9);
+    const button = this.scene.add.image(x, y, texture)
+      .setDisplaySize(width, height)
+      .setDepth(82)
+      .setAlpha(0.94)
+      .setScrollFactor(0);
 
-    this.attackIndicator = this.fixed(this.scene.add.circle(x + size * 0.3, y + size * 0.3, 6, 0xff3355, 0.95))
-      .setStrokeStyle(2, 0x050805, 0.75)
-      .setDepth(81);
-
-    this.fixed(this.scene.add.text(x, y + size * 0.46, "AUTO", {
+    this.scene.add.text(x, y + height * 0.38, label, {
       fontFamily: "Arial",
-      fontSize: "11px",
-      color: "#f5fff1",
+      fontSize: "12px",
+      color: "#fcfff7",
       fontStyle: "bold",
-      stroke: "#050805",
+      stroke: "#041004",
       strokeThickness: 4,
-    })).setOrigin(0.5).setDepth(81).setAlpha(0.9);
+    }).setOrigin(0.5).setDepth(83).setScrollFactor(0);
 
     hitZone.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       pointer.event?.preventDefault();
-      this.attackToggled = !this.attackToggled;
-      this.refreshAttackToggleVisual();
-      this.scene.tweens.add({ targets: this.attackButton, alpha: this.attackToggled ? 1 : 0.9, duration: 60 });
+      this.inputState.shield = true;
+      button.setAlpha(1);
+      button.setScale(1.05);
     });
-
-    this.refreshAttackToggleVisual();
-  }
-
-  private refreshAttackToggleVisual(): void {
-    if (!this.attackButton || !this.attackIndicator) return;
-    this.attackButton.setScale(1);
-    this.attackButton.setDisplaySize(this.autoButtonSize, this.autoButtonSize);
-    this.attackButton.setAlpha(this.attackToggled ? 1 : 0.9);
-    this.attackIndicator.setPosition(this.attackButton.x + this.autoButtonSize * 0.28, this.attackButton.y + this.autoButtonSize * 0.28);
-    this.attackIndicator.setFillStyle(this.attackToggled ? 0x39ff14 : 0xff3355, 0.95);
+    hitZone.on("pointerup", () => {
+      this.inputState.shield = false;
+      button.setAlpha(0.94);
+      button.setScale(1);
+    });
+    hitZone.on("pointerout", () => {
+      this.inputState.shield = false;
+      button.setAlpha(0.94);
+      button.setScale(1);
+    });
   }
 
   private createPointerControls(): void {
@@ -197,7 +183,7 @@ export class MobileControls {
     };
 
     this.scene.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (pointer.x > GAME_WIDTH * 0.43 || pointer.y < GAME_HEIGHT * 0.42) return;
+      if (pointer.x > GAME_WIDTH * 0.44 || pointer.y < GAME_HEIGHT * 0.42) return;
       this.joystickPointerId = pointer.id;
       updateJoystick(pointer);
     });
@@ -231,11 +217,11 @@ export class MobileControls {
       down: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
     };
 
-    this.keyboardAttack = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-    keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z).on("down", () => { this.queueAttack(); });
-    keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X).on("down", () => { this.inputState.pulse = true; });
-    keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C).on("down", () => { this.inputState.shield = true; });
-    keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT).on("down", () => { this.inputState.dodge = true; });
+    this.keyboardPunch = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+    this.keyboardKick = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+    this.keyboardBlock = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
+    this.keyboardDash = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+    keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on("down", () => { this.inputState.attack = true; });
   }
 
   private applyKeyboardState(): void {
@@ -261,8 +247,8 @@ export class MobileControls {
     this.scene.tweens.add({
       targets: target,
       alpha: Math.max(0.72, originalAlpha - 0.18),
-      scaleX: originalScaleX * 1.04,
-      scaleY: originalScaleY * 1.04,
+      scaleX: originalScaleX * 1.05,
+      scaleY: originalScaleY * 1.05,
       duration: 64,
       yoyo: true,
       onComplete: () => {

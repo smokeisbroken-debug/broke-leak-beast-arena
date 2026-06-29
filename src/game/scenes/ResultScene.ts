@@ -24,7 +24,7 @@ export class ResultScene extends Phaser.Scene {
     const bossesBroken = this.result.bossesBroken ?? 0;
     const pickupsCollected = this.result.pickupsCollected ?? 0;
 
-    this.add.text(GAME_WIDTH / 2, 42, this.result.leaksDefeated > 0 ? "RUN COMPLETE" : "TRY AGAIN", {
+    this.add.text(GAME_WIDTH / 2, 42, (this.result.bossesBroken ?? 0) > 0 ? "WALLET PROTECTED" : "TRY AGAIN", {
       fontFamily: "Arial", fontSize: "30px", color: "#39ff14", fontStyle: "bold", stroke: "#050805", strokeThickness: 5,
     }).setOrigin(0.5).setDepth(3);
 
@@ -38,8 +38,8 @@ export class ResultScene extends Phaser.Scene {
 
     const lines = [
       ["Leaks broken", this.result.leaksDefeated.toString()],
-      ["Survived", `${this.result.survivedSeconds}s`],
-      ["Bosses broken", bossesBroken.toString()],
+      ["Fight time", `${this.result.survivedSeconds}s`],
+      ["Bosses defeated", bossesBroken.toString()],
       ["Final score", this.result.score.toString()],
       ["Pickups", pickupsCollected.toString()],
       ["Safe Points", `+${this.result.safePoints}`],
@@ -90,7 +90,7 @@ export class ResultScene extends Phaser.Scene {
     const bossesBroken = this.result.bossesBroken ?? 0;
     const pickupsCollected = this.result.pickupsCollected ?? 0;
     return [
-      "I survived Leak Beast Arena.",
+      (this.result.bossesBroken ?? 0) > 0 ? "I protected my wallet in BROKE Arena." : "I fought in BROKE Arena.",
       `Score: ${this.result.score}`,
       `Time: ${this.result.survivedSeconds}s`,
       `Leaks broken: ${this.result.leaksDefeated}`,

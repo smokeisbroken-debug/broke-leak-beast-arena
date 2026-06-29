@@ -28,7 +28,7 @@ export class MainMenuScene extends Phaser.Scene {
       .setStrokeStyle(2, 0x39ff14, 0.26)
       .setDepth(4);
 
-    this.add.text(objectivePanel.x, 154, "PUBLIC PLAYTEST", {
+    this.add.text(objectivePanel.x, 154, "ARENA BATTLE", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#39ff14",
