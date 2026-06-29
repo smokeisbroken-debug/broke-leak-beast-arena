@@ -10,6 +10,7 @@ export interface InputState {
   slash: boolean;
   skill1: boolean;
   skill2: boolean;
+  ultimate: boolean;
 }
 
 export type EnemyKind = "bad_habit" | "fomo" | "scam" | "smoke_brute" | "mega_leak";

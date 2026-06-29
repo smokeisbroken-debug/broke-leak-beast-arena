@@ -203,7 +203,7 @@ export const SKILLS: SkillDefinition[] = [
     unlockLevel: 5,
     uiColor: "#72ff57",
     color: 0x72ff57,
-    description: "Ultimate slot. Next step: energy bar and temporary protection mode.",
+    description: "Spend full energy to enter temporary Wallet Protection Mode with stronger damage and reduced incoming damage.",
   },
 ];
 

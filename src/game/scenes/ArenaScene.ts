@@ -24,6 +24,8 @@ const ENEMY_START_X = GAME_WIDTH - 286;
 const LEFT_BOUND = GAME_WIDTH * 0.26;
 const RIGHT_BOUND = GAME_WIDTH * 0.74;
 const ROUNDS: RoundConfig[] = ARENA_BATTLE_ROUNDS;
+const MAX_ENERGY = 100;
+const ULTIMATE_DURATION_MS = 5200;
 
 export class ArenaScene extends Phaser.Scene {
   private controls!: MobileControls;
@@ -48,6 +50,8 @@ export class ArenaScene extends Phaser.Scene {
   private kickDamageMultiplier = 1;
   private dashCooldownMs = 860;
   private blockDamageTakenMultiplier = 0.25;
+  private playerEnergy = 35;
+  private ultimateActiveUntil = 0;
   private enemyHp = 1;
   private enemyMaxHp = 1;
   private roundIndex = 0;
@@ -73,6 +77,7 @@ export class ArenaScene extends Phaser.Scene {
   private dashCooldownUntil = 0;
   private skill1CooldownUntil = 0;
   private skill2CooldownUntil = 0;
+  private ultimateLockUntil = 0;
   private lastPunchAt = 0;
   private comboStep = 0;
   private bossPhaseShown = false;
@@ -80,12 +85,15 @@ export class ArenaScene extends Phaser.Scene {
   private playerHpFill!: Phaser.GameObjects.Rectangle;
   private enemyHpFill!: Phaser.GameObjects.Rectangle;
   private playerHpText!: Phaser.GameObjects.Text;
+  private playerEnergyFill!: Phaser.GameObjects.Rectangle;
+  private playerEnergyText!: Phaser.GameObjects.Text;
   private enemyHpText!: Phaser.GameObjects.Text;
   private roundText!: Phaser.GameObjects.Text;
   private objectiveText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
   private comboText!: Phaser.GameObjects.Text;
   private skillStatusText!: Phaser.GameObjects.Text;
+  private ultimateStatusText!: Phaser.GameObjects.Text;
 
   constructor() {
     super(SCENE_KEYS.arena);
@@ -106,6 +114,9 @@ export class ArenaScene extends Phaser.Scene {
     this.blockDamageTakenMultiplier = Math.max(0.1, 0.25 * (1 - (skinBonuses.blockReductionPercent ?? 0) / 100));
 
     this.playerHp = this.playerMaxHp;
+    this.playerEnergy = 35;
+    this.ultimateActiveUntil = 0;
+    this.ultimateLockUntil = 0;
     this.enemyHp = 1;
     this.enemyMaxHp = 1;
     this.roundIndex = 0;
@@ -124,6 +135,7 @@ export class ArenaScene extends Phaser.Scene {
     this.dashCooldownUntil = 0;
     this.skill1CooldownUntil = 0;
     this.skill2CooldownUntil = 0;
+    this.ultimateLockUntil = 0;
     this.lastPunchAt = 0;
     this.comboStep = 0;
     this.bossPhaseShown = false;
@@ -219,6 +231,12 @@ export class ArenaScene extends Phaser.Scene {
       fontFamily: "Arial", fontSize: "13px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
     }).setOrigin(1, 0).setDepth(83);
 
+    this.add.rectangle(156, 62, 228, 8, 0x1b251b, 1).setOrigin(0.5).setDepth(81);
+    this.playerEnergyFill = this.add.rectangle(42, 62, 0, 7, 0xffeb72, 1).setOrigin(0, 0.5).setDepth(82);
+    this.playerEnergyText = this.add.text(276, 54, "ENERGY 35", {
+      fontFamily: "Arial", fontSize: "10px", color: "#ffeb72", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+    }).setOrigin(1, 0).setDepth(83);
+
     this.add.rectangle(GAME_WIDTH - 156, 34, 272, 50, 0x061006, 0.74)
       .setStrokeStyle(2, 0xa45cff, 0.36)
       .setDepth(80);
@@ -246,6 +264,10 @@ export class ArenaScene extends Phaser.Scene {
 
     this.skillStatusText = this.add.text(GAME_WIDTH / 2, 68, "", {
       fontFamily: "Arial", fontSize: "11px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(84);
+
+    this.ultimateStatusText = this.add.text(GAME_WIDTH / 2, 88, "", {
+      fontFamily: "Arial", fontSize: "12px", color: "#ffeb72", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(84);
   }
 
@@ -363,6 +385,10 @@ export class ArenaScene extends Phaser.Scene {
       if (this.useActiveSkill(this.skill2, "skill2", now)) return;
     }
 
+    if (input.ultimate) {
+      if (this.useUltimate(now)) return;
+    }
+
     if (input.dodge && now >= this.dashCooldownUntil) {
       this.dash(now, input.x);
       return;
@@ -389,6 +415,62 @@ export class ArenaScene extends Phaser.Scene {
     this.playPlayerAnim(this.playerState === "moving" ? "mascot-run-front-anim" : "mascot-idle-front-anim");
   }
 
+  private isUltimateActive(now = Date.now()): boolean {
+    return now < this.ultimateActiveUntil;
+  }
+
+  private addEnergy(amount: number, label?: string): void {
+    if (amount <= 0 || this.runFinished) return;
+    const before = this.playerEnergy;
+    this.playerEnergy = Phaser.Math.Clamp(this.playerEnergy + amount, 0, MAX_ENERGY);
+    if (label && this.playerEnergy > before) {
+      this.showFloatingText(`+${this.playerEnergy - before} ENERGY`, this.player.x, this.player.y - 136, "#ffeb72");
+    }
+    if (before < MAX_ENERGY && this.playerEnergy >= MAX_ENERGY) {
+      this.statusText.setText("ULTIMATE READY");
+      this.showFloatingText("ULT READY", this.player.x, this.player.y - 150, "#ffeb72");
+      this.cameras.main.flash(40, 255, 235, 114, false);
+    }
+  }
+
+  private spendEnergy(cost: number, label: string): boolean {
+    if (cost <= 0) return true;
+    if (this.playerEnergy < cost) {
+      this.showFloatingText(`${label} NEEDS ${cost} ENERGY`, this.player.x, this.player.y - 126, "#ffeb72");
+      this.statusText.setText("NOT ENOUGH ENERGY");
+      return false;
+    }
+    this.playerEnergy = Phaser.Math.Clamp(this.playerEnergy - cost, 0, MAX_ENERGY);
+    return true;
+  }
+
+  private useUltimate(now: number): boolean {
+    if (now < this.ultimateLockUntil) {
+      this.showFloatingText("ULTIMATE LOCKED", this.player.x, this.player.y - 132, "#fcfff7");
+      return false;
+    }
+
+    if (!this.spendEnergy(this.ultimateSkill.energyCost || MAX_ENERGY, "ULTIMATE")) return false;
+
+    this.ultimateLockUntil = now + ULTIMATE_DURATION_MS + 650;
+    this.ultimateActiveUntil = now + ULTIMATE_DURATION_MS;
+    this.playerActionUntil = now + 360;
+    this.playerState = "block";
+    this.playerInvincibleUntil = now + 520;
+    this.player.setVelocity(0, 0);
+    this.player.setTint(this.ultimateSkill.color);
+    this.playPlayerAnim("mascot-pulse-front-anim");
+    this.sfx.playPulse();
+    this.statusText.setText(this.ultimateSkill.name.toUpperCase());
+    this.comboText.setText("ULTIMATE MODE");
+    this.comboText.setPosition(this.player.x + 30, this.player.y - 146);
+    this.time.delayedCall(900, () => this.comboText.setText(""));
+    this.showUltimateFx();
+    this.cameras.main.flash(90, 114, 255, 87, false);
+    this.cameras.main.shake(140, 0.0035);
+    return true;
+  }
+
   private useActiveSkill(skill: SkillDefinition, slot: "skill1" | "skill2", now: number): boolean {
     const cooldownUntil = slot === "skill1" ? this.skill1CooldownUntil : this.skill2CooldownUntil;
     if (now < cooldownUntil) {
@@ -396,6 +478,8 @@ export class ArenaScene extends Phaser.Scene {
       this.statusText.setText("SKILL COOLDOWN");
       return false;
     }
+
+    if (!this.spendEnergy(skill.energyCost, skill.name.toUpperCase())) return false;
 
     if (slot === "skill1") this.skill1CooldownUntil = now + skill.cooldownMs;
     else this.skill2CooldownUntil = now + skill.cooldownMs;
@@ -503,7 +587,8 @@ export class ArenaScene extends Phaser.Scene {
     const guarded = this.enemyState === "guard";
     const heavyHit = label.includes("HEAVY") || label === "KICK";
     const bonus = counterHit ? 4 : 0;
-    const rawDamage = damage + bonus;
+    const ultimateBonus = this.isUltimateActive() ? 1.32 : 1;
+    const rawDamage = Math.round((damage + bonus) * ultimateBonus);
     const finalDamage = guarded ? Math.max(1, Math.floor(rawDamage * 0.35)) : rawDamage;
     this.enemyHp = Math.max(0, this.enemyHp - finalDamage);
 
@@ -524,6 +609,7 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     this.score += finalDamage * 12 + (counterHit ? 70 : 0) + (guarded ? 10 : 0);
+    this.addEnergy(Math.min(18, 5 + Math.floor(finalDamage * 0.28) + (counterHit ? 8 : 0)), counterHit ? "counter" : undefined);
 
     const impactX = this.enemy.x - Math.min(72, this.enemy.displayWidth * 0.38);
     const impactY = this.enemy.y - this.enemy.displayHeight * 0.34;
@@ -775,11 +861,13 @@ export class ArenaScene extends Phaser.Scene {
     const now = Date.now();
     if (now < this.playerInvincibleUntil) {
       this.showFloatingText("DODGE", this.player.x, this.player.y - 92, "#d9a7ff");
+      this.addEnergy(6);
       return;
     }
 
     if (now < this.playerBlockUntil) {
-      const blocked = Math.max(1, Math.floor(amount * this.blockDamageTakenMultiplier));
+      const blockMultiplier = this.isUltimateActive(now) ? Math.min(0.1, this.blockDamageTakenMultiplier * 0.55) : this.blockDamageTakenMultiplier;
+      const blocked = Math.max(1, Math.floor(amount * blockMultiplier));
       this.playerHp = Math.max(0, this.playerHp - blocked);
       this.sfx.playBlock();
       this.showBlockFx();
@@ -787,21 +875,24 @@ export class ArenaScene extends Phaser.Scene {
       this.statusText.setText("BLOCK");
       this.cameras.main.shake(48, 0.0018);
       this.playerInvincibleUntil = now + 190;
+      this.addEnergy(9, "block");
       return;
     }
 
-    this.playerHp = Math.max(0, this.playerHp - amount);
+    const finalAmount = this.isUltimateActive(now) ? Math.max(1, Math.floor(amount * 0.55)) : amount;
+    this.playerHp = Math.max(0, this.playerHp - finalAmount);
     this.playerState = "hurt";
     this.playerActionUntil = now + 220;
     this.playerInvincibleUntil = now + 360;
     this.player.setVelocityX(-210);
     this.player.setTint(0xff4866);
     this.playPlayerAnim("mascot-hurt-anim");
-    this.sfx.playHit(amount >= 12);
+    this.sfx.playHit(finalAmount >= 12);
     this.cameras.main.flash(70, 255, 72, 102, false);
     this.cameras.main.shake(95, 0.004);
-    this.showImpact(this.player.x + 24, this.player.y - 18, 0xff4866, amount >= 12);
-    this.showFloatingText(`-${amount} HP`, this.player.x, this.player.y - 108, "#ff9aaa");
+    this.showImpact(this.player.x + 24, this.player.y - 18, 0xff4866, finalAmount >= 12);
+    this.showFloatingText(`-${finalAmount} HP`, this.player.x, this.player.y - 108, "#ff9aaa");
+    this.addEnergy(4);
     this.statusText.setText(label);
 
     this.time.delayedCall(220, () => {
@@ -819,6 +910,7 @@ export class ArenaScene extends Phaser.Scene {
     this.enemy.setTint(0xffffff);
     this.defeatedLeaks += 1;
     this.score += config.boss ? 1500 : 700;
+    this.addEnergy(config.boss ? 28 : 18, "round");
     this.showImpact(this.enemy.x, this.enemy.y - 42, config.boss ? 0xffeb72 : 0x72ff57, true);
     this.showFloatingText(config.defeatLine, this.enemy.x, this.enemy.y - 130, "#72ff57");
     this.showRoundClear(config);
@@ -901,6 +993,10 @@ export class ArenaScene extends Phaser.Scene {
     this.playerHpFill.width = 226 * Phaser.Math.Clamp(this.playerHp / this.playerMaxHp, 0, 1);
     this.enemyHpFill.width = 226 * Phaser.Math.Clamp(this.enemyHp / Math.max(1, this.enemyMaxHp), 0, 1);
     this.playerHpText.setText(`${Math.max(0, this.playerHp)}/${this.playerMaxHp}`);
+    this.playerEnergyFill.width = 226 * Phaser.Math.Clamp(this.playerEnergy / MAX_ENERGY, 0, 1);
+    const energyLabel = this.playerEnergy >= MAX_ENERGY ? "ULT READY" : `ENERGY ${Math.floor(this.playerEnergy)}`;
+    this.playerEnergyText.setText(energyLabel);
+    this.playerEnergyText.setColor(this.playerEnergy >= MAX_ENERGY ? "#72ff57" : "#ffeb72");
     const config = ROUNDS[this.roundIndex] ?? ROUNDS[0];
     if (this.enemyHp > 0) {
       const enemyPercent = Math.ceil((this.enemyHp / Math.max(1, this.enemyMaxHp)) * 100);
@@ -911,7 +1007,22 @@ export class ArenaScene extends Phaser.Scene {
       const now = Date.now();
       const s1 = now >= this.skill1CooldownUntil ? "READY" : `${Math.ceil((this.skill1CooldownUntil - now) / 1000)}s`;
       const s2 = now >= this.skill2CooldownUntil ? "READY" : `${Math.ceil((this.skill2CooldownUntil - now) / 1000)}s`;
-      this.skillStatusText.setText(`S1 ${this.skill1.name}: ${s1}   ·   S2 ${this.skill2.name}: ${s2}`);
+      const skillEnergy = `E ${Math.floor(this.playerEnergy)}`;
+      this.skillStatusText.setText(`S1 ${this.skill1.name}: ${s1}   ·   S2 ${this.skill2.name}: ${s2}   ·   ${skillEnergy}`);
+    }
+
+    if (this.ultimateStatusText) {
+      const now = Date.now();
+      if (this.isUltimateActive(now)) {
+        this.ultimateStatusText.setText(`ULTIMATE ACTIVE ${Math.ceil((this.ultimateActiveUntil - now) / 1000)}s`);
+        this.ultimateStatusText.setColor("#72ff57");
+      } else if (this.playerEnergy >= MAX_ENERGY) {
+        this.ultimateStatusText.setText(`ULT READY · ${this.ultimateSkill.name.toUpperCase()}`);
+        this.ultimateStatusText.setColor("#ffeb72");
+      } else {
+        this.ultimateStatusText.setText(`ULT ${Math.floor(this.playerEnergy)}/${MAX_ENERGY}`);
+        this.ultimateStatusText.setColor("#fcfff7");
+      }
     }
   }
 
@@ -934,6 +1045,12 @@ export class ArenaScene extends Phaser.Scene {
     let playerTargetAngle = -1.5;
     let auraOuterAlpha = 0.08;
     let auraInnerAlpha = 0.05;
+
+    const ultimateActive = this.isUltimateActive();
+    if (ultimateActive) {
+      auraOuterAlpha = 0.18;
+      auraInnerAlpha = 0.1;
+    }
 
     switch (this.playerState) {
       case "moving":
@@ -981,6 +1098,13 @@ export class ArenaScene extends Phaser.Scene {
         playerTargetScaleX += breathe;
         playerTargetScaleY -= breathe;
         break;
+    }
+
+    if (ultimateActive) {
+      playerTargetScaleX *= 1.02;
+      playerTargetScaleY *= 1.02;
+      auraOuterAlpha = Math.max(auraOuterAlpha, 0.18);
+      auraInnerAlpha = Math.max(auraInnerAlpha, 0.1);
     }
 
     const currentPlayerW = Phaser.Math.Linear(this.player.displayWidth, PLAYER_DISPLAY_W * playerTargetScaleX, 0.22);
@@ -1236,6 +1360,24 @@ export class ArenaScene extends Phaser.Scene {
       duration: heavy ? 180 : 120,
       onComplete: () => core.destroy(),
     });
+  }
+
+  private showUltimateFx(): void {
+    const ring = this.add.circle(this.player.x, this.player.y - 36, 42, this.ultimateSkill.color, 0.08)
+      .setStrokeStyle(7, this.ultimateSkill.color, 0.86)
+      .setDepth(54);
+    const core = this.add.circle(this.player.x, this.player.y - 36, 18, 0xfcfff7, 0.18)
+      .setDepth(55);
+    const beam = this.add.rectangle(this.player.x, this.player.y - 42, 16, 138, this.ultimateSkill.color, 0.16)
+      .setDepth(53);
+    const label = this.add.text(this.player.x, this.player.y - 158, "WALLET PROTECTION MODE", {
+      fontFamily: "Arial", fontSize: "20px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 6,
+    }).setOrigin(0.5).setDepth(92);
+
+    this.tweens.add({ targets: ring, radius: 122, alpha: 0, duration: 560, onComplete: () => ring.destroy() });
+    this.tweens.add({ targets: core, alpha: 0, scaleX: 3.4, scaleY: 3.4, duration: 360, onComplete: () => core.destroy() });
+    this.tweens.add({ targets: beam, alpha: 0, scaleY: 1.5, duration: 460, onComplete: () => beam.destroy() });
+    this.tweens.add({ targets: label, y: label.y - 28, alpha: 0, delay: 520, duration: 520, onComplete: () => label.destroy() });
   }
 
   private showBlockFx(): void {
