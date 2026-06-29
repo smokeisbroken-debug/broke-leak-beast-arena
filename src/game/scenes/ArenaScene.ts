@@ -5,9 +5,9 @@ import { requestAppFullscreen, toggleAppFullscreen } from "../../app/AppShell";
 import { MobileControls } from "../ui/MobileControls";
 import { SfxSystem } from "../systems/SfxSystem";
 import { ARENA_BATTLE_ROUNDS } from "../data/bosses";
-import { getBossMechanicProfile, getSkillById, getSkinById, getSkinStatMultiplier, loadPlayerProfile } from "../data/gameRegistry";
+import { getBossMechanicProfile, getSkillById, getSkinById, getSkinStatMultiplier, getStageById, getStageModifierLabel, loadPlayerProfile } from "../data/gameRegistry";
 import type { ArenaBossDefinition } from "../data/bosses";
-import type { BossMechanicProfile, BossPhaseDefinition, SkillDefinition, SkinDefinition } from "../data/gameRegistry";
+import type { BossMechanicProfile, BossPhaseDefinition, SkillDefinition, SkinDefinition, StageDefinition } from "../data/gameRegistry";
 import type { InputState, RunResult } from "../types/game";
 
 type FighterState = "idle" | "moving" | "punch" | "kick" | "block" | "dash" | "hurt" | "defeated";
@@ -39,6 +39,7 @@ export class ArenaScene extends Phaser.Scene {
   private playerAuraInner!: Phaser.GameObjects.Ellipse;
   private enemyAura!: Phaser.GameObjects.Ellipse;
   private selectedSkin!: SkinDefinition;
+  private selectedStage!: StageDefinition;
   private skill1!: SkillDefinition;
   private skill2!: SkillDefinition;
   private ultimateSkill!: SkillDefinition;
@@ -80,6 +81,11 @@ export class ArenaScene extends Phaser.Scene {
   private skill1CooldownUntil = 0;
   private skill2CooldownUntil = 0;
   private ultimateLockUntil = 0;
+  private nextStageHazardAt = 0;
+  private nextStageTickAt = 0;
+  private stageSlowZoneX = GAME_WIDTH / 2;
+  private stageLeakZoneX = GAME_WIDTH / 2;
+  private stageWaveDirection = 1;
   private lastPunchAt = 0;
   private comboStep = 0;
   private bossPhaseShown = false;
@@ -96,6 +102,7 @@ export class ArenaScene extends Phaser.Scene {
   private comboText!: Phaser.GameObjects.Text;
   private skillStatusText!: Phaser.GameObjects.Text;
   private ultimateStatusText!: Phaser.GameObjects.Text;
+  private stageStatusText!: Phaser.GameObjects.Text;
 
   constructor() {
     super(SCENE_KEYS.arena);
@@ -104,6 +111,7 @@ export class ArenaScene extends Phaser.Scene {
   create(): void {
     const profile = loadPlayerProfile();
     this.selectedSkin = getSkinById(profile.selectedSkinId);
+    this.selectedStage = getStageById(profile.selectedStageId);
     this.skill1 = getSkillById(profile.selectedSkillIds.skill1);
     this.skill2 = getSkillById(profile.selectedSkillIds.skill2);
     this.ultimateSkill = getSkillById(profile.selectedSkillIds.ultimate);
@@ -141,6 +149,11 @@ export class ArenaScene extends Phaser.Scene {
     this.lastPunchAt = 0;
     this.comboStep = 0;
     this.bossPhaseShown = false;
+    this.nextStageHazardAt = 0;
+    this.nextStageTickAt = 0;
+    this.stageSlowZoneX = GAME_WIDTH / 2;
+    this.stageLeakZoneX = GAME_WIDTH / 2;
+    this.stageWaveDirection = 1;
     this.enemySpecialCooldownUntil = 0;
     this.activeBossPhaseIndex = -1;
 
@@ -172,17 +185,18 @@ export class ArenaScene extends Phaser.Scene {
     const input = this.controls.getInputState();
     const now = Date.now();
 
+    this.updateStageSystem(now, delta);
     this.updatePlayer(input, now);
     this.updateEnemy(now);
     this.clampFighters();
   }
 
   private createArenaBackground(): void {
-    this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "arena-bg-01")
+    this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, this.selectedStage.backgroundKey)
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
       .setDepth(0);
 
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x102b10, 0.08)
+    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, this.selectedStage.color, 0.055)
       .setDepth(1);
 
     this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 32, GAME_WIDTH, 92, 0x071707, 0.34)
@@ -195,8 +209,11 @@ export class ArenaScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setLineWidth(2)
       .setDepth(3);
-    this.add.rectangle(96, 0, 166, GAME_HEIGHT, 0x72ff57, 0.012).setDepth(2);
+    this.add.rectangle(96, 0, 166, GAME_HEIGHT, this.selectedStage.color, 0.014).setDepth(2);
     this.add.rectangle(GAME_WIDTH - 96, 0, 166, GAME_HEIGHT, 0xa45cff, 0.012).setDepth(2);
+
+    if (this.selectedStage.modifier === "slow_zones") this.createPersistentSlowZone();
+    if (this.selectedStage.modifier === "leak_zones") this.createPersistentLeakZone();
   }
 
   private createFighters(): void {
@@ -258,6 +275,10 @@ export class ArenaScene extends Phaser.Scene {
       fontFamily: "Arial", fontSize: "12px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(83);
 
+    this.stageStatusText = this.add.text(GAME_WIDTH / 2, 60, `STAGE: ${this.selectedStage.name.toUpperCase()} · ${getStageModifierLabel(this.selectedStage).toUpperCase()}`, {
+      fontFamily: "Arial", fontSize: "10px", color: this.selectedStage.uiColor, fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(83);
+
     this.statusText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 24, "FIGHT", {
       fontFamily: "Arial", fontSize: "12px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(84);
@@ -266,11 +287,11 @@ export class ArenaScene extends Phaser.Scene {
       fontFamily: "Arial", fontSize: "18px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
     }).setOrigin(0.5).setDepth(84);
 
-    this.skillStatusText = this.add.text(GAME_WIDTH / 2, 68, "", {
+    this.skillStatusText = this.add.text(GAME_WIDTH / 2, 78, "", {
       fontFamily: "Arial", fontSize: "11px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(84);
 
-    this.ultimateStatusText = this.add.text(GAME_WIDTH / 2, 88, "", {
+    this.ultimateStatusText = this.add.text(GAME_WIDTH / 2, 96, "", {
       fontFamily: "Arial", fontSize: "12px", color: "#ffeb72", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(84);
   }
@@ -303,6 +324,7 @@ export class ArenaScene extends Phaser.Scene {
     this.playerActionUntil = 0;
     this.playerInvincibleUntil = Date.now() + 600;
     this.bossPhaseShown = false;
+    this.nextStageHazardAt = Date.now() + Math.max(2600, this.selectedStage.hazardIntervalMs || 0);
 
     this.player.setTexture(this.selectedSkin.assetKey);
     this.player.setDisplaySize(PLAYER_DISPLAY_W, PLAYER_DISPLAY_H);
@@ -345,7 +367,7 @@ export class ArenaScene extends Phaser.Scene {
     const sub = this.add.text(GAME_WIDTH / 2, 194, `BROKE MASCOT  VS  ${config.name.toUpperCase()}`, {
       fontFamily: "Arial", fontSize: "17px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
     }).setOrigin(0.5).setDepth(121);
-    const objective = this.add.text(GAME_WIDTH / 2, 226, config.leakLabel, {
+    const objective = this.add.text(GAME_WIDTH / 2, 224, `${config.leakLabel} · ${this.selectedStage.name.toUpperCase()}`, {
       fontFamily: "Arial", fontSize: "14px", color: "#d9a7ff", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(121);
     const mechanics = this.getBossMechanics(config);
@@ -415,7 +437,7 @@ export class ArenaScene extends Phaser.Scene {
 
     this.player.setTint(this.selectedSkin.tintColor);
     this.playerState = Math.abs(input.x) > 0.08 ? "moving" : "idle";
-    const speed = this.playerMoveSpeed;
+    const speed = Math.round(this.playerMoveSpeed * this.getStageMoveMultiplier());
     this.player.setVelocityX(input.x * speed);
     this.player.setVelocityY(0);
     this.player.setFlipX(false);
@@ -991,6 +1013,186 @@ export class ArenaScene extends Phaser.Scene {
         label.destroy();
       },
     });
+  }
+
+  private getStageMoveMultiplier(): number {
+    if (this.selectedStage.modifier !== "slow_zones") return 1;
+    const inSlowZone = Math.abs(this.player.x - this.stageSlowZoneX) <= 82;
+    return inSlowZone ? 0.62 : 1;
+  }
+
+  private updateStageSystem(now: number, _delta: number): void {
+    if (!this.selectedStage || this.runFinished || this.enemyState === "defeated") return;
+
+    if (this.selectedStage.modifier === "slow_zones") {
+      if (Math.abs(this.player.x - this.stageSlowZoneX) <= 82 && now >= this.nextStageTickAt) {
+        this.nextStageTickAt = now + 800;
+        this.statusText.setText("SLOW ZONE");
+        this.showFloatingText("SLOW", this.player.x, this.player.y - 126, "#4de8ff");
+      }
+      return;
+    }
+
+    if (this.selectedStage.modifier === "leak_zones") {
+      if (Math.abs(this.player.x - this.stageLeakZoneX) <= 86 && now >= this.nextStageTickAt) {
+        this.nextStageTickAt = now + 900;
+        this.playerEnergy = Phaser.Math.Clamp(this.playerEnergy - 6, 0, MAX_ENERGY);
+        this.applyStageDamage(this.selectedStage.hazardDamage, "LEAK ZONE", "#ffeb72");
+      }
+      return;
+    }
+
+    if (this.selectedStage.modifier === "neutral") return;
+    if (now < this.nextStageHazardAt) return;
+
+    const interval = Math.max(3200, this.selectedStage.hazardIntervalMs || 4200);
+    this.nextStageHazardAt = now + interval;
+
+    if (this.selectedStage.modifier === "risk_zones") {
+      this.spawnStageRiskZone();
+      return;
+    }
+    if (this.selectedStage.modifier === "impulse_traps") {
+      this.spawnStageImpulseTrap();
+      return;
+    }
+    if (this.selectedStage.modifier === "volatility_waves") {
+      this.spawnStageVolatilityWave();
+      return;
+    }
+    if (this.selectedStage.modifier === "boss_arena") {
+      this.spawnBossPressureZone(ROUNDS[this.roundIndex], true);
+    }
+  }
+
+  private createPersistentSlowZone(): void {
+    this.stageSlowZoneX = GAME_WIDTH / 2 + 56;
+    const zone = this.add.ellipse(this.stageSlowZoneX, FLOOR_Y - 12, 172, 34, this.selectedStage.color, 0.06)
+      .setStrokeStyle(3, this.selectedStage.color, 0.42)
+      .setDepth(7);
+    this.add.text(this.stageSlowZoneX, FLOOR_Y - 42, "SLOW ZONE", {
+      fontFamily: "Arial", fontSize: "11px", color: this.selectedStage.uiColor, fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(8);
+    this.tweens.add({ targets: zone, scaleX: 1.08, alpha: 0.11, duration: 950, yoyo: true, repeat: -1 });
+  }
+
+  private createPersistentLeakZone(): void {
+    this.stageLeakZoneX = GAME_WIDTH / 2 - 24;
+    const zone = this.add.ellipse(this.stageLeakZoneX, FLOOR_Y - 12, 188, 38, this.selectedStage.color, 0.07)
+      .setStrokeStyle(3, this.selectedStage.color, 0.48)
+      .setDepth(7);
+    this.add.text(this.stageLeakZoneX, FLOOR_Y - 44, "LEAK DRAIN", {
+      fontFamily: "Arial", fontSize: "11px", color: this.selectedStage.uiColor, fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(8);
+    this.tweens.add({ targets: zone, scaleX: 1.08, alpha: 0.12, duration: 780, yoyo: true, repeat: -1 });
+  }
+
+  private spawnStageRiskZone(): void {
+    const x = Phaser.Math.Between(Math.round(LEFT_BOUND + 60), Math.round(RIGHT_BOUND - 60));
+    const radius = 54;
+    const warning = this.add.circle(x, FLOOR_Y - 20, radius, this.selectedStage.color, 0.07)
+      .setStrokeStyle(4, this.selectedStage.color, 0.76)
+      .setDepth(39);
+    const label = this.add.text(x, FLOOR_Y - 76, "RISK ZONE", {
+      fontFamily: "Arial", fontSize: "13px", color: this.selectedStage.uiColor, fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(91);
+    this.statusText.setText("STAGE HAZARD: RISK ZONE");
+    this.tweens.add({ targets: warning, scaleX: 1.15, scaleY: 1.15, alpha: 0.16, duration: 340, yoyo: true, repeat: 2 });
+
+    this.time.delayedCall(920, () => {
+      if (this.runFinished || !warning.active) return;
+      this.showImpact(x, FLOOR_Y - 34, this.selectedStage.color, true);
+      if (Math.abs(this.player.x - x) <= radius + 24) {
+        this.applyStageDamage(this.selectedStage.hazardDamage, "RISK", this.selectedStage.uiColor);
+      }
+    });
+
+    this.tweens.add({
+      targets: [warning, label],
+      alpha: 0,
+      delay: 1200,
+      duration: 360,
+      onComplete: () => {
+        warning.destroy();
+        label.destroy();
+      },
+    });
+  }
+
+  private spawnStageImpulseTrap(): void {
+    const x = Phaser.Math.Between(Math.round(LEFT_BOUND + 80), Math.round(RIGHT_BOUND - 80));
+    const trap = this.add.rectangle(x, FLOOR_Y - 10, 118, 14, this.selectedStage.color, 0.12)
+      .setStrokeStyle(3, this.selectedStage.color, 0.76)
+      .setDepth(39);
+    const label = this.add.text(x, FLOOR_Y - 44, "IMPULSE TRAP", {
+      fontFamily: "Arial", fontSize: "12px", color: this.selectedStage.uiColor, fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(91);
+    this.statusText.setText("STAGE HAZARD: IMPULSE TRAP");
+
+    this.time.delayedCall(760, () => {
+      if (this.runFinished || !trap.active) return;
+      trap.setFillStyle(this.selectedStage.color, 0.28);
+      this.showImpact(x, FLOOR_Y - 30, this.selectedStage.color, false);
+      if (Math.abs(this.player.x - x) <= 74) {
+        this.player.setVelocityX(this.player.x < x ? -180 : 180);
+        this.applyStageDamage(this.selectedStage.hazardDamage, "TRAP", this.selectedStage.uiColor);
+      }
+    });
+
+    this.tweens.add({
+      targets: [trap, label],
+      alpha: 0,
+      delay: 1180,
+      duration: 320,
+      onComplete: () => {
+        trap.destroy();
+        label.destroy();
+      },
+    });
+  }
+
+  private spawnStageVolatilityWave(): void {
+    const dir = this.stageWaveDirection;
+    this.stageWaveDirection *= -1;
+    const startX = dir > 0 ? LEFT_BOUND - 40 : RIGHT_BOUND + 40;
+    const endX = dir > 0 ? RIGHT_BOUND + 40 : LEFT_BOUND - 40;
+    const wave = this.add.rectangle(startX, FLOOR_Y - 62, 18, 132, this.selectedStage.color, 0.15)
+      .setStrokeStyle(3, this.selectedStage.color, 0.72)
+      .setDepth(40);
+    const label = this.add.text(GAME_WIDTH / 2, FLOOR_Y - 142, "VOLATILITY WAVE", {
+      fontFamily: "Arial", fontSize: "13px", color: this.selectedStage.uiColor, fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(91);
+    this.statusText.setText("STAGE HAZARD: VOLATILITY WAVE");
+
+    this.tweens.add({ targets: wave, x: endX, duration: 1180, ease: "Sine.easeInOut" });
+    [360, 620, 880].forEach((delay) => {
+      this.time.delayedCall(delay, () => {
+        if (this.runFinished || !wave.active) return;
+        if (Math.abs(this.player.x - wave.x) <= 34) {
+          this.applyStageDamage(this.selectedStage.hazardDamage, "VOLATILITY", this.selectedStage.uiColor);
+        }
+      });
+    });
+
+    this.tweens.add({
+      targets: [wave, label],
+      alpha: 0,
+      delay: 1250,
+      duration: 260,
+      onComplete: () => {
+        wave.destroy();
+        label.destroy();
+      },
+    });
+  }
+
+  private applyStageDamage(amount: number, label: string, color: string): void {
+    if (amount <= 0 || this.runFinished) return;
+    this.playerHp = Math.max(0, this.playerHp - amount);
+    this.showFloatingText(`${label} -${amount} HP`, this.player.x, this.player.y - 122, color);
+    this.statusText.setText(label);
+    this.cameras.main.shake(56, 0.0026);
+    if (this.playerHp <= 0) this.finishRun(false);
   }
 
   private damagePlayer(amount: number, label: string): void {

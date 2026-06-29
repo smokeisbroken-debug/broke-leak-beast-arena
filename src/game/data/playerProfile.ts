@@ -1,7 +1,7 @@
 import { DEFAULT_HERO_ID } from "./heroes";
 import { DEFAULT_LOADOUT, STARTER_SKILL_IDS, getSkillById, type ActiveSkillSlot } from "./skills";
 import { DEFAULT_SKIN_ID, STARTER_SKIN_IDS } from "./skins";
-import { DEFAULT_STAGE_ID } from "./stages";
+import { DEFAULT_STAGE_ID, STARTER_STAGE_IDS, STAGES, getStageById } from "./stages";
 
 export interface PlayerProfile {
   version: number;
@@ -37,7 +37,7 @@ export const DEFAULT_PLAYER_PROFILE: PlayerProfile = {
   selectedSkillIds: DEFAULT_LOADOUT,
   unlockedSkillIds: STARTER_SKILL_IDS,
   selectedStageId: DEFAULT_STAGE_ID,
-  unlockedStageIds: [DEFAULT_STAGE_ID],
+  unlockedStageIds: STARTER_STAGE_IDS,
   coins: 0,
   xp: 0,
   level: 1,
@@ -98,6 +98,14 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
     normalized.selectedSkillIds.ultimate = DEFAULT_LOADOUT.ultimate;
   }
 
+  const profileStageIds = profile?.unlockedStageIds ?? [];
+  const levelUnlockedStageIds = STAGES.filter((stage) => stage.unlockLevel <= normalized.level).map((stage) => stage.id);
+  normalized.unlockedStageIds = Array.from(new Set([DEFAULT_STAGE_ID, ...STARTER_STAGE_IDS, ...levelUnlockedStageIds, ...profileStageIds]));
+  const selectedStage = getStageById(normalized.selectedStageId);
+  if (!normalized.unlockedStageIds.includes(selectedStage.id) && normalized.level < selectedStage.unlockLevel) {
+    normalized.selectedStageId = DEFAULT_STAGE_ID;
+  }
+
   return normalized;
 }
 
@@ -132,6 +140,23 @@ export function unlockProfileSkill(profile: PlayerProfile, skillId: string): Pla
   const normalized = normalizeProfile(profile);
   if (!normalized.unlockedSkillIds.includes(skillId)) {
     normalized.unlockedSkillIds = [...normalized.unlockedSkillIds, skillId];
+  }
+  return normalized;
+}
+
+export function selectProfileStage(profile: PlayerProfile, stageId: string): PlayerProfile {
+  const normalized = normalizeProfile(profile);
+  const stage = getStageById(stageId);
+  if (!normalized.unlockedStageIds.includes(stage.id) && normalized.level < stage.unlockLevel) return normalized;
+  normalized.selectedStageId = stage.id;
+  return normalized;
+}
+
+export function unlockProfileStage(profile: PlayerProfile, stageId: string): PlayerProfile {
+  const normalized = normalizeProfile(profile);
+  const stage = getStageById(stageId);
+  if (!normalized.unlockedStageIds.includes(stage.id)) {
+    normalized.unlockedStageIds = [...normalized.unlockedStageIds, stage.id];
   }
   return normalized;
 }

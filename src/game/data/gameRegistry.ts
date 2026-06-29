@@ -32,8 +32,17 @@ export type { ArenaBossBehavior, ArenaBossDefinition } from "./bosses";
 export { BOSS_MECHANIC_PROFILES, getBossMechanicProfile } from "./bossMechanics";
 export type { BossMechanicProfile, BossMechanicProfileId, BossPhaseDefinition, BossSpecialDefinition, BossSpecialEffect } from "./bossMechanics";
 
-export { STAGES, DEFAULT_STAGE_ID, getStageById } from "./stages";
-export type { StageDefinition, StageModifier } from "./stages";
+export {
+  STAGES,
+  DEFAULT_STAGE_ID,
+  STARTER_STAGE_IDS,
+  getStageById,
+  getStageModifierLabel,
+  getStageRarityColor,
+  getStageUnlockLabel,
+  isStageUnlocked,
+} from "./stages";
+export type { StageDefinition, StageModifier, StageProfileState, StageRarity } from "./stages";
 
 export { BASE_FIGHT_REWARDS, LEVELS, calculateFightReward, getLevelForXp } from "./progression";
 export type { LevelDefinition, RewardBundle } from "./progression";
@@ -47,7 +56,9 @@ export {
   savePlayerProfile,
   selectProfileSkill,
   selectProfileSkin,
+  selectProfileStage,
   unlockProfileSkill,
   unlockProfileSkin,
+  unlockProfileStage,
 } from "./playerProfile";
 export type { PlayerProfile } from "./playerProfile";

@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import { requestAppFullscreen } from "../../app/AppShell";
-import { formatSkinBonuses, getSkinById, loadPlayerProfile } from "../data/gameRegistry";
+import { formatSkinBonuses, getSkinById, getStageById, getStageModifierLabel, loadPlayerProfile } from "../data/gameRegistry";
 
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -12,6 +12,7 @@ export class MainMenuScene extends Phaser.Scene {
   create(): void {
     const profile = loadPlayerProfile();
     const activeSkin = getSkinById(profile.selectedSkinId);
+    const activeStage = getStageById(profile.selectedStageId);
 
     this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "menu-start-screen")
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
@@ -31,7 +32,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     this.tweens.add({ targets: hero, y: 242, duration: 1250, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
 
-    const objectivePanel = this.add.rectangle(548, 166, 330, 122, 0x050805, 0.74)
+    const objectivePanel = this.add.rectangle(548, 178, 350, 166, 0x050805, 0.74)
       .setStrokeStyle(2, activeSkin.auraColor, 0.34)
       .setDepth(4);
 
@@ -63,10 +64,19 @@ export class MainMenuScene extends Phaser.Scene {
       strokeThickness: 4,
     }).setOrigin(0.5).setDepth(5);
 
-    this.add.text(objectivePanel.x, 239, formatSkinBonuses(activeSkin), {
+    this.add.text(objectivePanel.x, 238, formatSkinBonuses(activeSkin), {
       fontFamily: "Arial",
       fontSize: "10px",
       color: "#d7ffd0",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(5);
+
+    this.add.text(objectivePanel.x, 258, `STAGE: ${activeStage.name.toUpperCase()} · ${getStageModifierLabel(activeStage).toUpperCase()}`, {
+      fontFamily: "Arial",
+      fontSize: "10px",
+      color: activeStage.uiColor,
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 3,
@@ -84,11 +94,11 @@ export class MainMenuScene extends Phaser.Scene {
     play.on("pointerover", () => play.setScale(1.03));
     play.on("pointerout", () => play.setScale(1));
 
-    const skinButton = this.add.rectangle(482, 376, 118, 34, 0x071107, 0.9)
+    const skinButton = this.add.rectangle(438, 376, 108, 34, 0x071107, 0.9)
       .setStrokeStyle(2, activeSkin.auraColor, 0.55)
       .setDepth(5)
       .setInteractive({ useHandCursor: true });
-    this.add.text(482, 376, "SKINS", {
+    this.add.text(438, 376, "SKINS", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#fcfff7",
@@ -98,11 +108,11 @@ export class MainMenuScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(6);
     skinButton.on("pointerdown", () => this.scene.start(SCENE_KEYS.skinSelect));
 
-    const skillButton = this.add.rectangle(608, 376, 118, 34, 0x071107, 0.9)
+    const skillButton = this.add.rectangle(556, 376, 108, 34, 0x071107, 0.9)
       .setStrokeStyle(2, 0x72ff57, 0.55)
       .setDepth(5)
       .setInteractive({ useHandCursor: true });
-    this.add.text(608, 376, "SKILLS", {
+    this.add.text(556, 376, "SKILLS", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#fcfff7",
@@ -111,6 +121,20 @@ export class MainMenuScene extends Phaser.Scene {
       strokeThickness: 4,
     }).setOrigin(0.5).setDepth(6);
     skillButton.on("pointerdown", () => this.scene.start(SCENE_KEYS.skillLoadout));
+
+    const stageButton = this.add.rectangle(674, 376, 108, 34, 0x071107, 0.9)
+      .setStrokeStyle(2, activeStage.color, 0.55)
+      .setDepth(5)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(674, 376, "STAGES", {
+      fontFamily: "Arial",
+      fontSize: "13px",
+      color: "#fcfff7",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(6);
+    stageButton.on("pointerdown", () => this.scene.start(SCENE_KEYS.stageSelect));
 
     this.add.text(188, 392, `COINS: ${profile.coins} · LEVEL ${profile.level}`, {
       fontFamily: "Arial",
