@@ -29,6 +29,16 @@ import {
   type RewardBundle,
   type RewardChoiceDefinition,
 } from "./progression";
+import {
+  PROFILE_BACKUP_STORAGE_KEY,
+  createSaveExport,
+  getLocalSaveStatus,
+  parseSaveImport,
+  readProfileBackup,
+  writeProfileBackup,
+  type SaveParseResult,
+  type SaveStatus,
+} from "./saveSystem";
 
 export interface PlayerProfile {
   version: number;
@@ -540,14 +550,46 @@ export function loadPlayerProfile(): PlayerProfile {
   const raw = window.localStorage.getItem(PROFILE_STORAGE_KEY);
   if (!raw) return createDefaultProfile();
 
-  try {
-    return normalizeProfile(JSON.parse(raw) as Partial<PlayerProfile>);
-  } catch {
-    return createDefaultProfile();
+  const parsed = parseSaveImport(raw);
+  if (parsed.ok) return normalizeProfile(parsed.profile);
+
+  const backupRaw = readProfileBackup();
+  if (backupRaw) {
+    const backupParsed = parseSaveImport(backupRaw);
+    if (backupParsed.ok) return normalizeProfile(backupParsed.profile);
   }
+
+  return createDefaultProfile();
 }
 
 export function savePlayerProfile(profile: PlayerProfile): void {
   if (typeof window === "undefined") return;
+  writeProfileBackup(PROFILE_STORAGE_KEY);
   window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(normalizeProfile(profile)));
 }
+
+export function exportPlayerSave(profile = loadPlayerProfile()): string {
+  return createSaveExport(normalizeProfile(profile));
+}
+
+export function importPlayerSave(raw: string): SaveParseResult {
+  const parsed = parseSaveImport(raw);
+  if (!parsed.ok || !parsed.profile) return parsed;
+  savePlayerProfile(normalizeProfile(parsed.profile));
+  return parsed;
+}
+
+export function restoreBackupProfile(): boolean {
+  const backupRaw = readProfileBackup();
+  if (!backupRaw) return false;
+  const parsed = parseSaveImport(backupRaw);
+  if (!parsed.ok || !parsed.profile) return false;
+  savePlayerProfile(normalizeProfile(parsed.profile));
+  return true;
+}
+
+export function getSaveStatus(): SaveStatus {
+  return getLocalSaveStatus(PROFILE_STORAGE_KEY);
+}
+
+export { PROFILE_BACKUP_STORAGE_KEY };

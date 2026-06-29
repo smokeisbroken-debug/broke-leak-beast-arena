@@ -77,10 +77,15 @@ export type { LevelDefinition, RewardBundle, RewardChoiceDefinition, RewardChoic
 
 export {
   DEFAULT_PLAYER_PROFILE,
+  PROFILE_BACKUP_STORAGE_KEY,
   PROFILE_STORAGE_KEY,
   createDefaultProfile,
+  exportPlayerSave,
+  getSaveStatus,
+  importPlayerSave,
   loadPlayerProfile,
   normalizeProfile,
+  restoreBackupProfile,
   savePlayerProfile,
   applyFightResultToProfile,
   applyRewardChoiceToProfile,
@@ -97,3 +102,5 @@ export {
   unlockProfileStage,
 } from "./playerProfile";
 export type { DailyMissionDefinition, DailyMissionFightStats, DailyMissionState, FightRewardApplication, FightRewardInput, MissionClaimApplication, MissionRewardBundle, PlayerProfile, RewardChoiceApplication } from "./playerProfile";
+export { SAVE_FORMAT, SAVE_FORMAT_VERSION } from "./saveSystem";
+export type { ExportedSaveFile, SaveParseResult, SaveStatus } from "./saveSystem";

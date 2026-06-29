@@ -12,6 +12,7 @@ import {
   getSelectedCampaignBoss,
   getSkinById,
   getStageById,
+  getSaveStatus,
   getXpProgress,
   loadPlayerProfile,
 } from "../data/gameRegistry";
@@ -54,7 +55,8 @@ export class ProfileScene extends Phaser.Scene {
     this.createStatsCard(profile.totalWins, profile.totalLosses, profile.bestScore, completedMissions, claimableMissions);
     this.createLoadoutCard(skin.name, stage.name, boss.name, skills.skill1.name, skills.skill2.name, skills.ultimate.name);
     this.createProgressCard(profile.unlockedSkinIds.length, profile.unlockedSkillIds.length, profile.unlockedStageIds.length, campaignProgress);
-    this.createResourceCard(profile.leakPoints, profile.skinShards, profile.skillCards);
+    const saveStatus = getSaveStatus();
+    this.createResourceCard(profile.leakPoints, profile.skinShards, profile.skillCards, saveStatus.mainReadable, saveStatus.backupReadable);
     this.createFooterButtons();
   }
 
@@ -114,14 +116,14 @@ export class ProfileScene extends Phaser.Scene {
     ], "#fcfff7");
   }
 
-  private createResourceCard(leakPoints: number, skinShards: number, skillCards: number): void {
-    this.createPanel(700, 288, 266, 138, "RESOURCES", 0x8cdcff);
+  private createResourceCard(leakPoints: number, skinShards: number, skillCards: number, saveOk: boolean, backupOk: boolean): void {
+    this.createPanel(700, 288, 266, 138, "RESOURCES / SAVE", 0x8cdcff);
     this.writeLines(576, 274, [
       `LEAK POINTS: ${leakPoints}`,
       `SKIN SHARDS: ${skinShards}`,
       `SKILL CARDS: ${skillCards}`,
-      "NEXT: SAVE SYSTEM",
-      "PROFILE DATA USES LOCAL STORAGE",
+      `SAVE: ${saveOk ? "OK" : "EMPTY"}`,
+      `BACKUP: ${backupOk ? "OK" : "EMPTY"}`,
     ], "#d7ffd0", 11);
   }
 
