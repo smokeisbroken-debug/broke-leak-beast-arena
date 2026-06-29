@@ -16,8 +16,8 @@ export class MobileControls {
   private joystickBase: Phaser.GameObjects.Image;
   private joystickKnob: Phaser.GameObjects.Arc;
   private joystickPointerId: number | null = null;
-  private readonly joystickCenter = new Phaser.Math.Vector2(118, GAME_HEIGHT - 82);
-  private readonly joystickRadius = 64;
+  private readonly joystickCenter = new Phaser.Math.Vector2(112, GAME_HEIGHT - 76);
+  private readonly joystickRadius = 60;
   private readonly releaseAll = () => {
     this.joystickPointerId = null;
     this.inputState.x = 0;
@@ -32,7 +32,7 @@ export class MobileControls {
     this.createControlBackplates();
 
     this.joystickBase = scene.add.image(this.joystickCenter.x, this.joystickCenter.y, "combat-joystick-base")
-      .setDisplaySize(144, 144)
+      .setDisplaySize(132, 132)
       .setAlpha(0.96)
       .setDepth(80)
       .setScrollFactor(0);
@@ -72,41 +72,42 @@ export class MobileControls {
   }
 
   private createControlBackplates(): void {
-    this.scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 90, 0x061006, 0.2)
+    this.scene.add.circle(this.joystickCenter.x, this.joystickCenter.y, 82, 0x061006, 0.18)
       .setStrokeStyle(3, 0x72ff57, 0.18)
       .setDepth(78)
       .setScrollFactor(0);
 
-    this.scene.add.circle(GAME_WIDTH - 116, GAME_HEIGHT - 86, 134, 0x061006, 0.16)
+    this.scene.add.circle(GAME_WIDTH - 116, GAME_HEIGHT - 86, 118, 0x061006, 0.14)
       .setStrokeStyle(3, 0xa45cff, 0.16)
       .setDepth(78)
       .setScrollFactor(0);
   }
 
   private createButtons(): void {
-    this.createActionButton(GAME_WIDTH - 168, GAME_HEIGHT - 88, 104, "PUNCH", "FAST", 0x72ff57, () => {
+    // Calibrated for landscape mobile: no button should sit outside the canvas edge.
+    this.createActionButton(GAME_WIDTH - 166, GAME_HEIGHT - 82, 96, "PUNCH", "FAST", 0x72ff57, () => {
       this.inputState.attack = true;
     });
 
-    this.createActionButton(GAME_WIDTH - 86, GAME_HEIGHT - 148, 90, "KICK", "POWER", 0xffeb72, () => {
+    this.createActionButton(GAME_WIDTH - 88, GAME_HEIGHT - 142, 78, "KICK", "POWER", 0xffeb72, () => {
       this.inputState.pulse = true;
     });
 
-    this.createHoldButton(GAME_WIDTH - 86, GAME_HEIGHT - 42, 90, "BLOCK", "GUARD", 0x72ff57);
+    this.createHoldButton(GAME_WIDTH - 88, GAME_HEIGHT - 38, 78, "BLOCK", "GUARD", 0x72ff57);
 
-    this.createActionButton(GAME_WIDTH - 34, GAME_HEIGHT - 88, 92, "DASH", "EVADE", 0xa45cff, () => {
+    this.createActionButton(GAME_WIDTH - 44, GAME_HEIGHT - 84, 78, "DASH", "EVADE", 0xa45cff, () => {
       this.inputState.dodge = true;
     });
 
-    this.createActionButton(GAME_WIDTH - 206, GAME_HEIGHT - 190, 72, "S1", "SKILL", 0x72ff57, () => {
+    this.createActionButton(GAME_WIDTH - 214, GAME_HEIGHT - 176, 62, "S1", "SKILL", 0x72ff57, () => {
       this.inputState.skill1 = true;
     });
 
-    this.createActionButton(GAME_WIDTH - 122, GAME_HEIGHT - 214, 72, "S2", "SKILL", 0xffeb72, () => {
+    this.createActionButton(GAME_WIDTH - 140, GAME_HEIGHT - 202, 62, "S2", "SKILL", 0xffeb72, () => {
       this.inputState.skill2 = true;
     });
 
-    this.createActionButton(GAME_WIDTH - 42, GAME_HEIGHT - 190, 72, "ULT", "100", 0xff4866, () => {
+    this.createActionButton(GAME_WIDTH - 66, GAME_HEIGHT - 176, 66, "ULT", "100", 0xff4866, () => {
       this.inputState.ultimate = true;
     });
   }
@@ -135,7 +136,7 @@ export class MobileControls {
       .setScrollFactor(0);
     const title = this.scene.add.text(x, y - 5, label, {
       fontFamily: "Arial",
-      fontSize: label.length > 5 ? "17px" : "20px",
+      fontSize: label.length > 5 ? "16px" : label.length <= 3 ? "18px" : "19px",
       color: "#fcfff7",
       fontStyle: "bold",
       stroke: "#041004",
@@ -143,7 +144,7 @@ export class MobileControls {
     }).setOrigin(0.5).setDepth(85).setScrollFactor(0);
     const sub = this.scene.add.text(x, y + size * 0.26, subLabel, {
       fontFamily: "Arial",
-      fontSize: "10px",
+      fontSize: "9px",
       color: "#d7ffd0",
       fontStyle: "bold",
       stroke: "#041004",
@@ -181,7 +182,7 @@ export class MobileControls {
     }).setOrigin(0.5).setDepth(85).setScrollFactor(0);
     const sub = this.scene.add.text(x, y + size * 0.26, subLabel, {
       fontFamily: "Arial",
-      fontSize: "10px",
+      fontSize: "9px",
       color: "#d7ffd0",
       fontStyle: "bold",
       stroke: "#041004",

@@ -38,6 +38,8 @@ export class ArenaScene extends Phaser.Scene {
   private playerAuraOuter!: Phaser.GameObjects.Ellipse;
   private playerAuraInner!: Phaser.GameObjects.Ellipse;
   private enemyAura!: Phaser.GameObjects.Ellipse;
+  private playerTag!: Phaser.GameObjects.Text;
+  private enemyTag!: Phaser.GameObjects.Text;
   private selectedSkin!: SkinDefinition;
   private selectedStage!: StageDefinition;
   private skill1!: SkillDefinition;
@@ -255,6 +257,13 @@ export class ArenaScene extends Phaser.Scene {
     this.enemy.setDepth(21);
     this.enemy.setCollideWorldBounds(false);
     this.enemy.setData("side", "enemy");
+
+    this.playerTag = this.add.text(PLAYER_START_X, FLOOR_Y - PLAYER_DISPLAY_H - 28, "YOU", {
+      fontFamily: "Arial", fontSize: "13px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(76);
+    this.enemyTag = this.add.text(ENEMY_START_X, FLOOR_Y - this.getRound(0).displayH - 28, "LEAK", {
+      fontFamily: "Arial", fontSize: "13px", color: "#ff9aaa", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(76);
   }
 
   private createHud(): void {
@@ -285,17 +294,25 @@ export class ArenaScene extends Phaser.Scene {
     this.add.rectangle(GAME_WIDTH - 156, 42, 228, 13, 0x21172b, 1).setOrigin(0.5).setDepth(81);
     this.enemyHpFill = this.add.rectangle(GAME_WIDTH - 270, 42, 226, 11, 0xff4866, 1).setOrigin(0, 0.5).setDepth(82);
 
-    this.roundText = this.add.text(GAME_WIDTH / 2, 16, "ROUND 1", {
-      fontFamily: "Arial", fontSize: "22px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+    this.add.rectangle(GAME_WIDTH / 2, 64, 360, 72, 0x041004, 0.34)
+      .setStrokeStyle(1, 0x72ff57, 0.14)
+      .setDepth(79);
+
+    this.roundText = this.add.text(GAME_WIDTH / 2, 14, "ROUND 1", {
+      fontFamily: "Arial", fontSize: "20px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
     }).setOrigin(0.5).setDepth(83);
 
-    this.objectiveText = this.add.text(GAME_WIDTH / 2, 44, "DEFEAT THE LEAK", {
+    this.objectiveText = this.add.text(GAME_WIDTH / 2, 38, "DEFEAT THE LEAK", {
       fontFamily: "Arial", fontSize: "12px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(83);
 
-    this.stageStatusText = this.add.text(GAME_WIDTH / 2, 60, `STAGE: ${this.selectedStage.name.toUpperCase()} · ${getStageModifierLabel(this.selectedStage).toUpperCase()}`, {
+    this.stageStatusText = this.add.text(GAME_WIDTH / 2, 56, `STAGE: ${this.selectedStage.name.toUpperCase()} · ${getStageModifierLabel(this.selectedStage).toUpperCase()}`, {
       fontFamily: "Arial", fontSize: "10px", color: this.selectedStage.uiColor, fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
     }).setOrigin(0.5).setDepth(83);
+
+    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT - 25, 320, 30, 0x041004, 0.38)
+      .setStrokeStyle(1, 0xfcfff7, 0.08)
+      .setDepth(83);
 
     this.statusText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 24, "FIGHT", {
       fontFamily: "Arial", fontSize: "12px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
@@ -305,12 +322,12 @@ export class ArenaScene extends Phaser.Scene {
       fontFamily: "Arial", fontSize: "18px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
     }).setOrigin(0.5).setDepth(84);
 
-    this.skillStatusText = this.add.text(GAME_WIDTH / 2, 78, "", {
-      fontFamily: "Arial", fontSize: "11px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    this.skillStatusText = this.add.text(GAME_WIDTH / 2, 74, "", {
+      fontFamily: "Arial", fontSize: "10px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(84);
 
-    this.ultimateStatusText = this.add.text(GAME_WIDTH / 2, 96, "", {
-      fontFamily: "Arial", fontSize: "12px", color: "#ffeb72", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    this.ultimateStatusText = this.add.text(GAME_WIDTH / 2, 91, "", {
+      fontFamily: "Arial", fontSize: "11px", color: "#ffeb72", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(84);
   }
 
@@ -369,6 +386,8 @@ export class ArenaScene extends Phaser.Scene {
     this.roundText.setText(config.boss ? "BOSS MISSION" : `MISSION ${index + 1}`);
     this.objectiveText.setText(config.leakLabel);
     this.enemyHpText.setText(config.name.toUpperCase());
+    this.enemyTag?.setText(config.name.toUpperCase());
+    this.enemyTag?.setColor(config.boss ? "#ff9aaa" : config.behavior === "emotion" ? "#ffeb72" : config.behavior === "rug" ? "#d9a7ff" : "#d7ffd0");
     this.enemyHpText.setColor(config.boss ? "#ff9aaa" : config.behavior === "emotion" ? "#ffeb72" : config.behavior === "rug" ? "#d9a7ff" : "#d7ffd0");
     this.enemyHpFill.setFillStyle(config.color, 1);
     this.statusText.setText("GET READY");
@@ -1393,8 +1412,12 @@ export class ArenaScene extends Phaser.Scene {
       const now = Date.now();
       const s1 = now >= this.skill1CooldownUntil ? "READY" : `${Math.ceil((this.skill1CooldownUntil - now) / 1000)}s`;
       const s2 = now >= this.skill2CooldownUntil ? "READY" : `${Math.ceil((this.skill2CooldownUntil - now) / 1000)}s`;
-      const skillEnergy = `E ${Math.floor(this.playerEnergy)}`;
-      this.skillStatusText.setText(`S1 ${this.skill1.name}: ${s1}   ·   S2 ${this.skill2.name}: ${s2}   ·   ${skillEnergy}`);
+      const s1Cost = this.skill1.energyCost ?? 0;
+      const s2Cost = this.skill2.energyCost ?? 0;
+      const s1State = this.playerEnergy >= s1Cost ? s1 : `NEED ${s1Cost}`;
+      const s2State = this.playerEnergy >= s2Cost ? s2 : `NEED ${s2Cost}`;
+      this.skillStatusText.setText(`S1 ${s1State}  |  S2 ${s2State}  |  ENERGY ${Math.floor(this.playerEnergy)}`);
+      this.skillStatusText.setColor(this.playerEnergy >= Math.min(s1Cost, s2Cost) ? "#fcfff7" : "#ff9aaa");
     }
 
     if (this.ultimateStatusText) {
@@ -1420,6 +1443,8 @@ export class ArenaScene extends Phaser.Scene {
     this.enemyShadow.setPosition(this.enemy.x, FLOOR_Y - 2);
     this.enemyShadow.setDisplaySize(Math.max(62, config.displayW * 0.62), config.boss ? 28 : 20);
     this.enemyShadow.setAlpha(config.boss ? 0.3 : 0.24);
+    this.playerTag?.setPosition(this.player.x, this.player.y - this.player.displayHeight * 0.58 - 18);
+    this.enemyTag?.setPosition(this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.55 - 18);
   }
 
   private updateCharacterPresentation(): void {
@@ -1710,13 +1735,17 @@ export class ArenaScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setLineWidth(heavy ? 9 : 6)
       .setDepth(88);
-    const blockNow = heavy
-      ? this.add.text(this.player.x, this.player.y - 128, attack === "special" ? this.getBossMechanics(this.getRound(this.roundIndex)).special.warning : "BLOCK NOW", {
-        fontFamily: "Arial", fontSize: "16px", color: "#ffeb72", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+    const zoneX = this.enemy.x + dir * (range * 0.5);
+    const dangerZone = this.add.rectangle(zoneX, FLOOR_Y - 38, Math.abs(range), heavy ? 46 : 30, warnColor, heavy ? 0.1 : 0.06)
+      .setStrokeStyle(2, warnColor, heavy ? 0.38 : 0.24)
+      .setDepth(38);
+    const blockNow = heavy || lunge
+      ? this.add.text(this.player.x, this.player.y - 128, heavy ? attack === "special" ? this.getBossMechanics(this.getRound(this.roundIndex)).special.warning : "BLOCK NOW" : "DODGE OR BLOCK", {
+        fontFamily: "Arial", fontSize: heavy ? "16px" : "14px", color: heavy ? "#ffeb72" : "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
       }).setOrigin(0.5).setDepth(91)
       : undefined;
 
-    const targets: Phaser.GameObjects.GameObject[] = blockNow ? [label, marker, attackLine, blockNow] : [label, marker, attackLine];
+    const targets: Phaser.GameObjects.GameObject[] = blockNow ? [label, marker, attackLine, dangerZone, blockNow] : [label, marker, attackLine, dangerZone];
     this.tweens.add({
       targets,
       alpha: heavy ? 0.18 : 0.28,
@@ -1727,6 +1756,7 @@ export class ArenaScene extends Phaser.Scene {
         label.destroy();
         marker.destroy();
         attackLine.destroy();
+        dangerZone.destroy();
         blockNow?.destroy();
       },
     });
