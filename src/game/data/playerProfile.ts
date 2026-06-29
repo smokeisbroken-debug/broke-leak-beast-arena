@@ -1,7 +1,15 @@
 import { DEFAULT_HERO_ID } from "./heroes";
-import { DEFAULT_LOADOUT, STARTER_SKILL_IDS, getSkillById, type ActiveSkillSlot } from "./skills";
-import { DEFAULT_SKIN_ID, STARTER_SKIN_IDS } from "./skins";
+import { DEFAULT_LOADOUT, SKILLS, STARTER_SKILL_IDS, getSkillById, type ActiveSkillSlot } from "./skills";
+import { DEFAULT_SKIN_ID, SKINS, STARTER_SKIN_IDS } from "./skins";
 import { DEFAULT_STAGE_ID, STARTER_STAGE_IDS, STAGES, getStageById } from "./stages";
+import {
+  DEFAULT_REWARD_CHOICES,
+  LEVELS,
+  calculateFightReward,
+  getLevelForXp,
+  type RewardBundle,
+  type RewardChoiceDefinition,
+} from "./progression";
 
 export interface PlayerProfile {
   version: number;
@@ -16,6 +24,8 @@ export interface PlayerProfile {
   xp: number;
   level: number;
   leakPoints: number;
+  skinShards: number;
+  skillCards: number;
   campaignProgress: Record<string, number>;
   bossProgress: Record<string, boolean>;
   bestScore: number;
@@ -25,6 +35,32 @@ export interface PlayerProfile {
     soundEnabled: boolean;
     vibrationEnabled: boolean;
   };
+}
+
+export interface FightRewardInput {
+  victory: boolean;
+  score: number;
+  bossesBroken: number;
+  leaksDefeated: number;
+  survivedSeconds: number;
+}
+
+export interface FightRewardApplication {
+  profile: PlayerProfile;
+  baseRewards: RewardBundle;
+  oldLevel: number;
+  newLevel: number;
+  levelCoinReward: number;
+  unlocks: string[];
+}
+
+export interface RewardChoiceApplication {
+  profile: PlayerProfile;
+  choice: RewardChoiceDefinition;
+  oldLevel: number;
+  newLevel: number;
+  levelCoinReward: number;
+  unlocks: string[];
 }
 
 export const PROFILE_STORAGE_KEY = "broke_leak_fighter_profile_v1";
@@ -42,6 +78,8 @@ export const DEFAULT_PLAYER_PROFILE: PlayerProfile = {
   xp: 0,
   level: 1,
   leakPoints: 0,
+  skinShards: 0,
+  skillCards: 0,
   campaignProgress: { daily_leaks: 0 },
   bossProgress: {},
   bestScore: 0,
@@ -75,13 +113,21 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
     },
   };
 
+  normalized.xp = Math.max(0, Math.floor(normalized.xp || 0));
+  normalized.coins = Math.max(0, Math.floor(normalized.coins || 0));
+  normalized.leakPoints = Math.max(0, Math.floor(normalized.leakPoints || 0));
+  normalized.skinShards = Math.max(0, Math.floor(normalized.skinShards || 0));
+  normalized.skillCards = Math.max(0, Math.floor(normalized.skillCards || 0));
+  normalized.level = getLevelForXp(normalized.xp).level;
+
   const unlockedSkinIds = Array.from(new Set([...STARTER_SKIN_IDS, ...(profile?.unlockedSkinIds ?? [])]));
   normalized.unlockedSkinIds = unlockedSkinIds;
   if (!unlockedSkinIds.includes(normalized.selectedSkinId)) {
     normalized.selectedSkinId = DEFAULT_SKIN_ID;
   }
 
-  const unlockedSkillIds = Array.from(new Set([...STARTER_SKILL_IDS, ...(profile?.unlockedSkillIds ?? [])]));
+  const levelUnlockedSkillIds = SKILLS.filter((skill) => skill.unlockLevel <= normalized.level).map((skill) => skill.id);
+  const unlockedSkillIds = Array.from(new Set([...STARTER_SKILL_IDS, ...levelUnlockedSkillIds, ...(profile?.unlockedSkillIds ?? [])]));
   normalized.unlockedSkillIds = unlockedSkillIds;
   normalized.selectedSkillIds = {
     ...DEFAULT_LOADOUT,
@@ -107,6 +153,39 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
   }
 
   return normalized;
+}
+
+function syncLevelUnlocks(profile: PlayerProfile, oldLevel: number): { profile: PlayerProfile; unlocks: string[]; levelCoinReward: number; oldLevel: number; newLevel: number } {
+  const normalized = normalizeProfile(profile);
+  const newLevel = getLevelForXp(normalized.xp).level;
+  const unlocks: string[] = [];
+  let levelCoinReward = 0;
+
+  for (const level of LEVELS) {
+    if (level.level <= oldLevel || level.level > newLevel) continue;
+    if (level.coinReward > 0) {
+      normalized.coins += level.coinReward;
+      levelCoinReward += level.coinReward;
+    }
+
+    for (const unlockId of level.unlocks) {
+      if (SKILLS.some((skill) => skill.id === unlockId) && !normalized.unlockedSkillIds.includes(unlockId)) {
+        normalized.unlockedSkillIds = [...normalized.unlockedSkillIds, unlockId];
+        unlocks.push(unlockId);
+      }
+      if (STAGES.some((stage) => stage.id === unlockId) && !normalized.unlockedStageIds.includes(unlockId)) {
+        normalized.unlockedStageIds = [...normalized.unlockedStageIds, unlockId];
+        unlocks.push(unlockId);
+      }
+      if (SKINS.some((skin) => skin.id === unlockId) && !normalized.unlockedSkinIds.includes(unlockId)) {
+        normalized.unlockedSkinIds = [...normalized.unlockedSkinIds, unlockId];
+        unlocks.push(unlockId);
+      }
+    }
+  }
+
+  normalized.level = newLevel;
+  return { profile: normalizeProfile(normalized), unlocks, levelCoinReward, oldLevel, newLevel };
 }
 
 export function selectProfileSkin(profile: PlayerProfile, skinId: string): PlayerProfile {
@@ -159,6 +238,104 @@ export function unlockProfileStage(profile: PlayerProfile, stageId: string): Pla
     normalized.unlockedStageIds = [...normalized.unlockedStageIds, stage.id];
   }
   return normalized;
+}
+
+export function applyFightResultToProfile(profile: PlayerProfile, input: FightRewardInput): FightRewardApplication {
+  const normalized = normalizeProfile(profile);
+  const oldLevel = normalized.level;
+  const baseRewards = calculateFightReward(input.victory, input.bossesBroken, input.leaksDefeated, input.score);
+
+  normalized.xp += baseRewards.xp;
+  normalized.coins += baseRewards.coins;
+  normalized.leakPoints += baseRewards.leakPoints;
+  normalized.skinShards += baseRewards.skinShards;
+  normalized.skillCards += baseRewards.skillCards;
+  normalized.bestScore = Math.max(normalized.bestScore, input.score);
+  normalized.totalWins += input.victory ? 1 : 0;
+  normalized.totalLosses += input.victory ? 0 : 1;
+  normalized.campaignProgress.daily_leaks = Math.max(normalized.campaignProgress.daily_leaks ?? 0, input.leaksDefeated);
+
+  if (input.leaksDefeated >= 1) normalized.bossProgress.impulse_buy_beast = true;
+  if (input.leaksDefeated >= 2) normalized.bossProgress.emotional_trading_beast = true;
+  if (input.leaksDefeated >= 3) normalized.bossProgress.rug_pull_beast = true;
+  if (input.victory || input.bossesBroken > 0) normalized.bossProgress.wallet_destroyer = true;
+
+  for (const trophy of baseRewards.bossTrophies) {
+    normalized.bossProgress[trophy] = true;
+  }
+
+  const synced = syncLevelUnlocks(normalized, oldLevel);
+  return { ...synced, baseRewards };
+}
+
+export function getPostFightRewardChoices(profile: PlayerProfile): RewardChoiceDefinition[] {
+  const normalized = normalizeProfile(profile);
+  const choices = [...DEFAULT_REWARD_CHOICES];
+  const lockedSkill = SKILLS.find((skill) => skill.unlockLevel <= normalized.level && !normalized.unlockedSkillIds.includes(skill.id) && (skill.slot === "skill_1" || skill.slot === "skill_2" || skill.slot === "ultimate"));
+  if (lockedSkill) {
+    choices[2] = {
+      id: `unlock_skill_${lockedSkill.id}`,
+      name: `Unlock ${lockedSkill.name}`,
+      kind: "skill_unlock",
+      rarity: lockedSkill.rarity === "legendary" ? "legendary" : lockedSkill.rarity === "epic" ? "epic" : "rare",
+      amount: 1,
+      unlockId: lockedSkill.id,
+      color: lockedSkill.color,
+      uiColor: lockedSkill.uiColor,
+      description: `Add ${lockedSkill.name} to your skill pool.`,
+    };
+    return choices;
+  }
+
+  const lockedStage = STAGES.find((stage) => stage.unlockLevel <= normalized.level && !normalized.unlockedStageIds.includes(stage.id));
+  if (lockedStage) {
+    choices[2] = {
+      id: `unlock_stage_${lockedStage.id}`,
+      name: `Unlock ${lockedStage.name}`,
+      kind: "stage_unlock",
+      rarity: lockedStage.rarity === "boss" ? "legendary" : lockedStage.rarity === "epic" ? "epic" : "rare",
+      amount: 1,
+      unlockId: lockedStage.id,
+      color: lockedStage.color,
+      uiColor: lockedStage.uiColor,
+      description: `Open ${lockedStage.name} for future fights.`,
+    };
+  }
+
+  return choices;
+}
+
+export function applyRewardChoiceToProfile(profile: PlayerProfile, choice: RewardChoiceDefinition): RewardChoiceApplication {
+  const normalized = normalizeProfile(profile);
+  const oldLevel = normalized.level;
+  const unlocks: string[] = [];
+
+  if (choice.kind === "coins") normalized.coins += choice.amount;
+  if (choice.kind === "xp") normalized.xp += choice.amount;
+  if (choice.kind === "leak_points") normalized.leakPoints += choice.amount;
+  if (choice.kind === "skill_unlock" && choice.unlockId && !normalized.unlockedSkillIds.includes(choice.unlockId)) {
+    normalized.unlockedSkillIds = [...normalized.unlockedSkillIds, choice.unlockId];
+    normalized.skillCards += 1;
+    unlocks.push(choice.unlockId);
+  }
+  if (choice.kind === "stage_unlock" && choice.unlockId && !normalized.unlockedStageIds.includes(choice.unlockId)) {
+    normalized.unlockedStageIds = [...normalized.unlockedStageIds, choice.unlockId];
+    unlocks.push(choice.unlockId);
+  }
+  if (choice.kind === "skin_unlock" && choice.unlockId && !normalized.unlockedSkinIds.includes(choice.unlockId)) {
+    normalized.unlockedSkinIds = [...normalized.unlockedSkinIds, choice.unlockId];
+    unlocks.push(choice.unlockId);
+  }
+
+  const synced = syncLevelUnlocks(normalized, oldLevel);
+  return {
+    profile: synced.profile,
+    choice,
+    oldLevel,
+    newLevel: synced.newLevel,
+    levelCoinReward: synced.levelCoinReward,
+    unlocks: [...unlocks, ...synced.unlocks],
+  };
 }
 
 export function loadPlayerProfile(): PlayerProfile {

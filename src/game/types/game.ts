@@ -40,6 +40,7 @@ export interface RunResult {
   upgradesChosen: number;
   pickupsCollected?: number;
   bossesBroken?: number;
+  victory?: boolean;
 }
 
 export interface AttackSpec {

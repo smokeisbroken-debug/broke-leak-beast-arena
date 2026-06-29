@@ -44,8 +44,17 @@ export {
 } from "./stages";
 export type { StageDefinition, StageModifier, StageProfileState, StageRarity } from "./stages";
 
-export { BASE_FIGHT_REWARDS, LEVELS, calculateFightReward, getLevelForXp } from "./progression";
-export type { LevelDefinition, RewardBundle } from "./progression";
+export {
+  BASE_FIGHT_REWARDS,
+  DEFAULT_REWARD_CHOICES,
+  LEVELS,
+  calculateFightReward,
+  getLevelForXp,
+  getNextLevel,
+  getRewardChoiceRarityLabel,
+  getXpProgress,
+} from "./progression";
+export type { LevelDefinition, RewardBundle, RewardChoiceDefinition, RewardChoiceKind, RewardChoiceRarity } from "./progression";
 
 export {
   DEFAULT_PLAYER_PROFILE,
@@ -54,6 +63,9 @@ export {
   loadPlayerProfile,
   normalizeProfile,
   savePlayerProfile,
+  applyFightResultToProfile,
+  applyRewardChoiceToProfile,
+  getPostFightRewardChoices,
   selectProfileSkill,
   selectProfileSkin,
   selectProfileStage,
@@ -61,4 +73,4 @@ export {
   unlockProfileSkin,
   unlockProfileStage,
 } from "./playerProfile";
-export type { PlayerProfile } from "./playerProfile";
+export type { FightRewardApplication, FightRewardInput, PlayerProfile, RewardChoiceApplication } from "./playerProfile";

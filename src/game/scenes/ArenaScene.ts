@@ -1315,6 +1315,7 @@ export class ArenaScene extends Phaser.Scene {
       upgradesChosen: 0,
       pickupsCollected: 0,
       bossesBroken: victory ? 1 : 0,
+      victory,
     };
 
     this.time.delayedCall(1350, () => this.scene.start(SCENE_KEYS.result, result));
