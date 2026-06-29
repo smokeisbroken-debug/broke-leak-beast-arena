@@ -25,7 +25,7 @@ const LEFT_BOUND = GAME_WIDTH * 0.26;
 const RIGHT_BOUND = GAME_WIDTH * 0.74;
 const FALLBACK_ROUNDS: RoundConfig[] = ARENA_BATTLE_ROUNDS;
 const MAX_ENERGY = 100;
-const ULTIMATE_DURATION_MS = 5200;
+const ULTIMATE_DURATION_MS = 5000;
 
 export class ArenaScene extends Phaser.Scene {
   private controls!: MobileControls;
@@ -54,7 +54,7 @@ export class ArenaScene extends Phaser.Scene {
   private kickDamageMultiplier = 1;
   private dashCooldownMs = 860;
   private blockDamageTakenMultiplier = 0.25;
-  private playerEnergy = 35;
+  private playerEnergy = 45;
   private ultimateActiveUntil = 0;
   private enemyHp = 1;
   private enemyMaxHp = 1;
@@ -136,7 +136,7 @@ export class ArenaScene extends Phaser.Scene {
     this.blockDamageTakenMultiplier = Math.max(0.1, 0.25 * (1 - (skinBonuses.blockReductionPercent ?? 0) / 100));
 
     this.playerHp = this.playerMaxHp;
-    this.playerEnergy = 35;
+    this.playerEnergy = 45;
     this.ultimateActiveUntil = 0;
     this.ultimateLockUntil = 0;
     this.enemyHp = 1;
@@ -1222,7 +1222,7 @@ export class ArenaScene extends Phaser.Scene {
     if (now < this.playerInvincibleUntil) {
       this.dodgesCount += 1;
       this.showFloatingText("DODGE", this.player.x, this.player.y - 92, "#d9a7ff");
-      this.addEnergy(6);
+      this.addEnergy(7);
       return;
     }
 
@@ -1239,7 +1239,7 @@ export class ArenaScene extends Phaser.Scene {
       this.statusText.setText(guardBreak ? "GUARD CRACK" : "BLOCK");
       this.cameras.main.shake(48, 0.0018);
       this.playerInvincibleUntil = now + 190;
-      this.addEnergy(9, "block");
+      this.addEnergy(10, "block");
       return;
     }
 
@@ -1257,7 +1257,7 @@ export class ArenaScene extends Phaser.Scene {
     this.cameras.main.shake(95, 0.004);
     this.showImpact(this.player.x + 24, this.player.y - 18, 0xff4866, finalAmount >= 12);
     this.showFloatingText(`-${finalAmount} HP`, this.player.x, this.player.y - 108, "#ff9aaa");
-    this.addEnergy(4);
+    this.addEnergy(5);
     this.statusText.setText(label);
 
     this.time.delayedCall(220, () => {
@@ -1276,7 +1276,7 @@ export class ArenaScene extends Phaser.Scene {
     this.defeatedLeaks += 1;
     if (!this.defeatedBossIds.includes(config.id)) this.defeatedBossIds.push(config.id);
     this.score += config.boss ? 1500 : 700;
-    this.addEnergy(config.boss ? 28 : 18, "round");
+    this.addEnergy(config.boss ? 24 : 16, "round");
     this.showImpact(this.enemy.x, this.enemy.y - 42, config.boss ? 0xffeb72 : 0x72ff57, true);
     this.showFloatingText(config.defeatLine, this.enemy.x, this.enemy.y - 130, "#72ff57");
     this.showRoundClear(config);
@@ -1288,7 +1288,7 @@ export class ArenaScene extends Phaser.Scene {
       return;
     }
 
-    this.playerHp = Math.min(this.playerMaxHp, this.playerHp + 18);
+    this.playerHp = Math.min(this.playerMaxHp, this.playerHp + 14);
     this.time.delayedCall(1550, () => {
       this.enemy.setAlpha(1);
       this.startRound(this.roundIndex + 1);

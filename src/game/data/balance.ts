@@ -12,4 +12,13 @@ export const BALANCE = {
     safePointRate: 0.08,
     bossDamageRate: 0.12,
   },
+  arenaBattle: {
+    targetFirstBossSeconds: [35, 55],
+    targetMidBossSeconds: [50, 75],
+    targetFinalBossSeconds: [70, 100],
+    startingEnergy: 45,
+    ultimateEnergy: 100,
+    ultimateDurationMs: 5000,
+    roundHeal: 14,
+  },
 };
