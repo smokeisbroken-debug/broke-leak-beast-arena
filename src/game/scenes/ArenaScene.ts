@@ -13,6 +13,10 @@ type EnemyAttack = "jab" | "lunge" | "heavy";
 interface RoundConfig {
   name: string;
   leakLabel: string;
+  introLine: string;
+  threatLine: string;
+  defeatLine: string;
+  behavior: "impulse" | "emotion" | "rug" | "destroyer";
   texture: string;
   animation: string;
   hp: number;
@@ -37,63 +41,79 @@ const RIGHT_BOUND = GAME_WIDTH * 0.74;
 
 const ROUNDS: RoundConfig[] = [
   {
-    name: "Impulse Beast",
-    leakLabel: "DEFEAT IMPULSE",
+    name: "Impulse Buy Beast",
+    leakLabel: "STOP IMPULSE SPENDING",
+    introLine: "Short rushes. Fast jabs. Punish reckless spending.",
+    threatLine: "It attacks quickly after closing distance.",
+    defeatLine: "IMPULSE SPENDING DEFEATED",
+    behavior: "impulse",
     texture: "enemy-imp-01",
     animation: "enemy-bad-habit-move",
-    hp: 70,
+    hp: 72,
     damage: 7,
-    speed: 104,
-    displayW: 112,
-    displayH: 112,
-    bodyW: 58,
-    bodyH: 68,
-    attackRange: 112,
+    speed: 116,
+    displayW: 126,
+    displayH: 126,
+    bodyW: 64,
+    bodyH: 74,
+    attackRange: 118,
     color: 0x72ff57,
   },
   {
-    name: "Emotional Beast",
-    leakLabel: "DEFEAT EMOTION",
+    name: "Emotional Trading Beast",
+    leakLabel: "CONTROL EMOTIONAL TRADING",
+    introLine: "Erratic movement. Sudden lunges. Do not chase panic.",
+    threatLine: "It feints, steps back, then lunges.",
+    defeatLine: "EMOTIONAL TRADING DEFEATED",
+    behavior: "emotion",
     texture: "enemy-runner-01",
     animation: "enemy-fomo-move",
-    hp: 86,
+    hp: 90,
     damage: 9,
-    speed: 134,
-    displayW: 164,
-    displayH: 136,
-    bodyW: 84,
-    bodyH: 74,
-    attackRange: 136,
+    speed: 146,
+    displayW: 178,
+    displayH: 148,
+    bodyW: 90,
+    bodyH: 80,
+    attackRange: 146,
     color: 0xffeb72,
   },
   {
     name: "Rug Pull Beast",
-    leakLabel: "DEFEAT RUG PULL",
+    leakLabel: "SURVIVE THE RUG PULL",
+    introLine: "Slow pressure. Heavy hits. Block before countering.",
+    threatLine: "Its heavy attack hurts, but has a long warning.",
+    defeatLine: "RUG PULL DEFEATED",
+    behavior: "rug",
     texture: "enemy-beast-01",
     animation: "enemy-scam-move",
-    hp: 104,
-    damage: 10,
-    speed: 112,
-    displayW: 188,
-    displayH: 164,
-    bodyW: 94,
-    bodyH: 90,
-    attackRange: 148,
+    hp: 118,
+    damage: 11,
+    speed: 108,
+    displayW: 206,
+    displayH: 178,
+    bodyW: 104,
+    bodyH: 98,
+    attackRange: 158,
     color: 0xa45cff,
   },
   {
-    name: "Wallet Destroyer",
-    leakLabel: "BOSS ROUND",
+    name: "Wallet Destroyer Boss",
+    leakLabel: "PROTECT THE WALLET",
+    introLine: "Boss fight. Watch phase 2 and punish heavy attacks.",
+    threatLine: "At half HP it becomes faster and more aggressive.",
+    defeatLine: "WALLET DESTROYER BROKEN",
+    behavior: "destroyer",
     texture: "boss-thorn-01",
     animation: "boss-thorn-move",
-    hp: 148,
+    hp: 162,
     damage: 13,
-    speed: 94,
-    displayW: 312,
-    displayH: 290,
-    bodyW: 152,
-    bodyH: 150,
-    attackRange: 190,
+    speed: 98,
+    displayW: 328,
+    displayH: 304,
+    bodyW: 160,
+    bodyH: 156,
+    attackRange: 198,
     color: 0xff4866,
     boss: true,
   },
@@ -132,6 +152,7 @@ export class ArenaScene extends Phaser.Scene {
   private dashCooldownUntil = 0;
   private lastPunchAt = 0;
   private comboStep = 0;
+  private bossPhaseShown = false;
 
   private playerHpFill!: Phaser.GameObjects.Rectangle;
   private enemyHpFill!: Phaser.GameObjects.Rectangle;
@@ -166,6 +187,7 @@ export class ArenaScene extends Phaser.Scene {
     this.dashCooldownUntil = 0;
     this.lastPunchAt = 0;
     this.comboStep = 0;
+    this.bossPhaseShown = false;
 
     this.sfx = new SfxSystem();
     this.createArenaBackground();
@@ -299,6 +321,7 @@ export class ArenaScene extends Phaser.Scene {
     this.playerState = "idle";
     this.playerActionUntil = 0;
     this.playerInvincibleUntil = Date.now() + 600;
+    this.bossPhaseShown = false;
 
     this.player.setPosition(PLAYER_START_X, FLOOR_Y - PLAYER_DISPLAY_H * 0.5);
     this.player.setVelocity(0, 0);
@@ -318,6 +341,8 @@ export class ArenaScene extends Phaser.Scene {
     this.roundText.setText(config.boss ? "BOSS ROUND" : `ROUND ${index + 1}`);
     this.objectiveText.setText(config.leakLabel);
     this.enemyHpText.setText(config.name.toUpperCase());
+    this.enemyHpText.setColor(config.boss ? "#ff9aaa" : config.behavior === "emotion" ? "#ffeb72" : config.behavior === "rug" ? "#d9a7ff" : "#d7ffd0");
+    this.enemyHpFill.setFillStyle(config.color, 1);
     this.statusText.setText("GET READY");
     this.updateHud();
     this.showRoundIntro(config);
@@ -329,18 +354,22 @@ export class ArenaScene extends Phaser.Scene {
     const title = this.add.text(GAME_WIDTH / 2, 148, config.boss ? "BOSS FIGHT" : `ROUND ${this.roundIndex + 1}`, {
       fontFamily: "Arial", fontSize: "42px", color: config.boss ? "#ff8fa3" : "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 8,
     }).setOrigin(0.5).setDepth(121);
-    const sub = this.add.text(GAME_WIDTH / 2, 198, `BROKE MASCOT  VS  ${config.name.toUpperCase()}`, {
+    const sub = this.add.text(GAME_WIDTH / 2, 194, `BROKE MASCOT  VS  ${config.name.toUpperCase()}`, {
       fontFamily: "Arial", fontSize: "17px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
     }).setOrigin(0.5).setDepth(121);
-    const objective = this.add.text(GAME_WIDTH / 2, 234, config.leakLabel, {
+    const objective = this.add.text(GAME_WIDTH / 2, 226, config.leakLabel, {
       fontFamily: "Arial", fontSize: "14px", color: "#d9a7ff", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(121);
+    const hint = this.add.text(GAME_WIDTH / 2, 258, config.introLine, {
+      fontFamily: "Arial", fontSize: "12px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+      align: "center",
+    }).setOrigin(0.5).setDepth(121).setAlpha(0.9);
 
-    this.time.delayedCall(1150, () => {
+    this.time.delayedCall(1250, () => {
       this.fightStarted = true;
       this.statusText.setText("FIGHT");
       this.tweens.add({
-        targets: [shade, title, sub, objective],
+        targets: [shade, title, sub, objective, hint],
         alpha: 0,
         duration: 280,
         onComplete: () => {
@@ -488,13 +517,27 @@ export class ArenaScene extends Phaser.Scene {
     const config = ROUNDS[this.roundIndex];
     this.enemy.setFlipX(this.enemy.x > this.player.x);
 
+    if (config.boss && !this.bossPhaseShown && this.enemyHp <= this.enemyMaxHp * 0.5) {
+      this.bossPhaseShown = true;
+      this.enemy.setTint(0xff4866);
+      this.enemyCooldownUntil = Math.min(this.enemyCooldownUntil, now + 460);
+      this.objectiveText.setText("BOSS PHASE 2");
+      this.statusText.setText("BOSS ENRAGED");
+      this.showImpact(this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.32, 0xff4866, true);
+      this.showFloatingText("PHASE 2", this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.68, "#ff9aaa");
+      this.cameras.main.shake(160, 0.0044);
+      this.time.delayedCall(190, () => {
+        if (this.enemy.active && this.enemyState !== "defeated") this.enemy.clearTint();
+      });
+    }
+
     if (this.enemyState === "defeated") return;
 
     if (this.enemyState === "hurt") {
       if (now < this.enemyAttackUntil) return;
       this.enemy.clearTint();
       this.enemyState = "idle";
-      this.enemyCooldownUntil = Math.max(this.enemyCooldownUntil, now + 420);
+      this.enemyCooldownUntil = Math.max(this.enemyCooldownUntil, now + this.getRecoveryDelay(config));
     }
 
     if (this.enemyState === "windup") {
@@ -514,11 +557,16 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     const distance = Math.abs(this.player.x - this.enemy.x);
-    if (distance > config.attackRange * 0.82) {
+    const attackDistance = config.attackRange * (config.behavior === "emotion" ? 0.92 : config.behavior === "rug" ? 0.72 : 0.84);
+    if (distance > attackDistance) {
       this.enemyState = "approach";
       const dir = this.player.x < this.enemy.x ? -1 : 1;
-      this.enemy.setVelocityX(dir * config.speed);
+      const phaseBoost = config.boss && this.bossPhaseShown ? 1.16 : 1;
+      const behaviorBoost = config.behavior === "emotion" ? 1.05 : config.behavior === "rug" ? 0.86 : 1;
+      const feint = config.behavior === "emotion" ? Math.sin(now / 170) * 28 : 0;
+      this.enemy.setVelocityX(dir * (config.speed * phaseBoost * behaviorBoost + feint));
       if (this.anims.exists(config.animation)) this.enemy.play(config.animation, true);
+      this.statusText.setText(config.threatLine);
       return;
     }
 
@@ -527,42 +575,97 @@ export class ArenaScene extends Phaser.Scene {
 
     if (now >= this.enemyCooldownUntil) {
       this.beginEnemyWindup(now, config);
+    } else if (config.behavior === "emotion" && distance < config.attackRange * 0.62) {
+      const away = this.player.x < this.enemy.x ? 1 : -1;
+      this.enemy.setVelocityX(away * 42);
     }
   }
 
   private beginEnemyWindup(now: number, config: RoundConfig): void {
-    const attackRoll = Phaser.Math.FloatBetween(0, 1);
-    this.enemyAttack = config.boss && this.enemyHp <= this.enemyMaxHp * 0.5
-      ? Phaser.Math.RND.pick(["heavy", "lunge"] as EnemyAttack[])
-      : attackRoll > 0.68 ? "heavy" : attackRoll > 0.38 ? "lunge" : "jab";
-
-    const windupMs = this.enemyAttack === "heavy" ? 640 : this.enemyAttack === "lunge" ? 480 : 360;
+    this.enemyAttack = this.pickEnemyAttack(config);
+    const phaseFast = config.boss && this.bossPhaseShown ? 0.82 : 1;
+    const windupMs = Math.round((this.enemyAttack === "heavy" ? 680 : this.enemyAttack === "lunge" ? 500 : 360) * phaseFast);
     this.enemyState = "windup";
     this.enemyWindupUntil = now + windupMs;
     this.enemy.setTint(this.enemyAttack === "heavy" ? 0xff4866 : config.color);
-    this.showEnemyWarning(this.enemyAttack === "heavy" ? "HEAVY" : this.enemyAttack === "lunge" ? "LUNGE" : "JAB", config.color, windupMs);
+    const label = this.enemyAttack === "heavy" ? this.getHeavyAttackName(config) : this.enemyAttack === "lunge" ? this.getLungeAttackName(config) : this.getJabAttackName(config);
+    this.showEnemyWarning(label, config.color, windupMs);
+    this.statusText.setText(`${config.name}: ${label}`);
+  }
+
+  private pickEnemyAttack(config: RoundConfig): EnemyAttack {
+    const attackRoll = Phaser.Math.FloatBetween(0, 1);
+    if (config.behavior === "impulse") return attackRoll > 0.72 ? "lunge" : "jab";
+    if (config.behavior === "emotion") return attackRoll > 0.52 ? "lunge" : attackRoll > 0.24 ? "jab" : "heavy";
+    if (config.behavior === "rug") return attackRoll > 0.36 ? "heavy" : "lunge";
+    if (config.boss && this.bossPhaseShown) return attackRoll > 0.42 ? "heavy" : "lunge";
+    return attackRoll > 0.62 ? "heavy" : attackRoll > 0.28 ? "lunge" : "jab";
+  }
+
+  private getJabAttackName(config: RoundConfig): string {
+    if (config.behavior === "impulse") return "BUY RUSH";
+    if (config.behavior === "emotion") return "PANIC TAP";
+    if (config.behavior === "rug") return "FAKEOUT";
+    return "WALLET JAB";
+  }
+
+  private getLungeAttackName(config: RoundConfig): string {
+    if (config.behavior === "impulse") return "SPEND LUNGE";
+    if (config.behavior === "emotion") return "FOMO LUNGE";
+    if (config.behavior === "rug") return "RUG DASH";
+    return "DESTROYER RUSH";
+  }
+
+  private getHeavyAttackName(config: RoundConfig): string {
+    if (config.behavior === "impulse") return "CART SMASH";
+    if (config.behavior === "emotion") return "PANIC SELL";
+    if (config.behavior === "rug") return "RUG PULL";
+    return this.bossPhaseShown ? "WALLET CRUSH" : "BOSS HEAVY";
+  }
+
+  private getRecoveryDelay(config: RoundConfig): number {
+    if (config.behavior === "impulse") return 340;
+    if (config.behavior === "emotion") return 360;
+    if (config.behavior === "rug") return 520;
+    return this.bossPhaseShown ? 360 : 460;
   }
 
   private performEnemyAttack(now: number, config: RoundConfig): void {
     this.enemyState = "attack";
     this.enemyAttackUntil = now + 230;
-    this.enemyCooldownUntil = now + (config.boss ? 1050 : 1250);
+    this.enemyCooldownUntil = now + this.getEnemyCooldown(config);
     const dir = this.player.x < this.enemy.x ? -1 : 1;
-    const damage = this.enemyAttack === "heavy" ? config.damage + 5 : this.enemyAttack === "lunge" ? config.damage + 2 : config.damage;
-    const range = this.enemyAttack === "heavy" ? config.attackRange + 18 : this.enemyAttack === "lunge" ? config.attackRange + 34 : config.attackRange;
+    const phaseBonus = config.boss && this.bossPhaseShown ? 2 : 0;
+    const damage = this.enemyAttack === "heavy" ? config.damage + 5 + phaseBonus : this.enemyAttack === "lunge" ? config.damage + 2 + phaseBonus : config.damage;
+    const range = this.enemyAttack === "heavy" ? config.attackRange + 20 : this.enemyAttack === "lunge" ? config.attackRange + 42 : config.attackRange;
 
     if (this.enemyAttack === "lunge") {
-      this.enemy.setVelocityX(dir * 300);
+      this.enemy.setVelocityX(dir * (config.behavior === "emotion" ? 380 : config.boss && this.bossPhaseShown ? 355 : 310));
+    } else if (this.enemyAttack === "heavy") {
+      this.enemy.setVelocityX(dir * (config.behavior === "rug" ? 170 : 120));
     } else {
-      this.enemy.setVelocityX(dir * 110);
+      this.enemy.setVelocityX(dir * 116);
     }
 
     this.showEnemyAttackFx(config.color, this.enemyAttack);
     this.time.delayedCall(90, () => {
       if (this.runFinished || this.enemyState === "defeated") return;
       const distance = Math.abs(this.player.x - this.enemy.x);
-      if (distance <= range) this.damagePlayer(damage, this.enemyAttack.toUpperCase());
+      if (distance <= range) this.damagePlayer(damage, this.getAttackDamageLabel(config));
     });
+  }
+
+  private getEnemyCooldown(config: RoundConfig): number {
+    if (config.behavior === "impulse") return 880;
+    if (config.behavior === "emotion") return 960;
+    if (config.behavior === "rug") return 1320;
+    return this.bossPhaseShown ? 790 : 1040;
+  }
+
+  private getAttackDamageLabel(config: RoundConfig): string {
+    if (this.enemyAttack === "heavy") return this.getHeavyAttackName(config);
+    if (this.enemyAttack === "lunge") return this.getLungeAttackName(config);
+    return this.getJabAttackName(config);
   }
 
   private damagePlayer(amount: number, label: string): void {
@@ -614,19 +717,46 @@ export class ArenaScene extends Phaser.Scene {
     this.defeatedLeaks += 1;
     this.score += config.boss ? 1500 : 700;
     this.showImpact(this.enemy.x, this.enemy.y - 42, config.boss ? 0xffeb72 : 0x72ff57, true);
-    this.showFloatingText("LEAK BROKEN", this.enemy.x, this.enemy.y - 130, "#72ff57");
+    this.showFloatingText(config.defeatLine, this.enemy.x, this.enemy.y - 130, "#72ff57");
+    this.showRoundClear(config);
     this.cameras.main.shake(180, 0.0045);
     this.enemy.setAlpha(0.62);
 
     if (this.roundIndex >= ROUNDS.length - 1) {
-      this.time.delayedCall(1200, () => this.finishRun(true));
+      this.time.delayedCall(1350, () => this.finishRun(true));
       return;
     }
 
     this.playerHp = Math.min(100, this.playerHp + 18);
-    this.time.delayedCall(1350, () => {
+    this.time.delayedCall(1550, () => {
       this.enemy.setAlpha(1);
       this.startRound(this.roundIndex + 1);
+    });
+  }
+
+  private showRoundClear(config: RoundConfig): void {
+    const nextText = this.roundIndex >= ROUNDS.length - 1 ? "FINAL LEAK BROKEN" : "NEXT LEAK INCOMING";
+    const panel = this.add.rectangle(GAME_WIDTH / 2, 128, 410, 70, 0x061006, 0.78)
+      .setStrokeStyle(2, config.color, 0.48)
+      .setDepth(122);
+    const title = this.add.text(GAME_WIDTH / 2, 112, config.defeatLine, {
+      fontFamily: "Arial", fontSize: "18px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(123);
+    const sub = this.add.text(GAME_WIDTH / 2, 140, nextText, {
+      fontFamily: "Arial", fontSize: "12px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(123);
+
+    this.tweens.add({
+      targets: [panel, title, sub],
+      y: "-=20",
+      alpha: 0,
+      delay: 840,
+      duration: 360,
+      onComplete: () => {
+        panel.destroy();
+        title.destroy();
+        sub.destroy();
+      },
     });
   }
 
@@ -669,6 +799,11 @@ export class ArenaScene extends Phaser.Scene {
     this.playerHpFill.width = 226 * Phaser.Math.Clamp(this.playerHp / 100, 0, 1);
     this.enemyHpFill.width = 226 * Phaser.Math.Clamp(this.enemyHp / Math.max(1, this.enemyMaxHp), 0, 1);
     this.playerHpText.setText(`${Math.max(0, this.playerHp)}/100`);
+    const config = ROUNDS[this.roundIndex] ?? ROUNDS[0];
+    if (this.enemyHp > 0) {
+      const enemyPercent = Math.ceil((this.enemyHp / Math.max(1, this.enemyMaxHp)) * 100);
+      this.enemyHpText.setText(`${config.name.toUpperCase()} · ${enemyPercent}%`);
+    }
   }
 
   private updateShadows(): void {
