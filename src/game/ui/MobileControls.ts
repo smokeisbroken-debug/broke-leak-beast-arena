@@ -139,7 +139,7 @@ export class MobileControls {
       .setAlpha(0.94)
       .setScrollFactor(0);
 
-    this.scene.add.text(x, y + height * 0.38, label, {
+    const labelObject = this.scene.add.text(x, y + height * 0.38, label, {
       fontFamily: "Arial",
       fontSize: "12px",
       color: "#fcfff7",
@@ -148,22 +148,27 @@ export class MobileControls {
       strokeThickness: 4,
     }).setOrigin(0.5).setDepth(83).setScrollFactor(0);
 
-    hitZone.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      pointer.event?.preventDefault();
+    const press = (pointer?: Phaser.Input.Pointer) => {
+      pointer?.event?.preventDefault();
       this.inputState.shield = true;
       button.setAlpha(1);
-      button.setScale(1.05);
-    });
-    hitZone.on("pointerup", () => {
+      button.setDisplaySize(width * 1.05, height * 1.05);
+      labelObject.setScale(1.03);
+    };
+
+    const release = () => {
       this.inputState.shield = false;
       button.setAlpha(0.94);
-      button.setScale(1);
-    });
-    hitZone.on("pointerout", () => {
-      this.inputState.shield = false;
-      button.setAlpha(0.94);
-      button.setScale(1);
-    });
+      button.setDisplaySize(width, height);
+      labelObject.setScale(1);
+    };
+
+    hitZone.on("pointerdown", press);
+    hitZone.on("pointerup", release);
+    hitZone.on("pointerout", release);
+    hitZone.on("pointerupoutside", release);
+    this.scene.input.on("pointerup", release);
+    this.scene.input.on("pointerupoutside", release);
   }
 
   private createPointerControls(): void {
