@@ -32,6 +32,7 @@ export interface BossDefinition {
 }
 
 export interface RunResult {
+  resultId?: string;
   score: number;
   leaksDefeated: number;
   survivedSeconds: number;

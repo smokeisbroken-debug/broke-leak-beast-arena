@@ -66,6 +66,7 @@ export interface PlayerProfile {
   bestScore: number;
   totalWins: number;
   totalLosses: number;
+  processedFightResultIds: string[];
   settings: {
     soundEnabled: boolean;
     vibrationEnabled: boolean;
@@ -85,6 +86,7 @@ export interface FightRewardInput {
   ultimatesUsed?: number;
   damageTaken?: number;
   usedUltimate?: boolean;
+  resultId?: string;
 }
 
 export interface FightRewardApplication {
@@ -95,6 +97,7 @@ export interface FightRewardApplication {
   levelCoinReward: number;
   unlocks: string[];
   completedMissionIds: string[];
+  duplicateResult?: boolean;
 }
 
 export interface RewardChoiceApplication {
@@ -146,6 +149,7 @@ export const DEFAULT_PLAYER_PROFILE: PlayerProfile = {
   bestScore: 0,
   totalWins: 0,
   totalLosses: 0,
+  processedFightResultIds: [],
   settings: {
     soundEnabled: true,
     vibrationEnabled: true,
@@ -176,6 +180,7 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
       ...(profile?.dailyMissionProgress ?? {}),
     },
     claimedDailyMissionIds: Array.isArray(profile?.claimedDailyMissionIds) ? profile.claimedDailyMissionIds : [],
+    processedFightResultIds: Array.isArray(profile?.processedFightResultIds) ? profile.processedFightResultIds : [],
   };
 
   normalized.xp = Math.max(0, Math.floor(normalized.xp || 0));
@@ -192,6 +197,7 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
     normalized.claimedDailyMissionIds = [];
   }
   normalized.totalMissionClaims = Math.max(0, Math.floor(normalized.totalMissionClaims || 0));
+  normalized.processedFightResultIds = Array.from(new Set(normalized.processedFightResultIds.filter(Boolean))).slice(-30);
   for (const mission of DAILY_MISSIONS) {
     normalized.dailyMissionProgress[mission.id] = PhaserSafeClampProgress(normalized.dailyMissionProgress[mission.id] ?? 0, mission.target);
   }
@@ -384,7 +390,25 @@ export function selectProfileCampaignBoss(profile: PlayerProfile, bossId: string
 export function applyFightResultToProfile(profile: PlayerProfile, input: FightRewardInput): FightRewardApplication {
   const normalized = normalizeProfile(profile);
   const oldLevel = normalized.level;
+  const resultId = input.resultId?.trim();
+  if (resultId && normalized.processedFightResultIds.includes(resultId)) {
+    return {
+      profile: normalized,
+      baseRewards: { xp: 0, coins: 0, leakPoints: 0, skinShards: 0, skillCards: 0, bossTrophies: [] },
+      oldLevel,
+      newLevel: oldLevel,
+      levelCoinReward: 0,
+      unlocks: [],
+      completedMissionIds: [],
+      duplicateResult: true,
+    };
+  }
+
   const baseRewards = calculateFightReward(input.victory, input.bossesBroken, input.leaksDefeated, input.score);
+
+  if (resultId) {
+    normalized.processedFightResultIds = [...normalized.processedFightResultIds, resultId].slice(-30);
+  }
 
   normalized.xp += baseRewards.xp;
   normalized.coins += baseRewards.coins;

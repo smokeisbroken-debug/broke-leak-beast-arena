@@ -59,8 +59,8 @@ export class MainMenuScene extends Phaser.Scene {
       await requestAppFullscreen(document.documentElement);
       this.scene.start(SCENE_KEYS.arena);
     });
-    play.on("pointerover", () => play.setScale(1.025));
-    play.on("pointerout", () => play.setScale(1));
+    play.on("pointerover", () => play.setAlpha(0.9));
+    play.on("pointerout", () => play.setAlpha(1));
 
     const nav = [
       { label: "CAMPAIGN", sub: activeChapter.name, x: 342, y: 350, color: activeChapter.color, route: SCENE_KEYS.campaign },

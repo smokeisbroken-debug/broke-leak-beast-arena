@@ -1209,9 +1209,18 @@ export class ArenaScene extends Phaser.Scene {
 
   private applyStageDamage(amount: number, label: string, color: string): void {
     if (amount <= 0 || this.runFinished) return;
-    this.playerHp = Math.max(0, this.playerHp - amount);
-    this.damageTaken += amount;
-    this.showFloatingText(`${label} -${amount} HP`, this.player.x, this.player.y - 122, color);
+    const now = Date.now();
+    if (now < this.playerInvincibleUntil) {
+      this.dodgesCount += 1;
+      this.showFloatingText(`${label} DODGED`, this.player.x, this.player.y - 122, "#d9a7ff");
+      this.addEnergy(4);
+      return;
+    }
+
+    const finalAmount = this.isUltimateActive(now) ? Math.max(1, Math.floor(amount * 0.55)) : amount;
+    this.playerHp = Math.max(0, this.playerHp - finalAmount);
+    this.damageTaken += finalAmount;
+    this.showFloatingText(`${label} -${finalAmount} HP`, this.player.x, this.player.y - 122, color);
     this.statusText.setText(label);
     this.cameras.main.shake(56, 0.0026);
     if (this.playerHp <= 0) this.finishRun(false);
@@ -1334,6 +1343,7 @@ export class ArenaScene extends Phaser.Scene {
     this.tweens.add({ targets: title, scaleX: 1.04, scaleY: 1.04, duration: 360, yoyo: true, repeat: 1 });
 
     const result: RunResult = {
+      resultId: `${Date.now()}-${Math.floor(Math.random() * 1000000)}-${this.score}`,
       score: this.score,
       leaksDefeated: this.defeatedLeaks,
       survivedSeconds: Math.floor(this.activeElapsedMs / 1000),

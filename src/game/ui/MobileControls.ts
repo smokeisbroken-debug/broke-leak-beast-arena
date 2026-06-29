@@ -18,6 +18,13 @@ export class MobileControls {
   private joystickPointerId: number | null = null;
   private readonly joystickCenter = new Phaser.Math.Vector2(118, GAME_HEIGHT - 82);
   private readonly joystickRadius = 64;
+  private readonly releaseAll = () => {
+    this.joystickPointerId = null;
+    this.inputState.x = 0;
+    this.inputState.y = 0;
+    this.inputState.shield = false;
+    this.joystickKnob?.setPosition(this.joystickCenter.x, this.joystickCenter.y);
+  };
 
   constructor(private scene: Phaser.Scene) {
     scene.input.addPointer(6);
@@ -38,6 +45,7 @@ export class MobileControls {
     this.createButtons();
     this.createPointerControls();
     this.createKeyboardFallback();
+    this.createLifecycleGuards();
   }
 
   getInputState(): InputState {
@@ -274,7 +282,28 @@ export class MobileControls {
       const vector = new Phaser.Math.Vector2(x, y).normalize();
       this.inputState.x = vector.x;
       this.inputState.y = vector.y;
+      return;
     }
+
+    if (this.joystickPointerId === null) {
+      this.inputState.x = 0;
+      this.inputState.y = 0;
+    }
+  }
+
+  private createLifecycleGuards(): void {
+    if (typeof window !== "undefined") {
+      window.addEventListener("blur", this.releaseAll);
+      document.addEventListener("visibilitychange", this.releaseAll);
+    }
+
+    this.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.releaseAll();
+      if (typeof window !== "undefined") {
+        window.removeEventListener("blur", this.releaseAll);
+        document.removeEventListener("visibilitychange", this.releaseAll);
+      }
+    });
   }
 
   private flashButton(targets: Phaser.GameObjects.GameObject[]): void {

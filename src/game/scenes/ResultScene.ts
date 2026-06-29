@@ -29,7 +29,27 @@ export class ResultScene extends Phaser.Scene {
   }
 
   init(data: RunResult): void {
-    this.result = data;
+    this.result = {
+      resultId: data?.resultId,
+      score: Math.max(0, Math.floor(data?.score ?? 0)),
+      leaksDefeated: Math.max(0, Math.floor(data?.leaksDefeated ?? 0)),
+      survivedSeconds: Math.max(0, Math.floor(data?.survivedSeconds ?? 0)),
+      safePoints: Math.max(0, Math.floor(data?.safePoints ?? 0)),
+      bossDamage: Math.max(0, Math.floor(data?.bossDamage ?? 0)),
+      upgradesChosen: Math.max(0, Math.floor(data?.upgradesChosen ?? 0)),
+      pickupsCollected: Math.max(0, Math.floor(data?.pickupsCollected ?? 0)),
+      bossesBroken: Math.max(0, Math.floor(data?.bossesBroken ?? 0)),
+      victory: Boolean(data?.victory),
+      selectedBossId: data?.selectedBossId,
+      selectedCampaignId: data?.selectedCampaignId,
+      defeatedBossIds: Array.isArray(data?.defeatedBossIds) ? data.defeatedBossIds : [],
+      blocks: Math.max(0, Math.floor(data?.blocks ?? 0)),
+      dodges: Math.max(0, Math.floor(data?.dodges ?? 0)),
+      skillsUsed: Math.max(0, Math.floor(data?.skillsUsed ?? 0)),
+      ultimatesUsed: Math.max(0, Math.floor(data?.ultimatesUsed ?? 0)),
+      damageTaken: Math.max(0, Math.floor(data?.damageTaken ?? 0)),
+      usedUltimate: Boolean(data?.usedUltimate),
+    };
   }
 
   create(): void {
@@ -53,6 +73,7 @@ export class ResultScene extends Phaser.Scene {
       ultimatesUsed: this.result.ultimatesUsed ?? 0,
       damageTaken: this.result.damageTaken ?? 0,
       usedUltimate: this.result.usedUltimate ?? false,
+      resultId: this.result.resultId,
     });
     this.profileAfterBase = this.rewardApplication.profile;
     savePlayerProfile(this.profileAfterBase);
@@ -143,6 +164,17 @@ export class ResultScene extends Phaser.Scene {
   }
 
   private createRewardChoiceCards(): void {
+    if (this.rewardApplication.duplicateResult) {
+      this.bonusClaimed = true;
+      this.add.text(GAME_WIDTH / 2, 256, "REWARD ALREADY CLAIMED", {
+        fontFamily: "Arial", fontSize: "15px", color: "#ffeb72", fontStyle: "bold", stroke: "#050805", strokeThickness: 4,
+      }).setOrigin(0.5).setDepth(4);
+      this.bonusStatusText = this.add.text(GAME_WIDTH / 2, 280, "This fight result was already processed. Start a new fight for new rewards.", {
+        fontFamily: "Arial", fontSize: "11px", color: "#d7ffd0", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+      }).setOrigin(0.5).setDepth(4);
+      return;
+    }
+
     const choices = getPostFightRewardChoices(this.profileAfterBase).slice(0, 3);
     this.add.text(GAME_WIDTH / 2, 256, "CHOOSE 1 BONUS UPGRADE", {
       fontFamily: "Arial", fontSize: "15px", color: "#ffeb72", fontStyle: "bold", stroke: "#050805", strokeThickness: 4,
