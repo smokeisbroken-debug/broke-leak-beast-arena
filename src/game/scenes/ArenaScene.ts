@@ -4,32 +4,15 @@ import { SCENE_KEYS } from "../../config/routes";
 import { requestAppFullscreen, toggleAppFullscreen } from "../../app/AppShell";
 import { MobileControls } from "../ui/MobileControls";
 import { SfxSystem } from "../systems/SfxSystem";
+import { ARENA_BATTLE_ROUNDS } from "../data/bosses";
+import type { ArenaBossDefinition } from "../data/bosses";
 import type { InputState, RunResult } from "../types/game";
 
 type FighterState = "idle" | "moving" | "punch" | "kick" | "block" | "dash" | "hurt" | "defeated";
 type EnemyState = "idle" | "approach" | "windup" | "attack" | "guard" | "backstep" | "hurt" | "defeated";
 type EnemyAttack = "jab" | "lunge" | "heavy";
 
-interface RoundConfig {
-  name: string;
-  leakLabel: string;
-  introLine: string;
-  threatLine: string;
-  defeatLine: string;
-  behavior: "impulse" | "emotion" | "rug" | "destroyer";
-  texture: string;
-  animation: string;
-  hp: number;
-  damage: number;
-  speed: number;
-  displayW: number;
-  displayH: number;
-  bodyW: number;
-  bodyH: number;
-  attackRange: number;
-  color: number;
-  boss?: boolean;
-}
+type RoundConfig = ArenaBossDefinition;
 
 const FLOOR_Y = GAME_HEIGHT - 104;
 const PLAYER_DISPLAY_W = 118;
@@ -38,86 +21,7 @@ const PLAYER_START_X = 290;
 const ENEMY_START_X = GAME_WIDTH - 286;
 const LEFT_BOUND = GAME_WIDTH * 0.26;
 const RIGHT_BOUND = GAME_WIDTH * 0.74;
-
-const ROUNDS: RoundConfig[] = [
-  {
-    name: "Impulse Buy Beast",
-    leakLabel: "STOP IMPULSE SPENDING",
-    introLine: "Short rushes. Fast jabs. Punish reckless spending.",
-    threatLine: "It attacks quickly after closing distance.",
-    defeatLine: "IMPULSE SPENDING DEFEATED",
-    behavior: "impulse",
-    texture: "enemy-imp-01",
-    animation: "enemy-bad-habit-move",
-    hp: 72,
-    damage: 7,
-    speed: 116,
-    displayW: 126,
-    displayH: 126,
-    bodyW: 64,
-    bodyH: 74,
-    attackRange: 118,
-    color: 0x72ff57,
-  },
-  {
-    name: "Emotional Trading Beast",
-    leakLabel: "CONTROL EMOTIONAL TRADING",
-    introLine: "Erratic movement. Sudden lunges. Do not chase panic.",
-    threatLine: "It feints, steps back, then lunges.",
-    defeatLine: "EMOTIONAL TRADING DEFEATED",
-    behavior: "emotion",
-    texture: "enemy-runner-01",
-    animation: "enemy-fomo-move",
-    hp: 90,
-    damage: 9,
-    speed: 146,
-    displayW: 178,
-    displayH: 148,
-    bodyW: 90,
-    bodyH: 80,
-    attackRange: 146,
-    color: 0xffeb72,
-  },
-  {
-    name: "Rug Pull Beast",
-    leakLabel: "SURVIVE THE RUG PULL",
-    introLine: "Slow pressure. Heavy hits. Block before countering.",
-    threatLine: "Its heavy attack hurts, but has a long warning.",
-    defeatLine: "RUG PULL DEFEATED",
-    behavior: "rug",
-    texture: "enemy-beast-01",
-    animation: "enemy-scam-move",
-    hp: 118,
-    damage: 11,
-    speed: 108,
-    displayW: 206,
-    displayH: 178,
-    bodyW: 104,
-    bodyH: 98,
-    attackRange: 158,
-    color: 0xa45cff,
-  },
-  {
-    name: "Wallet Destroyer Boss",
-    leakLabel: "PROTECT THE WALLET",
-    introLine: "Boss fight. Watch phase 2 and punish heavy attacks.",
-    threatLine: "At half HP it becomes faster and more aggressive.",
-    defeatLine: "WALLET DESTROYER BROKEN",
-    behavior: "destroyer",
-    texture: "boss-thorn-01",
-    animation: "boss-thorn-move",
-    hp: 162,
-    damage: 13,
-    speed: 98,
-    displayW: 328,
-    displayH: 304,
-    bodyW: 160,
-    bodyH: 156,
-    attackRange: 198,
-    color: 0xff4866,
-    boss: true,
-  },
-];
+const ROUNDS: RoundConfig[] = ARENA_BATTLE_ROUNDS;
 
 export class ArenaScene extends Phaser.Scene {
   private controls!: MobileControls;
