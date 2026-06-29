@@ -3,13 +3,15 @@ import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import type { InputState } from "../types/game";
 
 export class MobileControls {
-  private inputState: InputState = { x: 0, y: 0, attack: false, dodge: false, pulse: false, shield: false, slash: false };
+  private inputState: InputState = { x: 0, y: 0, attack: false, dodge: false, pulse: false, shield: false, slash: false, skill1: false, skill2: false };
   private keys?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd?: Record<"left" | "right" | "up" | "down", Phaser.Input.Keyboard.Key>;
   private keyboardPunch?: Phaser.Input.Keyboard.Key;
   private keyboardKick?: Phaser.Input.Keyboard.Key;
   private keyboardBlock?: Phaser.Input.Keyboard.Key;
   private keyboardDash?: Phaser.Input.Keyboard.Key;
+  private keyboardSkill1?: Phaser.Input.Keyboard.Key;
+  private keyboardSkill2?: Phaser.Input.Keyboard.Key;
   private joystickBase: Phaser.GameObjects.Image;
   private joystickKnob: Phaser.GameObjects.Arc;
   private joystickPointerId: number | null = null;
@@ -45,11 +47,15 @@ export class MobileControls {
     snapshot.pulse = snapshot.pulse || Boolean(this.keyboardKick?.isDown);
     snapshot.shield = snapshot.shield || Boolean(this.keyboardBlock?.isDown);
     snapshot.dodge = snapshot.dodge || Boolean(this.keyboardDash?.isDown);
+    snapshot.skill1 = snapshot.skill1 || Boolean(this.keyboardSkill1?.isDown);
+    snapshot.skill2 = snapshot.skill2 || Boolean(this.keyboardSkill2?.isDown);
 
     this.inputState.attack = false;
     this.inputState.dodge = false;
     this.inputState.pulse = false;
     this.inputState.slash = false;
+    this.inputState.skill1 = false;
+    this.inputState.skill2 = false;
     // shield is intentionally not reset here: it is a hold button.
     return snapshot;
   }
@@ -60,7 +66,7 @@ export class MobileControls {
       .setDepth(78)
       .setScrollFactor(0);
 
-    this.scene.add.circle(GAME_WIDTH - 116, GAME_HEIGHT - 86, 126, 0x061006, 0.16)
+    this.scene.add.circle(GAME_WIDTH - 116, GAME_HEIGHT - 86, 134, 0x061006, 0.16)
       .setStrokeStyle(3, 0xa45cff, 0.16)
       .setDepth(78)
       .setScrollFactor(0);
@@ -79,6 +85,14 @@ export class MobileControls {
 
     this.createActionButton(GAME_WIDTH - 34, GAME_HEIGHT - 88, 92, "DASH", "EVADE", 0xa45cff, () => {
       this.inputState.dodge = true;
+    });
+
+    this.createActionButton(GAME_WIDTH - 192, GAME_HEIGHT - 190, 74, "S1", "SKILL", 0x72ff57, () => {
+      this.inputState.skill1 = true;
+    });
+
+    this.createActionButton(GAME_WIDTH - 108, GAME_HEIGHT - 214, 74, "S2", "SKILL", 0xffeb72, () => {
+      this.inputState.skill2 = true;
     });
   }
 
@@ -234,6 +248,8 @@ export class MobileControls {
     this.keyboardKick = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
     this.keyboardBlock = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
     this.keyboardDash = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+    this.keyboardSkill1 = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+    this.keyboardSkill2 = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on("down", () => { this.inputState.attack = true; });
   }
 

@@ -15,8 +15,17 @@ export {
 } from "./skins";
 export type { SkinDefinition, SkinProfileState, SkinRarity, SkinStatBonuses, SkinUnlockRule } from "./skins";
 
-export { SKILLS, DEFAULT_LOADOUT, getSkillById } from "./skills";
-export type { SkillDefinition, SkillEffect, SkillSlot, SkillTarget } from "./skills";
+export {
+  SKILLS,
+  DEFAULT_LOADOUT,
+  STARTER_SKILL_IDS,
+  getActiveSkills,
+  getSkillById,
+  getSkillRarityColor,
+  getSkillsForLoadoutSlot,
+  isSkillUnlocked,
+} from "./skills";
+export type { ActiveSkillSlot, SkillDefinition, SkillEffect, SkillLoadoutIds, SkillRarity, SkillSlot, SkillTarget } from "./skills";
 
 export { ARENA_BOSSES, ARENA_BATTLE_ROUNDS, WEEKLY_BOSSES, getArenaBossById } from "./bosses";
 export type { ArenaBossBehavior, ArenaBossDefinition } from "./bosses";
@@ -34,7 +43,9 @@ export {
   loadPlayerProfile,
   normalizeProfile,
   savePlayerProfile,
+  selectProfileSkill,
   selectProfileSkin,
+  unlockProfileSkill,
   unlockProfileSkin,
 } from "./playerProfile";
 export type { PlayerProfile } from "./playerProfile";

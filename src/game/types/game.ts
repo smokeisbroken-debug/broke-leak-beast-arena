@@ -8,6 +8,8 @@ export interface InputState {
   pulse: boolean;
   shield: boolean;
   slash: boolean;
+  skill1: boolean;
+  skill2: boolean;
 }
 
 export type EnemyKind = "bad_habit" | "fomo" | "scam" | "smoke_brute" | "mega_leak";

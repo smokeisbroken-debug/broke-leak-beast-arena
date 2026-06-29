@@ -5,9 +5,9 @@ import { requestAppFullscreen, toggleAppFullscreen } from "../../app/AppShell";
 import { MobileControls } from "../ui/MobileControls";
 import { SfxSystem } from "../systems/SfxSystem";
 import { ARENA_BATTLE_ROUNDS } from "../data/bosses";
-import { getSkinById, getSkinStatMultiplier, loadPlayerProfile } from "../data/gameRegistry";
+import { getSkillById, getSkinById, getSkinStatMultiplier, loadPlayerProfile } from "../data/gameRegistry";
 import type { ArenaBossDefinition } from "../data/bosses";
-import type { SkinDefinition } from "../data/gameRegistry";
+import type { SkillDefinition, SkinDefinition } from "../data/gameRegistry";
 import type { InputState, RunResult } from "../types/game";
 
 type FighterState = "idle" | "moving" | "punch" | "kick" | "block" | "dash" | "hurt" | "defeated";
@@ -37,6 +37,9 @@ export class ArenaScene extends Phaser.Scene {
   private playerAuraInner!: Phaser.GameObjects.Ellipse;
   private enemyAura!: Phaser.GameObjects.Ellipse;
   private selectedSkin!: SkinDefinition;
+  private skill1!: SkillDefinition;
+  private skill2!: SkillDefinition;
+  private ultimateSkill!: SkillDefinition;
 
   private playerHp = 100;
   private playerMaxHp = 100;
@@ -68,6 +71,8 @@ export class ArenaScene extends Phaser.Scene {
   private punchCooldownUntil = 0;
   private kickCooldownUntil = 0;
   private dashCooldownUntil = 0;
+  private skill1CooldownUntil = 0;
+  private skill2CooldownUntil = 0;
   private lastPunchAt = 0;
   private comboStep = 0;
   private bossPhaseShown = false;
@@ -80,6 +85,7 @@ export class ArenaScene extends Phaser.Scene {
   private objectiveText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
   private comboText!: Phaser.GameObjects.Text;
+  private skillStatusText!: Phaser.GameObjects.Text;
 
   constructor() {
     super(SCENE_KEYS.arena);
@@ -88,6 +94,9 @@ export class ArenaScene extends Phaser.Scene {
   create(): void {
     const profile = loadPlayerProfile();
     this.selectedSkin = getSkinById(profile.selectedSkinId);
+    this.skill1 = getSkillById(profile.selectedSkillIds.skill1);
+    this.skill2 = getSkillById(profile.selectedSkillIds.skill2);
+    this.ultimateSkill = getSkillById(profile.selectedSkillIds.ultimate);
     const skinBonuses = this.selectedSkin.bonuses;
     this.playerMaxHp = Math.round(100 * getSkinStatMultiplier(skinBonuses.hpPercent));
     this.playerMoveSpeed = Math.round(260 * getSkinStatMultiplier(skinBonuses.speedPercent));
@@ -113,6 +122,8 @@ export class ArenaScene extends Phaser.Scene {
     this.punchCooldownUntil = 0;
     this.kickCooldownUntil = 0;
     this.dashCooldownUntil = 0;
+    this.skill1CooldownUntil = 0;
+    this.skill2CooldownUntil = 0;
     this.lastPunchAt = 0;
     this.comboStep = 0;
     this.bossPhaseShown = false;
@@ -232,6 +243,10 @@ export class ArenaScene extends Phaser.Scene {
     this.comboText = this.add.text(PLAYER_START_X, FLOOR_Y - 188, "", {
       fontFamily: "Arial", fontSize: "18px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
     }).setOrigin(0.5).setDepth(84);
+
+    this.skillStatusText = this.add.text(GAME_WIDTH / 2, 68, "", {
+      fontFamily: "Arial", fontSize: "11px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(84);
   }
 
   private createPauseAndFullscreenButtons(): void {
@@ -340,6 +355,14 @@ export class ArenaScene extends Phaser.Scene {
       return;
     }
 
+    if (input.skill1) {
+      if (this.useActiveSkill(this.skill1, "skill1", now)) return;
+    }
+
+    if (input.skill2) {
+      if (this.useActiveSkill(this.skill2, "skill2", now)) return;
+    }
+
     if (input.dodge && now >= this.dashCooldownUntil) {
       this.dash(now, input.x);
       return;
@@ -364,6 +387,60 @@ export class ArenaScene extends Phaser.Scene {
     this.player.setVelocityY(0);
     this.player.setFlipX(false);
     this.playPlayerAnim(this.playerState === "moving" ? "mascot-run-front-anim" : "mascot-idle-front-anim");
+  }
+
+  private useActiveSkill(skill: SkillDefinition, slot: "skill1" | "skill2", now: number): boolean {
+    const cooldownUntil = slot === "skill1" ? this.skill1CooldownUntil : this.skill2CooldownUntil;
+    if (now < cooldownUntil) {
+      this.showFloatingText(`${skill.name.toUpperCase()} ${Math.ceil((cooldownUntil - now) / 1000)}s`, this.player.x, this.player.y - 126, "#fcfff7");
+      this.statusText.setText("SKILL COOLDOWN");
+      return false;
+    }
+
+    if (slot === "skill1") this.skill1CooldownUntil = now + skill.cooldownMs;
+    else this.skill2CooldownUntil = now + skill.cooldownMs;
+
+    this.comboStep = 0;
+    this.playerActionUntil = now + (skill.effect === "heal" ? 260 : 330);
+    this.playerState = skill.effect === "heal" ? "block" : "punch";
+    this.player.setTint(skill.color);
+    this.playPlayerAnim(skill.effect === "heal" ? "mascot-pulse-front-anim" : "mascot-attack-anim");
+    this.statusText.setText(skill.name.toUpperCase());
+    this.comboText.setText(skill.name.toUpperCase());
+    this.comboText.setPosition(this.player.x + 42, this.player.y - 138);
+    this.time.delayedCall(560, () => this.comboText.setText(""));
+
+    if (skill.effect === "heal") {
+      const heal = skill.healAmount ?? 16;
+      const before = this.playerHp;
+      this.playerHp = Math.min(this.playerMaxHp, this.playerHp + heal);
+      this.sfx.playPickup();
+      this.showSkillCastFx(skill, this.player.x + 16, this.player.y - 42, true);
+      this.showFloatingText(`+${this.playerHp - before} HP`, this.player.x, this.player.y - 112, "#72ff57");
+      this.cameras.main.flash(44, 114, 255, 87, false);
+      return true;
+    }
+
+    if (skill.effect === "push") {
+      this.sfx.playPulse();
+      this.showSkillCastFx(skill, this.player.x + 68, this.player.y - 36, true);
+      this.tryHitEnemy(skill.damage, skill.range, skill.knockback, skill.name.toUpperCase());
+      this.cameras.main.shake(92, 0.0032);
+      return true;
+    }
+
+    if (skill.effect === "trap") {
+      this.sfx.playPulse();
+      this.showSkillCastFx(skill, this.player.x + 92, FLOOR_Y - 44, true);
+      this.tryHitEnemy(skill.damage, skill.range, skill.knockback, skill.name.toUpperCase());
+      return true;
+    }
+
+    this.player.setVelocityX(84);
+    this.sfx.playDashSlash();
+    this.showSkillCastFx(skill, this.player.x + 106, this.player.y - 38, true);
+    this.tryHitEnemy(skill.damage, skill.range, skill.knockback, skill.name.toUpperCase());
+    return true;
   }
 
   private punch(now: number): void {
@@ -829,6 +906,13 @@ export class ArenaScene extends Phaser.Scene {
       const enemyPercent = Math.ceil((this.enemyHp / Math.max(1, this.enemyMaxHp)) * 100);
       this.enemyHpText.setText(`${config.name.toUpperCase()} · ${enemyPercent}%`);
     }
+
+    if (this.skillStatusText) {
+      const now = Date.now();
+      const s1 = now >= this.skill1CooldownUntil ? "READY" : `${Math.ceil((this.skill1CooldownUntil - now) / 1000)}s`;
+      const s2 = now >= this.skill2CooldownUntil ? "READY" : `${Math.ceil((this.skill2CooldownUntil - now) / 1000)}s`;
+      this.skillStatusText.setText(`S1 ${this.skill1.name}: ${s1}   ·   S2 ${this.skill2.name}: ${s2}`);
+    }
   }
 
   private updateShadows(): void {
@@ -953,6 +1037,24 @@ export class ArenaScene extends Phaser.Scene {
 
   private playPlayerAnim(key: string): void {
     if (this.anims.exists(key)) this.player.play(key, true);
+  }
+
+  private showSkillCastFx(skill: SkillDefinition, x: number, y: number, heavy = false): void {
+    const ring = this.add.circle(x, y, heavy ? 28 : 20, skill.color, 0.11)
+      .setStrokeStyle(heavy ? 6 : 4, skill.color, 0.86)
+      .setDepth(49);
+    const core = this.add.circle(x, y, heavy ? 9 : 6, 0xfcfff7, 0.72).setDepth(50);
+    const label = this.add.text(x, y - 44, skill.name.toUpperCase(), {
+      fontFamily: "Arial",
+      fontSize: skill.name.length > 16 ? "12px" : "14px",
+      color: skill.uiColor,
+      fontStyle: "bold",
+      stroke: "#041004",
+      strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(92);
+    this.tweens.add({ targets: ring, radius: heavy ? 82 : 58, alpha: 0, duration: heavy ? 330 : 240, onComplete: () => ring.destroy() });
+    this.tweens.add({ targets: core, alpha: 0, scaleX: 2.6, scaleY: 2.6, duration: 180, onComplete: () => core.destroy() });
+    this.tweens.add({ targets: label, y: label.y - 24, alpha: 0, duration: 620, onComplete: () => label.destroy() });
   }
 
   private showPunchFx(combo: number): void {

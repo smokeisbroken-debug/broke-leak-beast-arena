@@ -44,7 +44,7 @@ export class MainMenuScene extends Phaser.Scene {
       strokeThickness: 3,
     }).setOrigin(0.5).setDepth(5);
 
-    this.add.text(objectivePanel.x, 152, "Choose skin\nPick skills later\nDefeat leak bosses", {
+    this.add.text(objectivePanel.x, 152, "Choose skin\nPick active skills\nDefeat leak bosses", {
       fontFamily: "Arial",
       fontSize: "17px",
       color: "#f5fff1",
@@ -84,19 +84,33 @@ export class MainMenuScene extends Phaser.Scene {
     play.on("pointerover", () => play.setScale(1.03));
     play.on("pointerout", () => play.setScale(1));
 
-    const skinButton = this.add.rectangle(545, 376, 188, 34, 0x071107, 0.9)
+    const skinButton = this.add.rectangle(482, 376, 118, 34, 0x071107, 0.9)
       .setStrokeStyle(2, activeSkin.auraColor, 0.55)
       .setDepth(5)
       .setInteractive({ useHandCursor: true });
-    this.add.text(545, 376, "SKINS", {
+    this.add.text(482, 376, "SKINS", {
       fontFamily: "Arial",
-      fontSize: "14px",
+      fontSize: "13px",
       color: "#fcfff7",
       fontStyle: "bold",
       stroke: "#050805",
       strokeThickness: 4,
     }).setOrigin(0.5).setDepth(6);
     skinButton.on("pointerdown", () => this.scene.start(SCENE_KEYS.skinSelect));
+
+    const skillButton = this.add.rectangle(608, 376, 118, 34, 0x071107, 0.9)
+      .setStrokeStyle(2, 0x72ff57, 0.55)
+      .setDepth(5)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(608, 376, "SKILLS", {
+      fontFamily: "Arial",
+      fontSize: "13px",
+      color: "#fcfff7",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(6);
+    skillButton.on("pointerdown", () => this.scene.start(SCENE_KEYS.skillLoadout));
 
     this.add.text(188, 392, `COINS: ${profile.coins} · LEVEL ${profile.level}`, {
       fontFamily: "Arial",

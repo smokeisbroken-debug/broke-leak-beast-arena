@@ -1,5 +1,5 @@
 import { DEFAULT_HERO_ID } from "./heroes";
-import { DEFAULT_LOADOUT } from "./skills";
+import { DEFAULT_LOADOUT, STARTER_SKILL_IDS, getSkillById, type ActiveSkillSlot } from "./skills";
 import { DEFAULT_SKIN_ID, STARTER_SKIN_IDS } from "./skins";
 import { DEFAULT_STAGE_ID } from "./stages";
 
@@ -35,7 +35,7 @@ export const DEFAULT_PLAYER_PROFILE: PlayerProfile = {
   selectedSkinId: DEFAULT_SKIN_ID,
   unlockedSkinIds: STARTER_SKIN_IDS,
   selectedSkillIds: DEFAULT_LOADOUT,
-  unlockedSkillIds: ["green_punch", "power_kick", "wallet_guard", "broke_dash"],
+  unlockedSkillIds: STARTER_SKILL_IDS,
   selectedStageId: DEFAULT_STAGE_ID,
   unlockedStageIds: [DEFAULT_STAGE_ID],
   coins: 0,
@@ -81,6 +81,23 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
     normalized.selectedSkinId = DEFAULT_SKIN_ID;
   }
 
+  const unlockedSkillIds = Array.from(new Set([...STARTER_SKILL_IDS, ...(profile?.unlockedSkillIds ?? [])]));
+  normalized.unlockedSkillIds = unlockedSkillIds;
+  normalized.selectedSkillIds = {
+    ...DEFAULT_LOADOUT,
+    ...(profile?.selectedSkillIds ?? {}),
+  };
+
+  if (!unlockedSkillIds.includes(normalized.selectedSkillIds.skill1)) {
+    normalized.selectedSkillIds.skill1 = DEFAULT_LOADOUT.skill1;
+  }
+  if (!unlockedSkillIds.includes(normalized.selectedSkillIds.skill2)) {
+    normalized.selectedSkillIds.skill2 = DEFAULT_LOADOUT.skill2;
+  }
+  if (!unlockedSkillIds.includes(normalized.selectedSkillIds.ultimate)) {
+    normalized.selectedSkillIds.ultimate = DEFAULT_LOADOUT.ultimate;
+  }
+
   return normalized;
 }
 
@@ -97,6 +114,25 @@ export function unlockProfileSkin(profile: PlayerProfile, skinId: string): Playe
     normalized.unlockedSkinIds = [...normalized.unlockedSkinIds, skinId];
   }
   normalized.selectedSkinId = skinId;
+  return normalized;
+}
+
+export function selectProfileSkill(profile: PlayerProfile, slot: ActiveSkillSlot, skillId: string): PlayerProfile {
+  const normalized = normalizeProfile(profile);
+  const skill = getSkillById(skillId);
+  if (!normalized.unlockedSkillIds.includes(skill.id)) return normalized;
+  if (slot === "skill1" && skill.slot !== "skill_1") return normalized;
+  if (slot === "skill2" && skill.slot !== "skill_2") return normalized;
+  if (slot === "ultimate" && skill.slot !== "ultimate") return normalized;
+  normalized.selectedSkillIds = { ...normalized.selectedSkillIds, [slot]: skill.id };
+  return normalized;
+}
+
+export function unlockProfileSkill(profile: PlayerProfile, skillId: string): PlayerProfile {
+  const normalized = normalizeProfile(profile);
+  if (!normalized.unlockedSkillIds.includes(skillId)) {
+    normalized.unlockedSkillIds = [...normalized.unlockedSkillIds, skillId];
+  }
   return normalized;
 }
 
