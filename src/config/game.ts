@@ -7,5 +7,5 @@ export const GAME_CONFIG = {
   title: "$BROKE Leak Beast Arena",
   shortTitle: "Leak Beast Arena",
   tagline: "Track the leak. Fight the leak. Defeat the leak.",
-  version: "0.6.5-fighter-mascot-visual-polish",
+  version: "0.6.6-enemy-fighter-ai-boss-polish",
 };

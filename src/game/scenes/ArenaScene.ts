@@ -7,7 +7,7 @@ import { SfxSystem } from "../systems/SfxSystem";
 import type { InputState, RunResult } from "../types/game";
 
 type FighterState = "idle" | "moving" | "punch" | "kick" | "block" | "dash" | "hurt" | "defeated";
-type EnemyState = "idle" | "approach" | "windup" | "attack" | "hurt" | "defeated";
+type EnemyState = "idle" | "approach" | "windup" | "attack" | "guard" | "backstep" | "hurt" | "defeated";
 type EnemyAttack = "jab" | "lunge" | "heavy";
 
 interface RoundConfig {
@@ -147,6 +147,8 @@ export class ArenaScene extends Phaser.Scene {
   private enemyWindupUntil = 0;
   private enemyAttackUntil = 0;
   private enemyCooldownUntil = 0;
+  private enemyGuardUntil = 0;
+  private enemyBackstepUntil = 0;
   private playerInvincibleUntil = 0;
   private playerBlockUntil = 0;
   private playerActionUntil = 0;
@@ -327,6 +329,8 @@ export class ArenaScene extends Phaser.Scene {
     this.enemyHp = config.hp;
     this.enemyState = "idle";
     this.enemyCooldownUntil = Date.now() + 1400;
+    this.enemyGuardUntil = 0;
+    this.enemyBackstepUntil = 0;
     this.fightStarted = false;
     this.playerState = "idle";
     this.playerActionUntil = 0;
@@ -494,33 +498,47 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     const counterHit = this.enemyState === "windup";
+    const guarded = this.enemyState === "guard";
     const heavyHit = label.includes("HEAVY") || label === "KICK";
     const bonus = counterHit ? 4 : 0;
-    const finalDamage = damage + bonus;
+    const rawDamage = damage + bonus;
+    const finalDamage = guarded ? Math.max(1, Math.floor(rawDamage * 0.35)) : rawDamage;
     this.enemyHp = Math.max(0, this.enemyHp - finalDamage);
-    this.enemyState = "hurt";
-    this.enemyAttackUntil = Date.now() + (heavyHit ? 210 : 165);
-    this.enemyCooldownUntil = Math.max(this.enemyCooldownUntil, Date.now() + (counterHit ? 720 : 470));
-    this.enemy.setVelocityX(knockback);
-    this.enemy.setTint(heavyHit ? 0xffeb72 : 0xffffff);
-    this.sfx.playHit(heavyHit);
-    this.score += finalDamage * 12 + (counterHit ? 70 : 0);
+
+    if (guarded) {
+      this.enemyState = "backstep";
+      this.enemyBackstepUntil = Date.now() + 300;
+      this.enemyCooldownUntil = Math.max(this.enemyCooldownUntil, Date.now() + 520);
+      this.enemy.setVelocityX(knockback * 0.4);
+      this.enemy.setTint(0x72ff57);
+      this.sfx.playBlock();
+    } else {
+      this.enemyState = "hurt";
+      this.enemyAttackUntil = Date.now() + (heavyHit ? 210 : 165);
+      this.enemyCooldownUntil = Math.max(this.enemyCooldownUntil, Date.now() + (counterHit ? 720 : 470));
+      this.enemy.setVelocityX(knockback);
+      this.enemy.setTint(heavyHit ? 0xffeb72 : 0xffffff);
+      this.sfx.playHit(heavyHit);
+    }
+
+    this.score += finalDamage * 12 + (counterHit ? 70 : 0) + (guarded ? 10 : 0);
 
     const impactX = this.enemy.x - Math.min(72, this.enemy.displayWidth * 0.38);
     const impactY = this.enemy.y - this.enemy.displayHeight * 0.34;
-    this.showImpact(impactX, impactY, heavyHit ? 0xffeb72 : 0x72ff57, heavyHit);
-    this.showHitLine(this.player.x + 46, this.player.y - 42, impactX, impactY, heavyHit ? 0xffeb72 : 0x72ff57, heavyHit);
-    this.showFloatingText(`${label} -${finalDamage}`, this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.64, heavyHit ? "#ffeb72" : "#d7ffd0");
+    const impactColor = guarded ? 0x72ff57 : heavyHit ? 0xffeb72 : 0x72ff57;
+    this.showImpact(impactX, impactY, impactColor, heavyHit || guarded);
+    this.showHitLine(this.player.x + 46, this.player.y - 42, impactX, impactY, impactColor, heavyHit || guarded);
+    this.showFloatingText(`${guarded ? "GUARD" : label} -${finalDamage}`, this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.64, guarded ? "#72ff57" : heavyHit ? "#ffeb72" : "#d7ffd0");
     if (counterHit) this.showFloatingText("COUNTER", this.enemy.x - 8, this.enemy.y - this.enemy.displayHeight * 0.82, "#ffeb72");
 
-    this.comboText.setText(counterHit ? "COUNTER HIT" : label);
+    this.comboText.setText(guarded ? "GUARDED" : counterHit ? "COUNTER HIT" : label);
     this.comboText.setPosition(this.player.x + 40, this.player.y - 136);
     this.time.delayedCall(520, () => this.comboText.setText(""));
-    this.statusText.setText(counterHit ? "COUNTER HIT" : label);
-    this.cameras.main.shake(heavyHit ? 115 : 58, heavyHit ? 0.0042 : 0.0022);
+    this.statusText.setText(guarded ? "ENEMY GUARDED" : counterHit ? "COUNTER HIT" : label);
+    this.cameras.main.shake(heavyHit ? 115 : guarded ? 70 : 58, heavyHit ? 0.0042 : guarded ? 0.0028 : 0.0022);
     if (heavyHit) this.cameras.main.flash(36, 255, 235, 114, false);
 
-    this.time.delayedCall(heavyHit ? 130 : 95, () => {
+    this.time.delayedCall(heavyHit || guarded ? 130 : 95, () => {
       if (!this.enemy.active || this.enemyState === "defeated") return;
       this.enemy.clearTint();
     });
@@ -541,6 +559,7 @@ export class ArenaScene extends Phaser.Scene {
       this.objectiveText.setText("BOSS PHASE 2");
       this.statusText.setText("BOSS ENRAGED");
       this.showImpact(this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.32, 0xff4866, true);
+      this.showBossPhaseFx();
       this.showFloatingText("PHASE 2", this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.68, "#ff9aaa");
       this.cameras.main.shake(160, 0.0044);
       this.time.delayedCall(190, () => {
@@ -549,6 +568,30 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     if (this.enemyState === "defeated") return;
+
+    if (this.enemyState === "guard") {
+      this.enemy.setVelocityX(0);
+      this.statusText.setText(`${config.name}: GUARD`);
+      if (now >= this.enemyGuardUntil) {
+        this.enemy.clearTint();
+        this.enemyState = "idle";
+        this.enemyCooldownUntil = Math.max(this.enemyCooldownUntil, now + 260);
+      }
+      return;
+    }
+
+    if (this.enemyState === "backstep") {
+      const away = this.player.x < this.enemy.x ? 1 : -1;
+      this.enemy.setVelocityX(away * this.getBackstepSpeed(config));
+      this.statusText.setText(`${config.name}: RESET`);
+      if (now >= this.enemyBackstepUntil) {
+        this.enemy.setVelocityX(0);
+        this.enemy.clearTint();
+        this.enemyState = "idle";
+        this.enemyCooldownUntil = Math.max(this.enemyCooldownUntil, now + this.getRecoveryDelay(config));
+      }
+      return;
+    }
 
     if (this.enemyState === "hurt") {
       if (now < this.enemyAttackUntil) return;
@@ -567,7 +610,8 @@ export class ArenaScene extends Phaser.Scene {
 
     if (this.enemyState === "attack") {
       if (now >= this.enemyAttackUntil) {
-        this.enemyState = "idle";
+        this.enemyState = "backstep";
+        this.enemyBackstepUntil = now + this.getBackstepDuration(config);
         this.enemy.clearTint();
       }
       return;
@@ -591,10 +635,16 @@ export class ArenaScene extends Phaser.Scene {
     this.enemyState = "idle";
 
     if (now >= this.enemyCooldownUntil) {
-      this.beginEnemyWindup(now, config);
-    } else if (config.behavior === "emotion" && distance < config.attackRange * 0.62) {
+      if (this.shouldEnemyGuard(config, distance)) {
+        this.beginEnemyGuard(now, config);
+      } else {
+        this.beginEnemyWindup(now, config);
+      }
+    } else if (distance < config.attackRange * 0.58) {
       const away = this.player.x < this.enemy.x ? 1 : -1;
-      this.enemy.setVelocityX(away * 42);
+      const retreatSpeed = config.behavior === "rug" ? 34 : config.behavior === "emotion" ? 58 : 42;
+      this.enemy.setVelocityX(away * retreatSpeed);
+      this.statusText.setText(`${config.name}: SPACING`);
     }
   }
 
@@ -606,8 +656,42 @@ export class ArenaScene extends Phaser.Scene {
     this.enemyWindupUntil = now + windupMs;
     this.enemy.setTint(this.enemyAttack === "heavy" ? 0xff4866 : config.color);
     const label = this.enemyAttack === "heavy" ? this.getHeavyAttackName(config) : this.enemyAttack === "lunge" ? this.getLungeAttackName(config) : this.getJabAttackName(config);
-    this.showEnemyWarning(label, config.color, windupMs);
+    this.showEnemyWarning(label, config.color, windupMs, this.enemyAttack);
     this.statusText.setText(`${config.name}: ${label}`);
+  }
+
+  private shouldEnemyGuard(config: RoundConfig, distance: number): boolean {
+    if (distance > config.attackRange * 0.82) return false;
+    const roll = Phaser.Math.FloatBetween(0, 1);
+    if (config.behavior === "impulse") return roll < 0.1;
+    if (config.behavior === "emotion") return roll < 0.2;
+    if (config.behavior === "rug") return roll < 0.28;
+    return roll < (this.bossPhaseShown ? 0.18 : 0.24);
+  }
+
+  private beginEnemyGuard(now: number, config: RoundConfig): void {
+    this.enemyState = "guard";
+    this.enemyGuardUntil = now + (config.behavior === "rug" ? 420 : config.boss ? 380 : 300);
+    this.enemyCooldownUntil = now + (config.behavior === "impulse" ? 620 : 740);
+    this.enemy.setVelocityX(0);
+    this.enemy.setTint(config.boss ? 0xff9aaa : 0x72ff57);
+    this.showEnemyGuardFx(config.color);
+    this.showFloatingText("GUARD", this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.7, "#72ff57");
+    this.statusText.setText(`${config.name}: GUARD`);
+  }
+
+  private getBackstepSpeed(config: RoundConfig): number {
+    if (config.behavior === "emotion") return 150;
+    if (config.behavior === "rug") return 88;
+    if (config.boss) return this.bossPhaseShown ? 118 : 96;
+    return 126;
+  }
+
+  private getBackstepDuration(config: RoundConfig): number {
+    if (config.behavior === "impulse") return 230;
+    if (config.behavior === "emotion") return 310;
+    if (config.behavior === "rug") return 260;
+    return this.bossPhaseShown ? 220 : 280;
   }
 
   private pickEnemyAttack(config: RoundConfig): EnemyAttack {
@@ -903,15 +987,15 @@ export class ArenaScene extends Phaser.Scene {
     this.playerAuraInner.setAlpha(Phaser.Math.Linear(this.playerAuraInner.alpha, auraInnerAlpha, 0.18));
 
     const enemyPulse = 1 + Math.sin(time / 220) * 0.01;
-    const enemyTargetScaleX = this.enemyState === "attack" ? 1.06 : this.enemyState === "windup" ? 1.04 : this.enemyState === "hurt" ? 0.97 : enemyPulse;
-    const enemyTargetScaleY = this.enemyState === "attack" ? 0.97 : this.enemyState === "windup" ? 1.02 : this.enemyState === "hurt" ? 1.03 : enemyPulse;
-    const enemyTargetAngle = this.enemyState === "attack" ? 5 : this.enemyState === "windup" ? -3 : this.enemyState === "hurt" ? 6 : 0;
+    const enemyTargetScaleX = this.enemyState === "attack" ? 1.06 : this.enemyState === "windup" ? 1.04 : this.enemyState === "guard" ? 1.03 : this.enemyState === "backstep" ? 0.98 : this.enemyState === "hurt" ? 0.97 : enemyPulse;
+    const enemyTargetScaleY = this.enemyState === "attack" ? 0.97 : this.enemyState === "windup" ? 1.02 : this.enemyState === "guard" ? 1.04 : this.enemyState === "backstep" ? 1.01 : this.enemyState === "hurt" ? 1.03 : enemyPulse;
+    const enemyTargetAngle = this.enemyState === "attack" ? 5 : this.enemyState === "windup" ? -3 : this.enemyState === "guard" ? -5 : this.enemyState === "backstep" ? 4 : this.enemyState === "hurt" ? 6 : 0;
     this.enemy.scaleX = Phaser.Math.Linear(this.enemy.scaleX, enemyTargetScaleX, 0.16);
     this.enemy.scaleY = Phaser.Math.Linear(this.enemy.scaleY, enemyTargetScaleY, 0.16);
     this.enemy.angle = Phaser.Math.Linear(this.enemy.angle, enemyTargetAngle, 0.16);
     this.enemyAura.setPosition(this.enemy.x + 8, this.enemy.y - 4);
     this.enemyAura.setDisplaySize(Math.max(114, this.enemy.displayWidth * 0.7), Math.max(128, this.enemy.displayHeight * 0.82));
-    const enemyAuraAlpha = this.enemyState === "windup" ? 0.08 : this.enemyState === "attack" ? 0.09 : 0.05;
+    const enemyAuraAlpha = this.enemyState === "windup" ? 0.08 : this.enemyState === "attack" ? 0.09 : this.enemyState === "guard" ? 0.075 : 0.05;
     this.enemyAura.setAlpha(Phaser.Math.Linear(this.enemyAura.alpha, enemyAuraAlpha, 0.16));
   }
 
@@ -1018,21 +1102,67 @@ export class ArenaScene extends Phaser.Scene {
     this.tweens.add({ targets: [arc, danger], alpha: 0, duration: heavy ? 220 : 170, onComplete: () => { arc.destroy(); danger.destroy(); } });
   }
 
-  private showEnemyWarning(text: string, color: number, durationMs: number): void {
-    const label = this.add.text(this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.62, text, {
-      fontFamily: "Arial", fontSize: "15px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+  private showEnemyGuardFx(color: number): void {
+    const shield = this.add.circle(this.enemy.x - 40, this.enemy.y - this.enemy.displayHeight * 0.3, 28, color, 0.05)
+      .setStrokeStyle(5, color, 0.82)
+      .setDepth(49);
+    const guardLine = this.add.line(0, 0, this.enemy.x - 72, this.enemy.y - this.enemy.displayHeight * 0.3, this.enemy.x - 10, this.enemy.y - this.enemy.displayHeight * 0.3, color, 0.78)
+      .setOrigin(0, 0)
+      .setLineWidth(6)
+      .setDepth(50);
+    this.tweens.add({ targets: shield, radius: 48, alpha: 0, duration: 260, onComplete: () => shield.destroy() });
+    this.tweens.add({ targets: guardLine, alpha: 0, duration: 210, onComplete: () => guardLine.destroy() });
+  }
+
+  private showBossPhaseFx(): void {
+    const ring = this.add.circle(this.enemy.x, FLOOR_Y - 86, 62, 0xff4866, 0.05)
+      .setStrokeStyle(7, 0xff4866, 0.76)
+      .setDepth(47);
+    const pulse = this.add.circle(this.enemy.x, FLOOR_Y - 86, 28, 0xffeb72, 0.08)
+      .setStrokeStyle(4, 0xffeb72, 0.58)
+      .setDepth(48);
+    const warning = this.add.text(this.enemy.x, FLOOR_Y - 188, "BOSS ENRAGED", {
+      fontFamily: "Arial", fontSize: "24px", color: "#ff9aaa", fontStyle: "bold", stroke: "#041004", strokeThickness: 7,
+    }).setOrigin(0.5).setDepth(92);
+    this.tweens.add({ targets: ring, radius: 156, alpha: 0, duration: 520, onComplete: () => ring.destroy() });
+    this.tweens.add({ targets: pulse, radius: 112, alpha: 0, duration: 400, onComplete: () => pulse.destroy() });
+    this.tweens.add({ targets: warning, y: warning.y - 26, alpha: 0, delay: 360, duration: 420, onComplete: () => warning.destroy() });
+  }
+
+  private showEnemyWarning(text: string, color: number, durationMs: number, attack: EnemyAttack = "jab"): void {
+    const heavy = attack === "heavy";
+    const lunge = attack === "lunge";
+    const dir = this.player.x < this.enemy.x ? -1 : 1;
+    const warnColor = heavy ? 0xff4866 : lunge ? 0xffeb72 : color;
+    const range = heavy ? 164 : lunge ? 190 : 126;
+
+    const label = this.add.text(this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.66, text, {
+      fontFamily: "Arial", fontSize: heavy ? "17px" : "15px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
     }).setOrigin(0.5).setDepth(90);
-    const marker = this.add.rectangle(this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.34, 78, 5, color, 0.92)
+    const marker = this.add.rectangle(this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.34, heavy ? 96 : 78, heavy ? 7 : 5, warnColor, 0.96)
       .setDepth(89);
+    const attackLine = this.add.line(0, 0, this.enemy.x + dir * 26, FLOOR_Y - 72, this.enemy.x + dir * range, FLOOR_Y - 74, warnColor, heavy ? 0.74 : 0.52)
+      .setOrigin(0, 0)
+      .setLineWidth(heavy ? 9 : 6)
+      .setDepth(88);
+    const blockNow = heavy
+      ? this.add.text(this.player.x, this.player.y - 128, "BLOCK NOW", {
+        fontFamily: "Arial", fontSize: "16px", color: "#ffeb72", fontStyle: "bold", stroke: "#041004", strokeThickness: 5,
+      }).setOrigin(0.5).setDepth(91)
+      : undefined;
+
+    const targets: Phaser.GameObjects.GameObject[] = blockNow ? [label, marker, attackLine, blockNow] : [label, marker, attackLine];
     this.tweens.add({
-      targets: [label, marker],
-      alpha: 0.28,
-      duration: Math.max(140, durationMs * 0.5),
+      targets,
+      alpha: heavy ? 0.18 : 0.28,
+      duration: Math.max(140, durationMs * 0.42),
       yoyo: true,
       repeat: 1,
       onComplete: () => {
         label.destroy();
         marker.destroy();
+        attackLine.destroy();
+        blockNow?.destroy();
       },
     });
   }
