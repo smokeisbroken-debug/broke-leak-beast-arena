@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import { requestAppFullscreen } from "../../app/AppShell";
+import { formatSkinBonuses, getSkinById, loadPlayerProfile } from "../data/gameRegistry";
 
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -9,6 +10,9 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    const profile = loadPlayerProfile();
+    const activeSkin = getSkinById(profile.selectedSkinId);
+
     this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "menu-start-screen")
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
       .setDepth(0);
@@ -18,17 +22,20 @@ export class MainMenuScene extends Phaser.Scene {
       .setDisplaySize(246, 144)
       .setDepth(3);
 
-    const hero = this.add.image(190, 252, "start-hero-frog")
+    const hero = this.add.image(190, 252, activeSkin.previewKey)
       .setDisplaySize(202, 252)
+      .setTint(activeSkin.tintColor)
       .setDepth(4);
+
+    this.add.ellipse(190, 254, 148, 222, activeSkin.auraColor, 0.075).setDepth(3);
 
     this.tweens.add({ targets: hero, y: 242, duration: 1250, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
 
-    const objectivePanel = this.add.rectangle(548, 186, 312, 104, 0x050805, 0.72)
-      .setStrokeStyle(2, 0x39ff14, 0.26)
+    const objectivePanel = this.add.rectangle(548, 166, 330, 122, 0x050805, 0.74)
+      .setStrokeStyle(2, activeSkin.auraColor, 0.34)
       .setDepth(4);
 
-    this.add.text(objectivePanel.x, 154, "ARENA BATTLE", {
+    this.add.text(objectivePanel.x, 122, "ARENA BATTLE", {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#39ff14",
@@ -37,14 +44,32 @@ export class MainMenuScene extends Phaser.Scene {
       strokeThickness: 3,
     }).setOrigin(0.5).setDepth(5);
 
-    this.add.text(objectivePanel.x, 187, "Survive waves\nBreak the boss\nCollect safe drops", {
+    this.add.text(objectivePanel.x, 152, "Choose skin\nPick skills later\nDefeat leak bosses", {
       fontFamily: "Arial",
-      fontSize: "18px",
+      fontSize: "17px",
       color: "#f5fff1",
       align: "center",
       lineSpacing: 5,
       stroke: "#050805",
       strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(5);
+
+    this.add.text(objectivePanel.x, 220, `ACTIVE: ${activeSkin.name.toUpperCase()}`, {
+      fontFamily: "Arial",
+      fontSize: "12px",
+      color: activeSkin.uiColor,
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(5);
+
+    this.add.text(objectivePanel.x, 239, formatSkinBonuses(activeSkin), {
+      fontFamily: "Arial",
+      fontSize: "10px",
+      color: "#d7ffd0",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 3,
     }).setOrigin(0.5).setDepth(5);
 
     const play = this.add.image(545, 312, "start-play-button")
@@ -59,7 +84,21 @@ export class MainMenuScene extends Phaser.Scene {
     play.on("pointerover", () => play.setScale(1.03));
     play.on("pointerout", () => play.setScale(1));
 
-    this.add.text(545, 375, "Best in landscape. Use browser if Telegram crops the screen.", {
+    const skinButton = this.add.rectangle(545, 376, 188, 34, 0x071107, 0.9)
+      .setStrokeStyle(2, activeSkin.auraColor, 0.55)
+      .setDepth(5)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(545, 376, "SKINS", {
+      fontFamily: "Arial",
+      fontSize: "14px",
+      color: "#fcfff7",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(6);
+    skinButton.on("pointerdown", () => this.scene.start(SCENE_KEYS.skinSelect));
+
+    this.add.text(188, 392, `COINS: ${profile.coins} · LEVEL ${profile.level}`, {
       fontFamily: "Arial",
       fontSize: "12px",
       color: "#d7ffd0",

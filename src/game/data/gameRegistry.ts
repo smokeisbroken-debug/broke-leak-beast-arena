@@ -1,8 +1,19 @@
 export { HEROES, DEFAULT_HERO_ID, getHeroById } from "./heroes";
 export type { HeroDefinition, HeroId } from "./heroes";
 
-export { SKINS, DEFAULT_SKIN_ID, STARTER_SKIN_IDS, getSkinById } from "./skins";
-export type { SkinDefinition, SkinRarity, SkinStatBonuses, SkinUnlockRule } from "./skins";
+export {
+  SKINS,
+  DEFAULT_SKIN_ID,
+  STARTER_SKIN_IDS,
+  canUnlockSkin,
+  formatSkinBonuses,
+  getSkinById,
+  getSkinRarityColor,
+  getSkinStatMultiplier,
+  getSkinUnlockLabel,
+  isSkinUnlocked,
+} from "./skins";
+export type { SkinDefinition, SkinProfileState, SkinRarity, SkinStatBonuses, SkinUnlockRule } from "./skins";
 
 export { SKILLS, DEFAULT_LOADOUT, getSkillById } from "./skills";
 export type { SkillDefinition, SkillEffect, SkillSlot, SkillTarget } from "./skills";
@@ -23,5 +34,7 @@ export {
   loadPlayerProfile,
   normalizeProfile,
   savePlayerProfile,
+  selectProfileSkin,
+  unlockProfileSkin,
 } from "./playerProfile";
 export type { PlayerProfile } from "./playerProfile";

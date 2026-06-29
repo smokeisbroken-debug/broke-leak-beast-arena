@@ -58,7 +58,7 @@ export function createDefaultProfile(): PlayerProfile {
 }
 
 export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefined): PlayerProfile {
-  return {
+  const normalized = {
     ...createDefaultProfile(),
     ...(profile ?? {}),
     settings: {
@@ -74,6 +74,30 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
       ...(profile?.bossProgress ?? {}),
     },
   };
+
+  const unlockedSkinIds = Array.from(new Set([...STARTER_SKIN_IDS, ...(profile?.unlockedSkinIds ?? [])]));
+  normalized.unlockedSkinIds = unlockedSkinIds;
+  if (!unlockedSkinIds.includes(normalized.selectedSkinId)) {
+    normalized.selectedSkinId = DEFAULT_SKIN_ID;
+  }
+
+  return normalized;
+}
+
+export function selectProfileSkin(profile: PlayerProfile, skinId: string): PlayerProfile {
+  const normalized = normalizeProfile(profile);
+  if (!normalized.unlockedSkinIds.includes(skinId)) return normalized;
+  normalized.selectedSkinId = skinId;
+  return normalized;
+}
+
+export function unlockProfileSkin(profile: PlayerProfile, skinId: string): PlayerProfile {
+  const normalized = normalizeProfile(profile);
+  if (!normalized.unlockedSkinIds.includes(skinId)) {
+    normalized.unlockedSkinIds = [...normalized.unlockedSkinIds, skinId];
+  }
+  normalized.selectedSkinId = skinId;
+  return normalized;
 }
 
 export function loadPlayerProfile(): PlayerProfile {

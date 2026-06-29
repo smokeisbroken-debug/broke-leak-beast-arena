@@ -5,7 +5,9 @@ import { requestAppFullscreen, toggleAppFullscreen } from "../../app/AppShell";
 import { MobileControls } from "../ui/MobileControls";
 import { SfxSystem } from "../systems/SfxSystem";
 import { ARENA_BATTLE_ROUNDS } from "../data/bosses";
+import { getSkinById, getSkinStatMultiplier, loadPlayerProfile } from "../data/gameRegistry";
 import type { ArenaBossDefinition } from "../data/bosses";
+import type { SkinDefinition } from "../data/gameRegistry";
 import type { InputState, RunResult } from "../types/game";
 
 type FighterState = "idle" | "moving" | "punch" | "kick" | "block" | "dash" | "hurt" | "defeated";
@@ -34,8 +36,15 @@ export class ArenaScene extends Phaser.Scene {
   private playerAuraOuter!: Phaser.GameObjects.Ellipse;
   private playerAuraInner!: Phaser.GameObjects.Ellipse;
   private enemyAura!: Phaser.GameObjects.Ellipse;
+  private selectedSkin!: SkinDefinition;
 
   private playerHp = 100;
+  private playerMaxHp = 100;
+  private playerMoveSpeed = 260;
+  private punchDamageMultiplier = 1;
+  private kickDamageMultiplier = 1;
+  private dashCooldownMs = 860;
+  private blockDamageTakenMultiplier = 0.25;
   private enemyHp = 1;
   private enemyMaxHp = 1;
   private roundIndex = 0;
@@ -77,7 +86,17 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.playerHp = 100;
+    const profile = loadPlayerProfile();
+    this.selectedSkin = getSkinById(profile.selectedSkinId);
+    const skinBonuses = this.selectedSkin.bonuses;
+    this.playerMaxHp = Math.round(100 * getSkinStatMultiplier(skinBonuses.hpPercent));
+    this.playerMoveSpeed = Math.round(260 * getSkinStatMultiplier(skinBonuses.speedPercent));
+    this.punchDamageMultiplier = getSkinStatMultiplier(skinBonuses.punchDamagePercent);
+    this.kickDamageMultiplier = getSkinStatMultiplier(skinBonuses.kickDamagePercent);
+    this.dashCooldownMs = Math.max(560, Math.round(860 * getSkinStatMultiplier(skinBonuses.dashCooldownPercent)));
+    this.blockDamageTakenMultiplier = Math.max(0.1, 0.25 * (1 - (skinBonuses.blockReductionPercent ?? 0) / 100));
+
+    this.playerHp = this.playerMaxHp;
     this.enemyHp = 1;
     this.enemyMaxHp = 1;
     this.roundIndex = 0;
@@ -157,12 +176,13 @@ export class ArenaScene extends Phaser.Scene {
     this.playerShadow = this.add.ellipse(PLAYER_START_X, FLOOR_Y - 2, 92, 22, 0x000000, 0.22).setDepth(9);
     this.enemyShadow = this.add.ellipse(ENEMY_START_X, FLOOR_Y - 2, 90, 22, 0x000000, 0.24).setDepth(9);
 
-    this.playerAuraOuter = this.add.ellipse(PLAYER_START_X - 6, FLOOR_Y - 88, 106, 144, 0x72ff57, 0.06).setDepth(15);
+    this.playerAuraOuter = this.add.ellipse(PLAYER_START_X - 6, FLOOR_Y - 88, 106, 144, this.selectedSkin.auraColor, 0.06).setDepth(15);
     this.playerAuraInner = this.add.ellipse(PLAYER_START_X - 3, FLOOR_Y - 90, 70, 112, 0xfcfff7, 0.035).setDepth(16);
     this.enemyAura = this.add.ellipse(ENEMY_START_X + 6, FLOOR_Y - 82, 118, 136, 0xa45cff, 0.045).setDepth(15);
 
-    this.player = this.physics.add.sprite(PLAYER_START_X, FLOOR_Y - PLAYER_DISPLAY_H * 0.5, "mascot-idle-front");
+    this.player = this.physics.add.sprite(PLAYER_START_X, FLOOR_Y - PLAYER_DISPLAY_H * 0.5, this.selectedSkin.assetKey);
     this.player.setDisplaySize(PLAYER_DISPLAY_W, PLAYER_DISPLAY_H);
+    this.player.setTint(this.selectedSkin.tintColor);
     this.player.setDepth(22);
     this.player.setCollideWorldBounds(false);
     this.player.setData("side", "player");
@@ -179,12 +199,12 @@ export class ArenaScene extends Phaser.Scene {
     this.add.rectangle(156, 34, 272, 50, 0x061006, 0.74)
       .setStrokeStyle(2, 0x72ff57, 0.36)
       .setDepth(80);
-    this.add.text(30, 13, "BROKE MASCOT", {
+    this.add.text(30, 13, this.selectedSkin.name.toUpperCase(), {
       fontFamily: "Arial", fontSize: "12px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
     }).setDepth(81);
     this.add.rectangle(156, 42, 228, 13, 0x1b251b, 1).setOrigin(0.5).setDepth(81);
     this.playerHpFill = this.add.rectangle(42, 42, 226, 11, 0x72ff57, 1).setOrigin(0, 0.5).setDepth(82);
-    this.playerHpText = this.add.text(276, 27, "100/100", {
+    this.playerHpText = this.add.text(276, 27, `${this.playerMaxHp}/${this.playerMaxHp}`, {
       fontFamily: "Arial", fontSize: "13px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
     }).setOrigin(1, 0).setDepth(83);
 
@@ -241,10 +261,12 @@ export class ArenaScene extends Phaser.Scene {
     this.playerInvincibleUntil = Date.now() + 600;
     this.bossPhaseShown = false;
 
+    this.player.setTexture(this.selectedSkin.assetKey);
+    this.player.setDisplaySize(PLAYER_DISPLAY_W, PLAYER_DISPLAY_H);
     this.player.setPosition(PLAYER_START_X, FLOOR_Y - PLAYER_DISPLAY_H * 0.5);
     this.player.setVelocity(0, 0);
     this.player.setFlipX(false);
-    this.player.setTint(0xffffff);
+    this.player.setTint(this.selectedSkin.tintColor);
     this.player.setDisplaySize(PLAYER_DISPLAY_W, PLAYER_DISPLAY_H);
     this.player.setAngle(0);
     this.player.setAlpha(1);
@@ -335,9 +357,9 @@ export class ArenaScene extends Phaser.Scene {
 
     if (now < this.playerActionUntil) return;
 
-    this.player.clearTint();
+    this.player.setTint(this.selectedSkin.tintColor);
     this.playerState = Math.abs(input.x) > 0.08 ? "moving" : "idle";
-    const speed = 260;
+    const speed = this.playerMoveSpeed;
     this.player.setVelocityX(input.x * speed);
     this.player.setVelocityY(0);
     this.player.setFlipX(false);
@@ -356,7 +378,7 @@ export class ArenaScene extends Phaser.Scene {
     this.playPlayerAnim("mascot-attack-anim");
     this.sfx.playSword(this.comboStep === 3);
     this.showPunchFx(this.comboStep);
-    this.tryHitEnemy(this.comboStep === 3 ? 16 : 8, this.comboStep === 3 ? 146 : 114, this.comboStep === 3 ? 260 : 150, this.comboStep === 3 ? "HEAVY PUNCH" : "PUNCH");
+    this.tryHitEnemy(Math.round((this.comboStep === 3 ? 16 : 8) * this.punchDamageMultiplier), this.comboStep === 3 ? 146 : 114, this.comboStep === 3 ? 260 : 150, this.comboStep === 3 ? "HEAVY PUNCH" : "PUNCH");
   }
 
   private kick(now: number): void {
@@ -369,11 +391,11 @@ export class ArenaScene extends Phaser.Scene {
     this.playPlayerAnim("mascot-attack-anim");
     this.sfx.playDashSlash();
     this.showKickFx();
-    this.tryHitEnemy(18, 164, 360, "KICK");
+    this.tryHitEnemy(Math.round(18 * this.kickDamageMultiplier), 164, 360, "KICK");
   }
 
   private dash(now: number, inputX: number): void {
-    this.dashCooldownUntil = now + 860;
+    this.dashCooldownUntil = now + this.dashCooldownMs;
     this.playerActionUntil = now + 230;
     this.playerInvincibleUntil = now + 280;
     this.playerState = "dash";
@@ -387,7 +409,7 @@ export class ArenaScene extends Phaser.Scene {
     this.time.delayedCall(230, () => {
       if (!this.player.active) return;
       this.player.setAlpha(1);
-      this.player.clearTint();
+      this.player.setTint(this.selectedSkin.tintColor);
     });
   }
 
@@ -680,7 +702,7 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     if (now < this.playerBlockUntil) {
-      const blocked = Math.max(1, Math.floor(amount * 0.25));
+      const blocked = Math.max(1, Math.floor(amount * this.blockDamageTakenMultiplier));
       this.playerHp = Math.max(0, this.playerHp - blocked);
       this.sfx.playBlock();
       this.showBlockFx();
@@ -707,7 +729,7 @@ export class ArenaScene extends Phaser.Scene {
 
     this.time.delayedCall(220, () => {
       if (!this.player.active) return;
-      this.player.clearTint();
+      this.player.setTint(this.selectedSkin.tintColor);
     });
 
     if (this.playerHp <= 0) this.finishRun(false);
@@ -731,7 +753,7 @@ export class ArenaScene extends Phaser.Scene {
       return;
     }
 
-    this.playerHp = Math.min(100, this.playerHp + 18);
+    this.playerHp = Math.min(this.playerMaxHp, this.playerHp + 18);
     this.time.delayedCall(1550, () => {
       this.enemy.setAlpha(1);
       this.startRound(this.roundIndex + 1);
@@ -799,9 +821,9 @@ export class ArenaScene extends Phaser.Scene {
 
   private updateHud(): void {
     if (!this.playerHpFill || !this.enemyHpFill) return;
-    this.playerHpFill.width = 226 * Phaser.Math.Clamp(this.playerHp / 100, 0, 1);
+    this.playerHpFill.width = 226 * Phaser.Math.Clamp(this.playerHp / this.playerMaxHp, 0, 1);
     this.enemyHpFill.width = 226 * Phaser.Math.Clamp(this.enemyHp / Math.max(1, this.enemyMaxHp), 0, 1);
-    this.playerHpText.setText(`${Math.max(0, this.playerHp)}/100`);
+    this.playerHpText.setText(`${Math.max(0, this.playerHp)}/${this.playerMaxHp}`);
     const config = ROUNDS[this.roundIndex] ?? ROUNDS[0];
     if (this.enemyHp > 0) {
       const enemyPercent = Math.ceil((this.enemyHp / Math.max(1, this.enemyMaxHp)) * 100);
@@ -910,7 +932,7 @@ export class ArenaScene extends Phaser.Scene {
         .setDepth(20 - i)
         .setDisplaySize(PLAYER_DISPLAY_W, PLAYER_DISPLAY_H)
         .setAlpha(0.18 - i * 0.04)
-        .setTint(0xa45cff)
+        .setTint(this.selectedSkin.auraColor)
         .setFlipX(this.player.flipX);
       this.tweens.add({
         targets: ghost,

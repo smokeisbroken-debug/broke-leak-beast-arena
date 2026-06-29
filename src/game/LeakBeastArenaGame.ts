@@ -4,6 +4,7 @@ import { COLORS } from "../config/theme";
 import { BootScene } from "./scenes/BootScene";
 import { PreloadScene } from "./scenes/PreloadScene";
 import { MainMenuScene } from "./scenes/MainMenuScene";
+import { SkinSelectScene } from "./scenes/SkinSelectScene";
 import { ArenaScene } from "./scenes/ArenaScene";
 import { ResultScene } from "./scenes/ResultScene";
 
@@ -37,6 +38,6 @@ export function createLeakBeastArenaGame(parent: string): Phaser.Game {
     input: {
       activePointers: 6,
     },
-    scene: [BootScene, PreloadScene, MainMenuScene, ArenaScene, ResultScene],
+    scene: [BootScene, PreloadScene, MainMenuScene, SkinSelectScene, ArenaScene, ResultScene],
   });
 }
