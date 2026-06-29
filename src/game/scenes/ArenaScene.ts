@@ -341,7 +341,7 @@ export class ArenaScene extends Phaser.Scene {
     this.player.setVelocity(0, 0);
     this.player.setFlipX(false);
     this.player.setTint(0xffffff);
-    this.player.setScale(1);
+    this.player.setDisplaySize(PLAYER_DISPLAY_W, PLAYER_DISPLAY_H);
     this.player.setAngle(0);
     this.player.setAlpha(1);
     this.playPlayerAnim("mascot-idle-front-anim");
@@ -352,7 +352,6 @@ export class ArenaScene extends Phaser.Scene {
     this.enemy.setVelocity(0, 0);
     this.enemy.setFlipX(true);
     this.enemy.clearTint();
-    this.enemy.setScale(1);
     this.enemy.setAngle(0);
     this.enemy.setAlpha(1);
     this.setBody(this.enemy, config.bodyW, config.bodyH, Math.max(0, config.displayH * 0.18));
@@ -890,9 +889,8 @@ export class ArenaScene extends Phaser.Scene {
   private clampFighters(): void {
     this.player.x = Phaser.Math.Clamp(this.player.x, LEFT_BOUND, RIGHT_BOUND);
     this.enemy.x = Phaser.Math.Clamp(this.enemy.x, LEFT_BOUND, RIGHT_BOUND);
-    this.player.y = FLOOR_Y - PLAYER_DISPLAY_H * 0.5;
-    const config = ROUNDS[this.roundIndex];
-    this.enemy.y = FLOOR_Y - config.displayH * 0.5;
+    this.player.y = FLOOR_Y - this.player.displayHeight * 0.5;
+    this.enemy.y = FLOOR_Y - this.enemy.displayHeight * 0.5;
   }
 
   private updateHud(): void {
@@ -975,26 +973,29 @@ export class ArenaScene extends Phaser.Scene {
         break;
     }
 
-    this.player.scaleX = Phaser.Math.Linear(this.player.scaleX, playerTargetScaleX, 0.22);
-    this.player.scaleY = Phaser.Math.Linear(this.player.scaleY, playerTargetScaleY, 0.22);
+    const currentPlayerW = Phaser.Math.Linear(this.player.displayWidth, PLAYER_DISPLAY_W * playerTargetScaleX, 0.22);
+    const currentPlayerH = Phaser.Math.Linear(this.player.displayHeight, PLAYER_DISPLAY_H * playerTargetScaleY, 0.22);
+    this.player.setDisplaySize(currentPlayerW, currentPlayerH);
     this.player.angle = Phaser.Math.Linear(this.player.angle, playerTargetAngle, 0.22);
 
     this.playerAuraOuter.setPosition(this.player.x - 10, this.player.y - 6);
     this.playerAuraInner.setPosition(this.player.x - 5, this.player.y - 4);
-    this.playerAuraOuter.setScale(this.player.scaleX * 1.02, this.player.scaleY * 1.02);
-    this.playerAuraInner.setScale(this.player.scaleX, this.player.scaleY);
+    this.playerAuraOuter.setDisplaySize(currentPlayerW * 0.96, currentPlayerH * 0.98);
+    this.playerAuraInner.setDisplaySize(currentPlayerW * 0.64, currentPlayerH * 0.76);
     this.playerAuraOuter.setAlpha(Phaser.Math.Linear(this.playerAuraOuter.alpha, auraOuterAlpha, 0.18));
     this.playerAuraInner.setAlpha(Phaser.Math.Linear(this.playerAuraInner.alpha, auraInnerAlpha, 0.18));
 
+    const config = ROUNDS[this.roundIndex] ?? ROUNDS[0];
     const enemyPulse = 1 + Math.sin(time / 220) * 0.01;
-    const enemyTargetScaleX = this.enemyState === "attack" ? 1.06 : this.enemyState === "windup" ? 1.04 : this.enemyState === "guard" ? 1.03 : this.enemyState === "backstep" ? 0.98 : this.enemyState === "hurt" ? 0.97 : enemyPulse;
-    const enemyTargetScaleY = this.enemyState === "attack" ? 0.97 : this.enemyState === "windup" ? 1.02 : this.enemyState === "guard" ? 1.04 : this.enemyState === "backstep" ? 1.01 : this.enemyState === "hurt" ? 1.03 : enemyPulse;
+    const enemyTargetScaleX = this.enemyState === "attack" ? 1.055 : this.enemyState === "windup" ? 1.035 : this.enemyState === "guard" ? 1.02 : this.enemyState === "backstep" ? 0.98 : this.enemyState === "hurt" ? 0.965 : enemyPulse;
+    const enemyTargetScaleY = this.enemyState === "attack" ? 0.97 : this.enemyState === "windup" ? 1.018 : this.enemyState === "guard" ? 1.025 : this.enemyState === "backstep" ? 1.008 : this.enemyState === "hurt" ? 1.025 : enemyPulse;
     const enemyTargetAngle = this.enemyState === "attack" ? 5 : this.enemyState === "windup" ? -3 : this.enemyState === "guard" ? -5 : this.enemyState === "backstep" ? 4 : this.enemyState === "hurt" ? 6 : 0;
-    this.enemy.scaleX = Phaser.Math.Linear(this.enemy.scaleX, enemyTargetScaleX, 0.16);
-    this.enemy.scaleY = Phaser.Math.Linear(this.enemy.scaleY, enemyTargetScaleY, 0.16);
+    const currentEnemyW = Phaser.Math.Linear(this.enemy.displayWidth, config.displayW * enemyTargetScaleX, 0.16);
+    const currentEnemyH = Phaser.Math.Linear(this.enemy.displayHeight, config.displayH * enemyTargetScaleY, 0.16);
+    this.enemy.setDisplaySize(currentEnemyW, currentEnemyH);
     this.enemy.angle = Phaser.Math.Linear(this.enemy.angle, enemyTargetAngle, 0.16);
     this.enemyAura.setPosition(this.enemy.x + 8, this.enemy.y - 4);
-    this.enemyAura.setDisplaySize(Math.max(114, this.enemy.displayWidth * 0.7), Math.max(128, this.enemy.displayHeight * 0.82));
+    this.enemyAura.setDisplaySize(Math.max(104, currentEnemyW * 0.68), Math.max(112, currentEnemyH * 0.78));
     const enemyAuraAlpha = this.enemyState === "windup" ? 0.08 : this.enemyState === "attack" ? 0.09 : this.enemyState === "guard" ? 0.075 : 0.05;
     this.enemyAura.setAlpha(Phaser.Math.Linear(this.enemyAura.alpha, enemyAuraAlpha, 0.16));
   }
