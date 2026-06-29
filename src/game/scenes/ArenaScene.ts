@@ -29,7 +29,7 @@ interface RoundConfig {
 
 const FLOOR_Y = GAME_HEIGHT - 76;
 const PLAYER_START_X = 190;
-const ENEMY_START_X = GAME_WIDTH - 190;
+const ENEMY_START_X = GAME_WIDTH - 205;
 const LEFT_BOUND = 74;
 const RIGHT_BOUND = GAME_WIDTH - 74;
 
@@ -42,11 +42,11 @@ const ROUNDS: RoundConfig[] = [
     hp: 70,
     damage: 7,
     speed: 104,
-    displayW: 118,
-    displayH: 118,
-    bodyW: 56,
-    bodyH: 72,
-    attackRange: 104,
+    displayW: 156,
+    displayH: 156,
+    bodyW: 74,
+    bodyH: 94,
+    attackRange: 128,
     color: 0x72ff57,
   },
   {
@@ -57,11 +57,11 @@ const ROUNDS: RoundConfig[] = [
     hp: 86,
     damage: 9,
     speed: 134,
-    displayW: 138,
-    displayH: 112,
-    bodyW: 70,
-    bodyH: 64,
-    attackRange: 122,
+    displayW: 178,
+    displayH: 146,
+    bodyW: 90,
+    bodyH: 82,
+    attackRange: 148,
     color: 0xffeb72,
   },
   {
@@ -72,11 +72,11 @@ const ROUNDS: RoundConfig[] = [
     hp: 104,
     damage: 10,
     speed: 112,
-    displayW: 140,
-    displayH: 126,
-    bodyW: 72,
-    bodyH: 72,
-    attackRange: 126,
+    displayW: 190,
+    displayH: 172,
+    bodyW: 96,
+    bodyH: 94,
+    attackRange: 158,
     color: 0xa45cff,
   },
   {
@@ -87,11 +87,11 @@ const ROUNDS: RoundConfig[] = [
     hp: 148,
     damage: 13,
     speed: 94,
-    displayW: 178,
-    displayH: 168,
-    bodyW: 88,
-    bodyH: 88,
-    attackRange: 146,
+    displayW: 236,
+    displayH: 222,
+    bodyW: 118,
+    bodyH: 118,
+    attackRange: 184,
     color: 0xff4866,
     boss: true,
   },
@@ -103,8 +103,8 @@ export class ArenaScene extends Phaser.Scene {
 
   private player!: Phaser.Physics.Arcade.Sprite;
   private enemy!: Phaser.Physics.Arcade.Sprite;
-  private playerAura!: Phaser.GameObjects.Arc;
-  private enemyAura!: Phaser.GameObjects.Arc;
+  private playerShadow!: Phaser.GameObjects.Ellipse;
+  private enemyShadow!: Phaser.GameObjects.Ellipse;
 
   private playerHp = 100;
   private enemyHp = 1;
@@ -183,7 +183,7 @@ export class ArenaScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     if (this.runFinished) return;
 
-    this.updateAuras();
+    this.updateShadows();
     this.updateHud();
 
     if (!this.fightStarted) return;
@@ -207,25 +207,21 @@ export class ArenaScene extends Phaser.Scene {
 
     this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 22, GAME_WIDTH, 78, 0x071707, 0.62)
       .setDepth(2);
-    this.add.line(0, 0, 0, FLOOR_Y - 6, GAME_WIDTH, FLOOR_Y - 6, 0x72ff57, 0.42)
+    this.add.line(0, 0, 0, FLOOR_Y - 6, GAME_WIDTH, FLOOR_Y - 6, 0x72ff57, 0.28)
       .setOrigin(0, 0)
-      .setLineWidth(3)
+      .setLineWidth(2)
       .setDepth(3);
 
-    this.add.ellipse(GAME_WIDTH / 2, FLOOR_Y + 24, 650, 88, 0x72ff57, 0.05)
-      .setStrokeStyle(2, 0x72ff57, 0.14)
+    // Clean side-view floor: no large green/purple blobs under the fighters.
+    this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 22, GAME_WIDTH, 2, 0x72ff57, 0.1)
       .setDepth(3);
-    this.add.ellipse(GAME_WIDTH / 2, FLOOR_Y + 26, 450, 54, 0xa45cff, 0.035)
-      .setStrokeStyle(1, 0xa45cff, 0.12)
-      .setDepth(3);
-
-    this.add.rectangle(98, 0, 180, GAME_HEIGHT, 0x72ff57, 0.025).setDepth(2);
-    this.add.rectangle(GAME_WIDTH - 98, 0, 180, GAME_HEIGHT, 0xa45cff, 0.025).setDepth(2);
+    this.add.rectangle(98, 0, 180, GAME_HEIGHT, 0x72ff57, 0.015).setDepth(2);
+    this.add.rectangle(GAME_WIDTH - 98, 0, 180, GAME_HEIGHT, 0xa45cff, 0.015).setDepth(2);
   }
 
   private createFighters(): void {
-    this.playerAura = this.add.circle(PLAYER_START_X, FLOOR_Y - 58, 58, 0x72ff57, 0.1).setDepth(9);
-    this.enemyAura = this.add.circle(ENEMY_START_X, FLOOR_Y - 58, 62, 0xa45cff, 0.08).setDepth(9);
+    this.playerShadow = this.add.ellipse(PLAYER_START_X, FLOOR_Y - 4, 92, 24, 0x000000, 0.28).setDepth(9);
+    this.enemyShadow = this.add.ellipse(ENEMY_START_X, FLOOR_Y - 4, 112, 28, 0x000000, 0.3).setDepth(9);
 
     this.player = this.physics.add.sprite(PLAYER_START_X, FLOOR_Y - 74, "mascot-idle-front");
     this.player.setDisplaySize(136, 178);
@@ -657,13 +653,14 @@ export class ArenaScene extends Phaser.Scene {
     this.playerHpText.setText(`${Math.max(0, this.playerHp)}/100`);
   }
 
-  private updateAuras(): void {
-    if (!this.playerAura || !this.enemyAura || !this.player || !this.enemy) return;
+  private updateShadows(): void {
+    if (!this.playerShadow || !this.enemyShadow || !this.player || !this.enemy) return;
     const config = ROUNDS[this.roundIndex] ?? ROUNDS[0];
-    this.playerAura.setPosition(this.player.x, this.player.y + 26);
-    this.enemyAura.setPosition(this.enemy.x, this.enemy.y + config.displayH * 0.18);
-    this.enemyAura.setFillStyle(config.color, config.boss ? 0.11 : 0.08);
-    this.enemyAura.setRadius(config.boss ? 78 : 62);
+    this.playerShadow.setPosition(this.player.x, FLOOR_Y - 5);
+    this.playerShadow.setDisplaySize(96, 24);
+    this.enemyShadow.setPosition(this.enemy.x, FLOOR_Y - 5);
+    this.enemyShadow.setDisplaySize(config.boss ? 178 : Math.max(122, config.displayW * 0.7), config.boss ? 38 : 30);
+    this.enemyShadow.setAlpha(config.boss ? 0.34 : 0.3);
   }
 
   private setBody(sprite: Phaser.Physics.Arcade.Sprite, width: number, height: number, offsetY = 0): void {
