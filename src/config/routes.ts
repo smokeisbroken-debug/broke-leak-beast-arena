@@ -7,6 +7,8 @@ export const SCENE_KEYS = {
   stageSelect: "StageSelectScene",
   campaign: "CampaignScene",
   missions: "MissionsScene",
+  profile: "ProfileScene",
+  settings: "SettingsScene",
   arena: "ArenaScene",
   result: "ResultScene",
 } as const;
