@@ -67,17 +67,17 @@ export class MobileControls {
   }
 
   private createButtons(): void {
-    this.createActionButton(GAME_WIDTH - 168, GAME_HEIGHT - 88, 104, "PUNCH", "HAND", 0x72ff57, () => {
+    this.createActionButton(GAME_WIDTH - 168, GAME_HEIGHT - 88, 104, "PUNCH", "FAST", 0x72ff57, () => {
       this.inputState.attack = true;
     });
 
-    this.createActionButton(GAME_WIDTH - 86, GAME_HEIGHT - 148, 90, "KICK", "LEG", 0xffeb72, () => {
+    this.createActionButton(GAME_WIDTH - 86, GAME_HEIGHT - 148, 90, "KICK", "POWER", 0xffeb72, () => {
       this.inputState.pulse = true;
     });
 
-    this.createHoldButton(GAME_WIDTH - 86, GAME_HEIGHT - 42, 90, "BLOCK", "HOLD", 0x72ff57);
+    this.createHoldButton(GAME_WIDTH - 86, GAME_HEIGHT - 42, 90, "BLOCK", "GUARD", 0x72ff57);
 
-    this.createActionButton(GAME_WIDTH - 34, GAME_HEIGHT - 88, 92, "DASH", "MOVE", 0xa45cff, () => {
+    this.createActionButton(GAME_WIDTH - 34, GAME_HEIGHT - 88, 92, "DASH", "EVADE", 0xa45cff, () => {
       this.inputState.dodge = true;
     });
   }

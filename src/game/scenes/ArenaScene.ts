@@ -32,10 +32,10 @@ interface RoundConfig {
 }
 
 const FLOOR_Y = GAME_HEIGHT - 104;
-const PLAYER_DISPLAY_W = 102;
-const PLAYER_DISPLAY_H = 134;
-const PLAYER_START_X = 300;
-const ENEMY_START_X = GAME_WIDTH - 300;
+const PLAYER_DISPLAY_W = 118;
+const PLAYER_DISPLAY_H = 154;
+const PLAYER_START_X = 290;
+const ENEMY_START_X = GAME_WIDTH - 286;
 const LEFT_BOUND = GAME_WIDTH * 0.26;
 const RIGHT_BOUND = GAME_WIDTH * 0.74;
 
@@ -127,6 +127,9 @@ export class ArenaScene extends Phaser.Scene {
   private enemy!: Phaser.Physics.Arcade.Sprite;
   private playerShadow!: Phaser.GameObjects.Ellipse;
   private enemyShadow!: Phaser.GameObjects.Ellipse;
+  private playerAuraOuter!: Phaser.GameObjects.Ellipse;
+  private playerAuraInner!: Phaser.GameObjects.Ellipse;
+  private enemyAura!: Phaser.GameObjects.Ellipse;
 
   private playerHp = 100;
   private enemyHp = 1;
@@ -208,6 +211,7 @@ export class ArenaScene extends Phaser.Scene {
     if (this.runFinished) return;
 
     this.updateShadows();
+    this.updateCharacterPresentation();
     this.updateHud();
 
     if (!this.fightStarted) return;
@@ -229,7 +233,9 @@ export class ArenaScene extends Phaser.Scene {
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x102b10, 0.08)
       .setDepth(1);
 
-    this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 32, GAME_WIDTH, 92, 0x071707, 0.42)
+    this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 32, GAME_WIDTH, 92, 0x071707, 0.34)
+      .setDepth(2);
+    this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y - 86, 420, 210, 0xfcfff7, 0.018)
       .setDepth(2);
 
     // Clean calibrated floor. No large color blobs under fighters; only a subtle contact plane.
@@ -242,8 +248,12 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private createFighters(): void {
-    this.playerShadow = this.add.ellipse(PLAYER_START_X, FLOOR_Y - 2, 84, 20, 0x000000, 0.24).setDepth(9);
-    this.enemyShadow = this.add.ellipse(ENEMY_START_X, FLOOR_Y - 2, 84, 20, 0x000000, 0.26).setDepth(9);
+    this.playerShadow = this.add.ellipse(PLAYER_START_X, FLOOR_Y - 2, 92, 22, 0x000000, 0.22).setDepth(9);
+    this.enemyShadow = this.add.ellipse(ENEMY_START_X, FLOOR_Y - 2, 90, 22, 0x000000, 0.24).setDepth(9);
+
+    this.playerAuraOuter = this.add.ellipse(PLAYER_START_X - 6, FLOOR_Y - 88, 106, 144, 0x72ff57, 0.06).setDepth(15);
+    this.playerAuraInner = this.add.ellipse(PLAYER_START_X - 3, FLOOR_Y - 90, 70, 112, 0xfcfff7, 0.035).setDepth(16);
+    this.enemyAura = this.add.ellipse(ENEMY_START_X + 6, FLOOR_Y - 82, 118, 136, 0xa45cff, 0.045).setDepth(15);
 
     this.player = this.physics.add.sprite(PLAYER_START_X, FLOOR_Y - PLAYER_DISPLAY_H * 0.5, "mascot-idle-front");
     this.player.setDisplaySize(PLAYER_DISPLAY_W, PLAYER_DISPLAY_H);
@@ -327,6 +337,9 @@ export class ArenaScene extends Phaser.Scene {
     this.player.setVelocity(0, 0);
     this.player.setFlipX(false);
     this.player.setTint(0xffffff);
+    this.player.setScale(1);
+    this.player.setAngle(0);
+    this.player.setAlpha(1);
     this.playPlayerAnim("mascot-idle-front-anim");
 
     this.enemy.setTexture(config.texture);
@@ -335,6 +348,9 @@ export class ArenaScene extends Phaser.Scene {
     this.enemy.setVelocity(0, 0);
     this.enemy.setFlipX(true);
     this.enemy.clearTint();
+    this.enemy.setScale(1);
+    this.enemy.setAngle(0);
+    this.enemy.setAlpha(1);
     this.setBody(this.enemy, config.bodyW, config.bodyH, Math.max(0, config.displayH * 0.18));
     if (this.anims.exists(config.animation)) this.enemy.play(config.animation, true);
 
@@ -428,7 +444,7 @@ export class ArenaScene extends Phaser.Scene {
     this.punchCooldownUntil = now + (this.comboStep === 3 ? 390 : 235);
     this.playerActionUntil = now + (this.comboStep === 3 ? 270 : 170);
     this.playerState = "punch";
-    this.player.setVelocityX(26);
+    this.player.setVelocityX(48);
     this.player.setTint(this.comboStep === 3 ? 0xd9a7ff : 0xffffff);
     this.playPlayerAnim("mascot-attack-anim");
     this.sfx.playSword(this.comboStep === 3);
@@ -441,7 +457,7 @@ export class ArenaScene extends Phaser.Scene {
     this.playerActionUntil = now + 300;
     this.playerState = "kick";
     this.comboStep = 0;
-    this.player.setVelocityX(74);
+    this.player.setVelocityX(108);
     this.player.setTint(0xffeb72);
     this.playPlayerAnim("mascot-attack-anim");
     this.sfx.playDashSlash();
@@ -455,8 +471,9 @@ export class ArenaScene extends Phaser.Scene {
     this.playerInvincibleUntil = now + 280;
     this.playerState = "dash";
     const dir = inputX < -0.15 ? -1 : 1;
+    this.spawnDashAfterimage(dir);
     this.player.setVelocityX(dir * 520);
-    this.player.setAlpha(0.6);
+    this.player.setAlpha(0.68);
     this.player.setTint(0xa45cff);
     this.playPlayerAnim("mascot-dash-anim");
     this.statusText.setText("DASH");
@@ -497,7 +514,7 @@ export class ArenaScene extends Phaser.Scene {
     if (counterHit) this.showFloatingText("COUNTER", this.enemy.x - 8, this.enemy.y - this.enemy.displayHeight * 0.82, "#ffeb72");
 
     this.comboText.setText(counterHit ? "COUNTER HIT" : label);
-    this.comboText.setPosition(this.player.x + 48, this.player.y - 120);
+    this.comboText.setPosition(this.player.x + 40, this.player.y - 136);
     this.time.delayedCall(520, () => this.comboText.setText(""));
     this.statusText.setText(counterHit ? "COUNTER HIT" : label);
     this.cameras.main.shake(heavyHit ? 115 : 58, heavyHit ? 0.0042 : 0.0022);
@@ -810,10 +827,110 @@ export class ArenaScene extends Phaser.Scene {
     if (!this.playerShadow || !this.enemyShadow || !this.player || !this.enemy) return;
     const config = ROUNDS[this.roundIndex] ?? ROUNDS[0];
     this.playerShadow.setPosition(this.player.x, FLOOR_Y - 2);
-    this.playerShadow.setDisplaySize(PLAYER_DISPLAY_W * 0.82, 18);
+    this.playerShadow.setDisplaySize(PLAYER_DISPLAY_W * 0.84, 18);
     this.enemyShadow.setPosition(this.enemy.x, FLOOR_Y - 2);
     this.enemyShadow.setDisplaySize(Math.max(62, config.displayW * 0.62), config.boss ? 28 : 20);
     this.enemyShadow.setAlpha(config.boss ? 0.3 : 0.24);
+  }
+
+  private updateCharacterPresentation(): void {
+    const time = this.time.now;
+    const breathe = Math.sin(time / 180) * 0.012;
+
+    let playerTargetScaleX = 1.02;
+    let playerTargetScaleY = 1.02;
+    let playerTargetAngle = -1.5;
+    let auraOuterAlpha = 0.08;
+    let auraInnerAlpha = 0.05;
+
+    switch (this.playerState) {
+      case "moving":
+        playerTargetScaleX = 1.05;
+        playerTargetScaleY = 0.98;
+        playerTargetAngle = -4;
+        auraOuterAlpha = 0.09;
+        break;
+      case "punch":
+        playerTargetScaleX = 1.14;
+        playerTargetScaleY = 0.94;
+        playerTargetAngle = -9;
+        auraOuterAlpha = 0.12;
+        auraInnerAlpha = 0.08;
+        break;
+      case "kick":
+        playerTargetScaleX = 1.18;
+        playerTargetScaleY = 0.9;
+        playerTargetAngle = -13;
+        auraOuterAlpha = 0.13;
+        auraInnerAlpha = 0.09;
+        break;
+      case "block":
+        playerTargetScaleX = 1.08;
+        playerTargetScaleY = 0.96;
+        playerTargetAngle = -6;
+        auraOuterAlpha = 0.11;
+        auraInnerAlpha = 0.075;
+        break;
+      case "dash":
+        playerTargetScaleX = 1.16;
+        playerTargetScaleY = 0.88;
+        playerTargetAngle = -10;
+        auraOuterAlpha = 0.15;
+        auraInnerAlpha = 0.08;
+        break;
+      case "hurt":
+        playerTargetScaleX = 0.95;
+        playerTargetScaleY = 1.06;
+        playerTargetAngle = 8;
+        auraOuterAlpha = 0.07;
+        auraInnerAlpha = 0.04;
+        break;
+      default:
+        playerTargetScaleX += breathe;
+        playerTargetScaleY -= breathe;
+        break;
+    }
+
+    this.player.scaleX = Phaser.Math.Linear(this.player.scaleX, playerTargetScaleX, 0.22);
+    this.player.scaleY = Phaser.Math.Linear(this.player.scaleY, playerTargetScaleY, 0.22);
+    this.player.angle = Phaser.Math.Linear(this.player.angle, playerTargetAngle, 0.22);
+
+    this.playerAuraOuter.setPosition(this.player.x - 10, this.player.y - 6);
+    this.playerAuraInner.setPosition(this.player.x - 5, this.player.y - 4);
+    this.playerAuraOuter.setScale(this.player.scaleX * 1.02, this.player.scaleY * 1.02);
+    this.playerAuraInner.setScale(this.player.scaleX, this.player.scaleY);
+    this.playerAuraOuter.setAlpha(Phaser.Math.Linear(this.playerAuraOuter.alpha, auraOuterAlpha, 0.18));
+    this.playerAuraInner.setAlpha(Phaser.Math.Linear(this.playerAuraInner.alpha, auraInnerAlpha, 0.18));
+
+    const enemyPulse = 1 + Math.sin(time / 220) * 0.01;
+    const enemyTargetScaleX = this.enemyState === "attack" ? 1.06 : this.enemyState === "windup" ? 1.04 : this.enemyState === "hurt" ? 0.97 : enemyPulse;
+    const enemyTargetScaleY = this.enemyState === "attack" ? 0.97 : this.enemyState === "windup" ? 1.02 : this.enemyState === "hurt" ? 1.03 : enemyPulse;
+    const enemyTargetAngle = this.enemyState === "attack" ? 5 : this.enemyState === "windup" ? -3 : this.enemyState === "hurt" ? 6 : 0;
+    this.enemy.scaleX = Phaser.Math.Linear(this.enemy.scaleX, enemyTargetScaleX, 0.16);
+    this.enemy.scaleY = Phaser.Math.Linear(this.enemy.scaleY, enemyTargetScaleY, 0.16);
+    this.enemy.angle = Phaser.Math.Linear(this.enemy.angle, enemyTargetAngle, 0.16);
+    this.enemyAura.setPosition(this.enemy.x + 8, this.enemy.y - 4);
+    this.enemyAura.setDisplaySize(Math.max(114, this.enemy.displayWidth * 0.7), Math.max(128, this.enemy.displayHeight * 0.82));
+    const enemyAuraAlpha = this.enemyState === "windup" ? 0.08 : this.enemyState === "attack" ? 0.09 : 0.05;
+    this.enemyAura.setAlpha(Phaser.Math.Linear(this.enemyAura.alpha, enemyAuraAlpha, 0.16));
+  }
+
+  private spawnDashAfterimage(dir: number): void {
+    for (let i = 0; i < 3; i += 1) {
+      const ghost = this.add.image(this.player.x - dir * (i * 16), this.player.y, this.player.texture.key)
+        .setDepth(20 - i)
+        .setDisplaySize(PLAYER_DISPLAY_W, PLAYER_DISPLAY_H)
+        .setAlpha(0.18 - i * 0.04)
+        .setTint(0xa45cff)
+        .setFlipX(this.player.flipX);
+      this.tweens.add({
+        targets: ghost,
+        x: ghost.x - dir * 20,
+        alpha: 0,
+        duration: 150 + i * 30,
+        onComplete: () => ghost.destroy(),
+      });
+    }
   }
 
   private setBody(sprite: Phaser.Physics.Arcade.Sprite, width: number, height: number, offsetY = 0): void {
@@ -832,7 +949,7 @@ export class ArenaScene extends Phaser.Scene {
     const x = this.player.x + (heavy ? 108 : 86);
     const y = this.player.y - (heavy ? 38 : 30);
     const slash = this.add.image(x, y, "arena-vfx-sheet", heavy ? 2 : 1)
-      .setScale(heavy ? 0.36 : 0.27)
+      .setScale(heavy ? 0.42 : 0.31)
       .setRotation(heavy ? 0.08 : -0.1)
       .setAlpha(0.98)
       .setDepth(42);
@@ -840,7 +957,7 @@ export class ArenaScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setLineWidth(heavy ? 8 : 5)
       .setDepth(43);
-    const spark = this.add.circle(x + (heavy ? 54 : 38), y, heavy ? 8 : 5, 0xfcfff7, heavy ? 0.58 : 0.44)
+    const spark = this.add.circle(x + (heavy ? 54 : 38), y, heavy ? 10 : 6, 0xfcfff7, heavy ? 0.62 : 0.48)
       .setDepth(44);
     this.tweens.add({
       targets: [slash, line, spark],
@@ -860,7 +977,7 @@ export class ArenaScene extends Phaser.Scene {
     const x = this.player.x + 122;
     const y = this.player.y - 24;
     const arc = this.add.image(x, y, "arena-vfx-sheet", 5)
-      .setScale(0.42)
+      .setScale(0.5)
       .setAlpha(0.95)
       .setTint(0xffeb72)
       .setDepth(42);
@@ -868,7 +985,7 @@ export class ArenaScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setLineWidth(9)
       .setDepth(43);
-    const shock = this.add.circle(x + 66, y - 2, 9, 0xfcfff7, 0.48)
+    const shock = this.add.circle(x + 66, y - 2, 11, 0xfcfff7, 0.52)
       .setStrokeStyle(3, 0xffeb72, 0.74)
       .setDepth(44);
     this.tweens.add({
@@ -963,10 +1080,17 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private showBlockFx(): void {
-    const shield = this.add.circle(this.player.x + 42, this.player.y - 26, 24, 0x72ff57, 0.06)
-      .setStrokeStyle(4, 0x72ff57, 0.78)
+    const shield = this.add.circle(this.player.x + 36, this.player.y - 26, 26, 0x72ff57, 0.05)
+      .setStrokeStyle(5, 0x72ff57, 0.82)
       .setDepth(48);
-    this.tweens.add({ targets: shield, radius: 44, alpha: 0, duration: 220, onComplete: () => shield.destroy() });
+    const core = this.add.circle(this.player.x + 34, this.player.y - 28, 12, 0xfcfff7, 0.18)
+      .setDepth(49);
+    const line = this.add.line(0, 0, this.player.x + 4, this.player.y - 26, this.player.x + 72, this.player.y - 26, 0x72ff57, 0.74)
+      .setOrigin(0, 0)
+      .setLineWidth(5)
+      .setDepth(49);
+    this.tweens.add({ targets: shield, radius: 50, alpha: 0, duration: 240, onComplete: () => shield.destroy() });
+    this.tweens.add({ targets: [core, line], alpha: 0, duration: 180, onComplete: () => { core.destroy(); line.destroy(); } });
   }
 
   private showFloatingText(text: string, x: number, y: number, color: string): void {
