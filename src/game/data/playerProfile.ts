@@ -12,6 +12,16 @@ import {
   isCampaignBossUnlocked,
 } from "./campaigns";
 import {
+  DAILY_MISSIONS,
+  formatMissionReward,
+  getDailyMissionDateKey,
+  getDailyMissionIncrement,
+  type DailyMissionDefinition,
+  type DailyMissionFightStats,
+  type DailyMissionState,
+  type MissionRewardBundle,
+} from "./missions";
+import {
   DEFAULT_REWARD_CHOICES,
   LEVELS,
   calculateFightReward,
@@ -39,6 +49,10 @@ export interface PlayerProfile {
   skillCards: number;
   campaignProgress: Record<string, number>;
   bossProgress: Record<string, boolean>;
+  dailyMissionDate: string;
+  dailyMissionProgress: Record<string, number>;
+  claimedDailyMissionIds: string[];
+  totalMissionClaims: number;
   bestScore: number;
   totalWins: number;
   totalLosses: number;
@@ -55,6 +69,12 @@ export interface FightRewardInput {
   leaksDefeated: number;
   survivedSeconds: number;
   defeatedBossIds?: string[];
+  blocks?: number;
+  dodges?: number;
+  skillsUsed?: number;
+  ultimatesUsed?: number;
+  damageTaken?: number;
+  usedUltimate?: boolean;
 }
 
 export interface FightRewardApplication {
@@ -64,6 +84,7 @@ export interface FightRewardApplication {
   newLevel: number;
   levelCoinReward: number;
   unlocks: string[];
+  completedMissionIds: string[];
 }
 
 export interface RewardChoiceApplication {
@@ -73,6 +94,18 @@ export interface RewardChoiceApplication {
   newLevel: number;
   levelCoinReward: number;
   unlocks: string[];
+}
+
+export interface MissionClaimApplication {
+  profile: PlayerProfile;
+  missionId: string;
+  reward: MissionRewardBundle;
+  rewardLabel: string;
+  oldLevel: number;
+  newLevel: number;
+  levelCoinReward: number;
+  unlocks: string[];
+  claimed: boolean;
 }
 
 export const PROFILE_STORAGE_KEY = "broke_leak_fighter_profile_v1";
@@ -96,6 +129,10 @@ export const DEFAULT_PLAYER_PROFILE: PlayerProfile = {
   skillCards: 0,
   campaignProgress: { daily_leaks: 0 },
   bossProgress: {},
+  dailyMissionDate: getDailyMissionDateKey(),
+  dailyMissionProgress: {},
+  claimedDailyMissionIds: [],
+  totalMissionClaims: 0,
   bestScore: 0,
   totalWins: 0,
   totalLosses: 0,
@@ -125,6 +162,10 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
       ...DEFAULT_PLAYER_PROFILE.bossProgress,
       ...(profile?.bossProgress ?? {}),
     },
+    dailyMissionProgress: {
+      ...(profile?.dailyMissionProgress ?? {}),
+    },
+    claimedDailyMissionIds: Array.isArray(profile?.claimedDailyMissionIds) ? profile.claimedDailyMissionIds : [],
   };
 
   normalized.xp = Math.max(0, Math.floor(normalized.xp || 0));
@@ -133,6 +174,17 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
   normalized.skinShards = Math.max(0, Math.floor(normalized.skinShards || 0));
   normalized.skillCards = Math.max(0, Math.floor(normalized.skillCards || 0));
   normalized.level = getLevelForXp(normalized.xp).level;
+
+  const todayKey = getDailyMissionDateKey();
+  if (normalized.dailyMissionDate !== todayKey) {
+    normalized.dailyMissionDate = todayKey;
+    normalized.dailyMissionProgress = {};
+    normalized.claimedDailyMissionIds = [];
+  }
+  normalized.totalMissionClaims = Math.max(0, Math.floor(normalized.totalMissionClaims || 0));
+  for (const mission of DAILY_MISSIONS) {
+    normalized.dailyMissionProgress[mission.id] = PhaserSafeClampProgress(normalized.dailyMissionProgress[mission.id] ?? 0, mission.target);
+  }
 
   const unlockedSkinIds = Array.from(new Set([...STARTER_SKIN_IDS, ...(profile?.unlockedSkinIds ?? [])]));
   normalized.unlockedSkinIds = unlockedSkinIds;
@@ -180,6 +232,42 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
   }
 
   return normalized;
+}
+
+
+function PhaserSafeClampProgress(value: number, target: number): number {
+  return Math.max(0, Math.min(target, Math.floor(value || 0)));
+}
+
+function buildMissionStatsFromFight(input: FightRewardInput): DailyMissionFightStats {
+  return {
+    victory: input.victory,
+    score: input.score,
+    leaksDefeated: input.leaksDefeated,
+    survivedSeconds: input.survivedSeconds,
+    bossesBroken: input.bossesBroken,
+    blocks: Math.max(0, Math.floor(input.blocks ?? 0)),
+    dodges: Math.max(0, Math.floor(input.dodges ?? 0)),
+    skillsUsed: Math.max(0, Math.floor(input.skillsUsed ?? 0)),
+    ultimatesUsed: Math.max(0, Math.floor(input.ultimatesUsed ?? 0)),
+    damageTaken: Math.max(0, Math.floor(input.damageTaken ?? 0)),
+    usedUltimate: Boolean(input.usedUltimate || (input.ultimatesUsed ?? 0) > 0),
+  };
+}
+
+function applyDailyMissionFightProgress(profile: PlayerProfile, stats: DailyMissionFightStats): { profile: PlayerProfile; completedMissionIds: string[] } {
+  const normalized = normalizeProfile(profile);
+  const completedMissionIds: string[] = [];
+
+  for (const mission of DAILY_MISSIONS) {
+    const before = PhaserSafeClampProgress(normalized.dailyMissionProgress[mission.id] ?? 0, mission.target);
+    const increment = getDailyMissionIncrement(mission, stats);
+    const after = PhaserSafeClampProgress(before + increment, mission.target);
+    normalized.dailyMissionProgress[mission.id] = after;
+    if (before < mission.target && after >= mission.target) completedMissionIds.push(mission.id);
+  }
+
+  return { profile: normalizeProfile(normalized), completedMissionIds };
 }
 
 function syncLevelUnlocks(profile: PlayerProfile, oldLevel: number): { profile: PlayerProfile; unlocks: string[]; levelCoinReward: number; oldLevel: number; newLevel: number } {
@@ -318,8 +406,9 @@ export function applyFightResultToProfile(profile: PlayerProfile, input: FightRe
   normalized.selectedBossId = nextBoss.id;
   normalized.selectedCampaignId = getCampaignChapterForBoss(nextBoss.id).id;
 
-  const synced = syncLevelUnlocks(normalized, oldLevel);
-  return { ...synced, baseRewards };
+  const missionApplication = applyDailyMissionFightProgress(normalized, buildMissionStatsFromFight(input));
+  const synced = syncLevelUnlocks(missionApplication.profile, oldLevel);
+  return { ...synced, baseRewards, completedMissionIds: missionApplication.completedMissionIds };
 }
 
 export function getPostFightRewardChoices(profile: PlayerProfile): RewardChoiceDefinition[] {
@@ -391,6 +480,60 @@ export function applyRewardChoiceToProfile(profile: PlayerProfile, choice: Rewar
     unlocks: [...unlocks, ...synced.unlocks],
   };
 }
+
+
+export function getDailyMissionStates(profile: PlayerProfile): DailyMissionState[] {
+  const normalized = normalizeProfile(profile);
+  return DAILY_MISSIONS.map((definition) => {
+    const progress = PhaserSafeClampProgress(normalized.dailyMissionProgress[definition.id] ?? 0, definition.target);
+    return {
+      definition,
+      progress,
+      target: definition.target,
+      completed: progress >= definition.target,
+      claimed: normalized.claimedDailyMissionIds.includes(definition.id),
+    };
+  });
+}
+
+export function claimDailyMissionReward(profile: PlayerProfile, missionId: string): MissionClaimApplication {
+  const normalized = normalizeProfile(profile);
+  const mission = DAILY_MISSIONS.find((item) => item.id === missionId);
+  const oldLevel = normalized.level;
+
+  if (!mission) {
+    return { profile: normalized, missionId, reward: { xp: 0, coins: 0, leakPoints: 0 }, rewardLabel: "MISSION NOT FOUND", oldLevel, newLevel: oldLevel, levelCoinReward: 0, unlocks: [], claimed: false };
+  }
+
+  const progress = PhaserSafeClampProgress(normalized.dailyMissionProgress[mission.id] ?? 0, mission.target);
+  if (progress < mission.target || normalized.claimedDailyMissionIds.includes(mission.id)) {
+    return { profile: normalized, missionId, reward: mission.reward, rewardLabel: formatMissionReward(mission.reward), oldLevel, newLevel: oldLevel, levelCoinReward: 0, unlocks: [], claimed: false };
+  }
+
+  normalized.xp += mission.reward.xp;
+  normalized.coins += mission.reward.coins;
+  normalized.leakPoints += mission.reward.leakPoints;
+  normalized.skillCards += mission.reward.skillCards ?? 0;
+  normalized.skinShards += mission.reward.skinShards ?? 0;
+  normalized.claimedDailyMissionIds = [...normalized.claimedDailyMissionIds, mission.id];
+  normalized.totalMissionClaims += 1;
+
+  const synced = syncLevelUnlocks(normalized, oldLevel);
+  return {
+    profile: synced.profile,
+    missionId,
+    reward: mission.reward,
+    rewardLabel: formatMissionReward(mission.reward),
+    oldLevel,
+    newLevel: synced.newLevel,
+    levelCoinReward: synced.levelCoinReward,
+    unlocks: synced.unlocks,
+    claimed: true,
+  };
+}
+
+export { DAILY_MISSIONS, formatMissionReward };
+export type { DailyMissionState, DailyMissionDefinition, DailyMissionFightStats, MissionRewardBundle };
 
 export function loadPlayerProfile(): PlayerProfile {
   if (typeof window === "undefined") return createDefaultProfile();

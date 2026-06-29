@@ -6,6 +6,7 @@ export const SCENE_KEYS = {
   skillLoadout: "SkillLoadoutScene",
   stageSelect: "StageSelectScene",
   campaign: "CampaignScene",
+  missions: "MissionsScene",
   arena: "ArenaScene",
   result: "ResultScene",
 } as const;

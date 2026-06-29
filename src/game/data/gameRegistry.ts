@@ -84,6 +84,9 @@ export {
   savePlayerProfile,
   applyFightResultToProfile,
   applyRewardChoiceToProfile,
+  claimDailyMissionReward,
+  formatMissionReward,
+  getDailyMissionStates,
   getPostFightRewardChoices,
   selectProfileSkill,
   selectProfileSkin,
@@ -93,4 +96,4 @@ export {
   unlockProfileSkin,
   unlockProfileStage,
 } from "./playerProfile";
-export type { FightRewardApplication, FightRewardInput, PlayerProfile, RewardChoiceApplication } from "./playerProfile";
+export type { DailyMissionDefinition, DailyMissionFightStats, DailyMissionState, FightRewardApplication, FightRewardInput, MissionClaimApplication, MissionRewardBundle, PlayerProfile, RewardChoiceApplication } from "./playerProfile";

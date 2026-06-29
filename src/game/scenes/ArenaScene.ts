@@ -63,6 +63,11 @@ export class ArenaScene extends Phaser.Scene {
   private activeElapsedMs = 0;
   private defeatedLeaks = 0;
   private defeatedBossIds: string[] = [];
+  private blocksCount = 0;
+  private dodgesCount = 0;
+  private skillsUsedCount = 0;
+  private ultimatesUsedCount = 0;
+  private damageTaken = 0;
   private runFinished = false;
   private fightStarted = false;
 
@@ -141,6 +146,11 @@ export class ArenaScene extends Phaser.Scene {
     this.activeElapsedMs = 0;
     this.defeatedLeaks = 0;
     this.defeatedBossIds = [];
+    this.blocksCount = 0;
+    this.dodgesCount = 0;
+    this.skillsUsedCount = 0;
+    this.ultimatesUsedCount = 0;
+    this.damageTaken = 0;
     this.runFinished = false;
     this.fightStarted = false;
     this.playerState = "idle";
@@ -489,6 +499,7 @@ export class ArenaScene extends Phaser.Scene {
 
     if (!this.spendEnergy(this.ultimateSkill.energyCost || MAX_ENERGY, "ULTIMATE")) return false;
 
+    this.ultimatesUsedCount += 1;
     this.ultimateLockUntil = now + ULTIMATE_DURATION_MS + 650;
     this.ultimateActiveUntil = now + ULTIMATE_DURATION_MS;
     this.playerActionUntil = now + 360;
@@ -517,6 +528,8 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     if (!this.spendEnergy(skill.energyCost, skill.name.toUpperCase())) return false;
+
+    this.skillsUsedCount += 1;
 
     if (slot === "skill1") this.skill1CooldownUntil = now + skill.cooldownMs;
     else this.skill2CooldownUntil = now + skill.cooldownMs;
@@ -1197,6 +1210,7 @@ export class ArenaScene extends Phaser.Scene {
   private applyStageDamage(amount: number, label: string, color: string): void {
     if (amount <= 0 || this.runFinished) return;
     this.playerHp = Math.max(0, this.playerHp - amount);
+    this.damageTaken += amount;
     this.showFloatingText(`${label} -${amount} HP`, this.player.x, this.player.y - 122, color);
     this.statusText.setText(label);
     this.cameras.main.shake(56, 0.0026);
@@ -1206,6 +1220,7 @@ export class ArenaScene extends Phaser.Scene {
   private damagePlayer(amount: number, label: string): void {
     const now = Date.now();
     if (now < this.playerInvincibleUntil) {
+      this.dodgesCount += 1;
       this.showFloatingText("DODGE", this.player.x, this.player.y - 92, "#d9a7ff");
       this.addEnergy(6);
       return;
@@ -1215,6 +1230,8 @@ export class ArenaScene extends Phaser.Scene {
       const guardBreak = label === this.getBossMechanics(this.getRound(this.roundIndex)).special.name && this.getBossMechanics(this.getRound(this.roundIndex)).special.effect === "guard_break";
       const blockMultiplier = guardBreak ? 0.72 : this.isUltimateActive(now) ? Math.min(0.1, this.blockDamageTakenMultiplier * 0.55) : this.blockDamageTakenMultiplier;
       const blocked = Math.max(1, Math.floor(amount * blockMultiplier));
+      this.blocksCount += 1;
+      this.damageTaken += blocked;
       this.playerHp = Math.max(0, this.playerHp - blocked);
       this.sfx.playBlock();
       this.showBlockFx();
@@ -1227,6 +1244,7 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     const finalAmount = this.isUltimateActive(now) ? Math.max(1, Math.floor(amount * 0.55)) : amount;
+    this.damageTaken += finalAmount;
     this.playerHp = Math.max(0, this.playerHp - finalAmount);
     this.playerState = "hurt";
     this.playerActionUntil = now + 220;
@@ -1327,6 +1345,12 @@ export class ArenaScene extends Phaser.Scene {
       selectedBossId: this.selectedBossId,
       selectedCampaignId: this.selectedCampaignId,
       defeatedBossIds: [...this.defeatedBossIds],
+      blocks: this.blocksCount,
+      dodges: this.dodgesCount,
+      skillsUsed: this.skillsUsedCount,
+      ultimatesUsed: this.ultimatesUsedCount,
+      damageTaken: this.damageTaken,
+      usedUltimate: this.ultimatesUsedCount > 0,
       victory,
     };
 

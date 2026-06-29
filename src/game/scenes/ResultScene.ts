@@ -47,6 +47,12 @@ export class ResultScene extends Phaser.Scene {
       leaksDefeated: this.result.leaksDefeated,
       survivedSeconds: this.result.survivedSeconds,
       defeatedBossIds: this.result.defeatedBossIds,
+      blocks: this.result.blocks ?? 0,
+      dodges: this.result.dodges ?? 0,
+      skillsUsed: this.result.skillsUsed ?? 0,
+      ultimatesUsed: this.result.ultimatesUsed ?? 0,
+      damageTaken: this.result.damageTaken ?? 0,
+      usedUltimate: this.result.usedUltimate ?? false,
     });
     this.profileAfterBase = this.rewardApplication.profile;
     savePlayerProfile(this.profileAfterBase);
@@ -102,6 +108,9 @@ export class ResultScene extends Phaser.Scene {
     const levelText = this.rewardApplication.newLevel > this.rewardApplication.oldLevel
       ? `LEVEL UP ${this.rewardApplication.oldLevel} → ${this.rewardApplication.newLevel}`
       : `LEVEL ${profile.level}`;
+    const missionText = this.rewardApplication.completedMissionIds.length > 0
+      ? `MISSIONS DONE: ${this.rewardApplication.completedMissionIds.length}`
+      : "DAILY MISSIONS UPDATED";
     const unlockText = this.rewardApplication.unlocks.length > 0
       ? `UNLOCKED: ${this.rewardApplication.unlocks.slice(0, 3).map((item) => item.split("_").join(" ").toUpperCase()).join(" · ")}`
       : xpProgress.nextLevel
@@ -235,6 +244,8 @@ export class ResultScene extends Phaser.Scene {
       `Time: ${this.result.survivedSeconds}s`,
       `Leaks broken: ${this.result.leaksDefeated}`,
       `Bosses broken: ${bossesBroken}`,
+      `Blocks: ${this.result.blocks ?? 0}`,
+      `Skills used: ${this.result.skillsUsed ?? 0}`,
       `Pickups: ${pickupsCollected}`,
       `Level: ${this.profileAfterBase.level}`,
       `Coins: ${this.profileAfterBase.coins}`,

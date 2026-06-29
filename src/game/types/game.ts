@@ -44,6 +44,12 @@ export interface RunResult {
   selectedBossId?: string;
   selectedCampaignId?: string;
   defeatedBossIds?: string[];
+  blocks?: number;
+  dodges?: number;
+  skillsUsed?: number;
+  ultimatesUsed?: number;
+  damageTaken?: number;
+  usedUltimate?: boolean;
 }
 
 export interface AttackSpec {

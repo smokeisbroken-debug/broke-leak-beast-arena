@@ -161,7 +161,21 @@ export class MainMenuScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(6);
     stageButton.on("pointerdown", () => this.scene.start(SCENE_KEYS.stageSelect));
 
-    this.add.text(188, 392, `COINS: ${profile.coins} · LEVEL ${profile.level}`, {
+    const missionButton = this.add.rectangle(792, 376, 108, 34, 0x071107, 0.9)
+      .setStrokeStyle(2, 0xffeb72, 0.55)
+      .setDepth(5)
+      .setInteractive({ useHandCursor: true });
+    this.add.text(792, 376, "MISSIONS", {
+      fontFamily: "Arial",
+      fontSize: "11px",
+      color: "#fcfff7",
+      fontStyle: "bold",
+      stroke: "#050805",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(6);
+    missionButton.on("pointerdown", () => this.scene.start(SCENE_KEYS.missions));
+
+    this.add.text(188, 392, `COINS: ${profile.coins} · LEVEL ${profile.level} · CLAIMS ${profile.totalMissionClaims}`, {
       fontFamily: "Arial",
       fontSize: "12px",
       color: "#d7ffd0",
