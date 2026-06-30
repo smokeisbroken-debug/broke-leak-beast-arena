@@ -84,6 +84,12 @@ import {
   getBossRegistryEntry,
   getBossRegistrySummary,
 } from "./BossRegistrySystem";
+import {
+  CHAPTER_1_MAP_SYSTEM_DEFINITION,
+  createChapter1MapSnapshot,
+  getChapter1MapCurrentNode,
+  getChapter1MapReadinessSummary,
+} from "./Chapter1MapSystem";
 import { SAVE_SCHEMA_DEFINITION_V2 } from "../types/SaveSchemaTypes";
 import { PLAYER_PROFILE_V2_DEFINITION } from "./ProfileSystem";
 import { EVOLUTION_SYSTEM_DEFINITION } from "../types/EvolutionTypes";
@@ -91,7 +97,7 @@ import { SKILL_UPGRADE_SYSTEM_DEFINITION } from "../types/SkillUpgradeTypes";
 import { MASTERY_SYSTEM_DEFINITION } from "../types/MasteryTypes";
 import { PROGRESSION_UI_SYSTEM_DEFINITION } from "./ProgressionUiSystem";
 
-export const GAME_SYSTEMS_VERSION = "0.12.0-boss-registry-v2";
+export const GAME_SYSTEMS_VERSION = "0.12.1-chapter-1-map";
 
 export type GameSystemId =
   | "modes"
@@ -209,6 +215,11 @@ export interface GameSystemsRegistrySnapshot {
   bossRegistryEntries: ReturnType<typeof getBossRegistryEntries>;
   bossRegistryEntryFactory: typeof getBossRegistryEntry;
   bossRegistryChapterGroups: ReturnType<typeof getBossRegistryChapterGroups>;
+  chapter1MapSystem: typeof CHAPTER_1_MAP_SYSTEM_DEFINITION;
+  chapter1MapSnapshot: ReturnType<typeof createChapter1MapSnapshot>;
+  chapter1MapSnapshotFactory: typeof createChapter1MapSnapshot;
+  chapter1MapCurrentNode: ReturnType<typeof getChapter1MapCurrentNode>;
+  chapter1MapReadinessSummary: ReturnType<typeof getChapter1MapReadinessSummary>;
   saveSchema: typeof SAVE_SCHEMA_DEFINITION_V2;
   playerProfile: typeof PLAYER_PROFILE_V2_DEFINITION;
   evolution: typeof EVOLUTION_SYSTEM_DEFINITION;
@@ -226,7 +237,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Centralize playable, ranked and backend-locked mode routes before UI and multiplayer work expands.",
     dependsOn: [],
     relatedModes: ["arena", "campaign", "tasks", "profile", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "profile",
@@ -236,7 +247,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Store identity, selected loadout, synced wallet, capped power score and future multiplayer-safe fields.",
     dependsOn: ["modes"],
     relatedModes: ["profile", "arena", "campaign"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "progression",
@@ -246,7 +257,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Unify level, XP, mastery placeholders and capped power score.",
     dependsOn: ["modes", "profile"],
     relatedModes: ["profile", "campaign", "leaderboard"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "evolution",
@@ -256,7 +267,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped long-term mascot forms for profile identity, PowerScore and future seasons without direct combat scaling yet.",
     dependsOn: ["modes", "profile", "progression"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "skill_upgrades",
@@ -266,7 +277,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped skill levels, upgrade costs and PowerScore contribution before real upgrade spending and combat scaling are enabled.",
     dependsOn: ["modes", "profile", "progression", "evolution"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "mastery",
@@ -276,7 +287,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define long-term horizontal branches for guard, dash, skills, bosses, leak control and survival without direct combat scaling yet.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "economy",
@@ -286,7 +297,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Separate XP, coins, leak points, rank points, tournament points and cosmetics.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades", "mastery"],
     relatedModes: ["tasks", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "balance",
@@ -296,7 +307,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped power score, difficulty score and matchup evaluation before ranked systems go live.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades", "mastery", "economy"],
     relatedModes: ["arena", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "tasks",
@@ -306,7 +317,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define daily, weekly, tournament, duel and boss tasks, reward previews, local progress tracking and safe daily claim flow before task-point leaderboard payloads are enabled.",
     dependsOn: ["profile", "economy", "balance"],
     relatedModes: ["tasks", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "leaderboard",
@@ -316,7 +327,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Display typed score contracts, deterministic local mock snapshots and weekly reset previews before remote submission is enabled.",
     dependsOn: ["profile", "progression", "evolution", "skill_upgrades", "mastery", "balance", "tasks", "anti_cheat"],
     relatedModes: ["leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "tournaments",
@@ -326,7 +337,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define time-boxed events with rules, participation points, deterministic scoring and ranked leaderboard wiring.",
     dependsOn: ["leaderboard", "economy", "balance", "anti_cheat"],
     relatedModes: ["tournament", "leaderboard"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "duels",
@@ -336,17 +347,17 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Create asynchronous 1 vs 1 battles on identical leak-pressure seeds with capped score comparison.",
     dependsOn: ["leaderboard", "economy", "balance", "anti_cheat"],
     relatedModes: ["leak_duel", "leaderboard"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "campaign",
     title: "Campaign",
     status: "existing",
     priority: "later",
-    goal: "Expose PvE chapters through a backend-ready skeleton with boss nodes, gates, task links, reward previews and recommended power bands.",
+    goal: "Expose PvE chapters through a backend-ready skeleton, Chapter 1 tactical map, boss nodes, gates, task links, reward previews and recommended power bands.",
     dependsOn: ["profile", "progression", "economy", "balance"],
     relatedModes: ["campaign"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "bosses",
@@ -356,7 +367,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Normalize campaign bosses and weekly community bosses with difficultyScore, recommendedPower, threat tags, reward previews and leaderboard/task links.",
     dependsOn: ["campaign", "leaderboard", "balance"],
     relatedModes: ["arena", "campaign", "weekly_boss", "tournament", "leak_duel"],
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   },
   {
     id: "multiplayer",
@@ -473,6 +484,11 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   bossRegistryEntries: getBossRegistryEntries(),
   bossRegistryEntryFactory: getBossRegistryEntry,
   bossRegistryChapterGroups: getBossRegistryChapterGroups(),
+  chapter1MapSystem: CHAPTER_1_MAP_SYSTEM_DEFINITION,
+  chapter1MapSnapshot: createChapter1MapSnapshot(),
+  chapter1MapSnapshotFactory: createChapter1MapSnapshot,
+  chapter1MapCurrentNode: getChapter1MapCurrentNode(),
+  chapter1MapReadinessSummary: getChapter1MapReadinessSummary(),
   saveSchema: SAVE_SCHEMA_DEFINITION_V2,
   playerProfile: PLAYER_PROFILE_V2_DEFINITION,
   evolution: EVOLUTION_SYSTEM_DEFINITION,

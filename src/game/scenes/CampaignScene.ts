@@ -3,6 +3,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import {
   CAMPAIGN_CHAPTERS,
+  createChapter1MapSnapshot,
   getCampaignBossState,
   getCampaignBosses,
   getCampaignBossUnlockLabel,
@@ -15,6 +16,8 @@ import {
   savePlayerProfile,
   selectProfileCampaignBoss,
   type CampaignChapterDefinition,
+  type Chapter1MapNodeCard,
+  type Chapter1MapSnapshot,
   type PlayerProfile,
 } from "../data/gameRegistry";
 import type { ArenaBossDefinition } from "../data/bosses";
@@ -139,7 +142,68 @@ export class CampaignScene extends Phaser.Scene {
       return;
     }
 
-    bosses.forEach((boss, index) => this.createBossCard(boss, 620, 186 + index * 76));
+    const chapter1Map = this.selectedChapter.id === "daily_leaks" ? createChapter1MapSnapshot(this.profile) : undefined;
+    if (chapter1Map) {
+      this.createChapter1MapPanel(chapter1Map);
+    }
+
+    const startY = chapter1Map ? 232 : 186;
+    const spacingY = chapter1Map ? 68 : 76;
+    bosses.forEach((boss, index) => this.createBossCard(boss, 620, startY + index * spacingY));
+  }
+
+  private createChapter1MapPanel(snapshot: Chapter1MapSnapshot): void {
+    const panel = this.add.rectangle(620, 170, 408, 54, 0x061006, 0.78)
+      .setStrokeStyle(2, 0x72ff57, 0.28)
+      .setDepth(3);
+    const title = this.add.text(420, 149, `${snapshot.title.toUpperCase()} · ${snapshot.progressLabel.toUpperCase()}`, {
+      fontFamily: "Arial", fontSize: "9px", color: "#72ff57", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setDepth(4);
+    const power = this.add.text(792, 149, `PWR ${snapshot.recommendedPowerMin}-${snapshot.recommendedPowerMax}`, {
+      fontFamily: "Arial", fontSize: "9px", color: "#ffeb72", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setOrigin(1, 0).setDepth(4);
+
+    const line = this.add.graphics().setDepth(3);
+    const left = 438;
+    const top = 158;
+    const width = 364;
+    const height = 29;
+    snapshot.connectors.forEach((connector) => {
+      const from = snapshot.nodes.find((node) => node.id === connector.fromNodeId);
+      const to = snapshot.nodes.find((node) => node.id === connector.toNodeId);
+      if (!from || !to) return;
+      const x1 = left + from.mapX * width;
+      const y1 = top + from.mapY * height;
+      const x2 = left + to.mapX * width;
+      const y2 = top + to.mapY * height;
+      line.lineStyle(2, connector.active ? 0x72ff57 : 0x4a544a, connector.active ? 0.62 : 0.34);
+      line.beginPath();
+      line.moveTo(x1, y1);
+      line.lineTo(x2, y2);
+      line.strokePath();
+    });
+
+    const nodeObjects = snapshot.nodes.flatMap((node) => this.createChapter1MapNode(node, left + node.mapX * width, top + node.mapY * height));
+    const current = snapshot.nodes.find((node) => node.id === snapshot.currentNodeId) ?? snapshot.nodes[0];
+    const currentHint = this.add.text(620, 203, `CURRENT: ${current.shortLabel} · ${current.tacticalHint}`, {
+      fontFamily: "Arial", fontSize: "8px", color: "#d7ffd0", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+      align: "center",
+      wordWrap: { width: 392 },
+    }).setOrigin(0.5).setDepth(4);
+
+    this.bossObjects.push(panel, title, power, line, ...nodeObjects, currentHint);
+  }
+
+  private createChapter1MapNode(node: Chapter1MapNodeCard, x: number, y: number): Phaser.GameObjects.GameObject[] {
+    const fillColor = node.status === "complete" ? 0x72ff57 : node.status === "available" ? 0xffeb72 : 0x293029;
+    const textColor = node.status === "complete" ? "#050805" : node.status === "available" ? "#ffeb72" : "#8e998e";
+    const circle = this.add.circle(x, y, node.type === "reward" ? 11 : 9, fillColor, node.status === "complete" ? 0.95 : 0.76)
+      .setStrokeStyle(2, node.status === "available" ? 0xfcfff7 : fillColor, node.status === "locked" ? 0.34 : 0.78)
+      .setDepth(4);
+    const label = this.add.text(x, y + 16, node.shortLabel, {
+      fontFamily: "Arial", fontSize: "7px", color: textColor, fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(5);
+    return [circle, label];
   }
 
   private createBossCard(boss: ArenaBossDefinition, x: number, y: number): void {

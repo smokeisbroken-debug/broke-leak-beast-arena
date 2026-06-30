@@ -254,7 +254,7 @@ export function createCampaignChapterSnapshot(profile: CampaignProfileState = DE
     completionPercent: summary.percent,
     backendSubmitEnabled: false,
     localPreviewOnly: true,
-    nextPatch: "v0.12.1-chapter-1-map",
+    nextPatch: "v0.12.2-boss-rewards",
   };
 }
 

@@ -105,6 +105,26 @@ export type {
   BossRegistrySystemDefinition,
   BossThreatTag,
 } from "../types/BossRegistryTypes";
+export {
+  CHAPTER_1_MAP_SYSTEM_DEFINITION,
+  CHAPTER_1_MAP_SYSTEM_VERSION,
+  createChapter1MapSnapshot,
+  getChapter1MapCurrentNode,
+  getChapter1MapReadinessSummary,
+} from "../systems/Chapter1MapSystem";
+export type {
+  Chapter1MapConnector,
+  Chapter1MapId,
+  Chapter1MapNodeCard,
+  Chapter1MapNodeDefinition,
+  Chapter1MapNodeId,
+  Chapter1MapNodeStatus,
+  Chapter1MapNodeType,
+  Chapter1MapRewardPreview,
+  Chapter1MapSnapshot,
+  Chapter1MapSystemDefinition,
+  Chapter1MapThemeTag,
+} from "../types/Chapter1MapTypes";
 
 export {
   STAGES,
