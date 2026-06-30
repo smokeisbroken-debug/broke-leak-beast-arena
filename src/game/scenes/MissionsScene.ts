@@ -6,6 +6,7 @@ import {
   claimDailyMissionReward,
   formatMissionReward,
   getDailyMissionStates,
+  getTaskPointLeaderboardPayload,
   getTaskRewardProfileSummary,
   getXpProgress,
   loadPlayerProfile,
@@ -40,6 +41,7 @@ export class MissionsScene extends Phaser.Scene {
 
     const xp = getXpProgress(this.profile.xp);
     const taskSummary = getTaskRewardProfileSummary(this.profile);
+    const taskLeaderboardPayload = getTaskPointLeaderboardPayload(this.profile);
 
     this.add.text(GAME_WIDTH / 2, 56, `LEVEL ${this.profile.level} · COINS ${this.profile.coins} · XP TO NEXT ${xp.remaining} · CLAIMS ${this.profile.totalMissionClaims}`, {
       fontFamily: "Arial",
@@ -50,7 +52,7 @@ export class MissionsScene extends Phaser.Scene {
       strokeThickness: 4,
     }).setOrigin(0.5).setDepth(3);
 
-    this.add.text(GAME_WIDTH / 2, 76, `TASKS READY ${taskSummary.claimablePreviewCount} · LOCAL TASK POINTS ${this.profile.taskPoints} · WEEKLY LOCKED ${taskSummary.backendLockedPreviewCount}`, {
+    this.add.text(GAME_WIDTH / 2, 76, `TASKS READY ${taskSummary.claimablePreviewCount} · LOCAL TASK POINTS ${taskLeaderboardPayload.totalLocalTaskPoints} · WEEKLY LOCKED ${taskSummary.backendLockedPreviewCount}`, {
       fontFamily: "Arial",
       fontSize: "10px",
       color: "#ffeb72",
@@ -59,7 +61,7 @@ export class MissionsScene extends Phaser.Scene {
       strokeThickness: 3,
     }).setOrigin(0.5).setDepth(3);
 
-    this.statusText = this.add.text(GAME_WIDTH / 2, 94, "Complete missions in fights, then claim mission rewards or local daily task rewards here.", {
+    this.statusText = this.add.text(GAME_WIDTH / 2, 94, `TASK LB PREP ${taskLeaderboardPayload.periodKey} · CLAIMABLE ${taskLeaderboardPayload.claimableTaskPointsPreview} · PENDING VALIDATION ${taskLeaderboardPayload.backendLockedTaskPointsPreview}`, {
       fontFamily: "Arial",
       fontSize: "10px",
       color: "#d7ffd0",

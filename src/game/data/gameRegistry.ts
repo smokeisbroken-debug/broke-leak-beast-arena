@@ -312,3 +312,20 @@ export type {
   TaskClaimOutcome,
   TaskClaimSystemDefinition,
 } from "../types/TaskClaimTypes";
+
+export {
+  TASK_POINT_LEADERBOARD_PREP_SYSTEM_DEFINITION,
+  TASK_POINT_LEADERBOARD_PREP_SYSTEM_VERSION,
+  getTaskPointLeaderboardPayload,
+  getTaskPointLeaderboardPeriodKey,
+  getTaskPointLeaderboardReadiness,
+} from "../systems/TaskPointLeaderboardPrepSystem";
+export type {
+  TaskPointLeaderboardPayload,
+  TaskPointLeaderboardReadiness,
+  TaskPointLeaderboardPrepSystemDefinition,
+  TaskPointLeaderboardSubmissionStatus,
+  TaskPointLeaderboardTaskRow,
+  TaskPointSourceBreakdownRow,
+  TaskPointSourceId,
+} from "../types/TaskPointTypes";

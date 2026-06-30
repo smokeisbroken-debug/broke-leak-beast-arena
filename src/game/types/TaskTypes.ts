@@ -137,11 +137,11 @@ export const TASK_POINT_LEADERBOARD_ID: LeaderboardId = "task_points";
 export const DEFAULT_DAILY_TASK_IDS = ["daily_win_one_arena", "daily_defeat_five_leaks", "daily_use_guard"] as const;
 export const DEFAULT_WEEKLY_TASK_IDS = ["weekly_tournament_participation", "weekly_duel_win", "weekly_boss_damage_push"] as const;
 
-export const TASK_SYSTEM_VERSION = "0.10.0-task-claim-flow";
+export const TASK_SYSTEM_VERSION = "0.10.1-task-points-leaderboard-prep";
 
 export const TASK_SYSTEM_DEFINITION: TaskSystemDefinition = {
   version: TASK_SYSTEM_VERSION,
-  goal: "Define daily, weekly, tournament, duel and boss tasks as a multiplayer-ready progression layer before reward previews, safe local daily claim flow and leaderboard submission are enabled.",
+  goal: "Define daily, weekly, tournament, duel and boss tasks as a multiplayer-ready progression layer before reward previews, safe local daily claim flow and task-point leaderboard payloads are enabled.",
   defaultDailyTaskIds: DEFAULT_DAILY_TASK_IDS,
   defaultWeeklyTaskIds: DEFAULT_WEEKLY_TASK_IDS,
   backendLockedCadences: ["weekly", "tournament", "season"],
@@ -150,7 +150,7 @@ export const TASK_SYSTEM_DEFINITION: TaskSystemDefinition = {
     "Daily task rewards may stay local during skeleton development, but Leak Points remain future validation-sensitive.",
     "Weekly, tournament, duel and boss task points are leaderboard-sensitive and must be backend-validated before public ranking.",
     "Task reward previews, progress tracking and safe local daily claim flow are now defined; ranked submission and real multiplayer rewards remain disabled.",
-    "Task progress is updated from local gameplay events; Task Points may be stored locally after daily claims but remain non-public until leaderboard validation exists.",
+    "Task progress is updated from local gameplay events; Task Points may be stored locally after daily claims and exposed through a local leaderboard-prep payload, but public submission remains disabled until validation exists.",
   ],
 };
 
