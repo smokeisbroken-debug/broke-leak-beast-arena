@@ -5,6 +5,7 @@ import {
   applyFightResultToProfile,
   applyRewardChoiceToProfile,
   getCampaignChapterForBoss,
+  getCampaignProgressSummary,
   getDailyMissionStates,
   getPostFightRewardChoices,
   getRewardChoiceRarityLabel,
@@ -198,13 +199,14 @@ export class ResultScene extends Phaser.Scene {
 
     const nextBoss = getSelectedCampaignBoss(profile);
     const chapter = getCampaignChapterForBoss(nextBoss.id);
+    const summary = getCampaignProgressSummary(profile);
     const missionLine = completed > 0
       ? `${completed} MISSION REWARD${completed === 1 ? "" : "S"} READY`
       : inProgress
         ? `${inProgress.definition.title.toUpperCase()}: ${inProgress.progress}/${inProgress.target}`
         : "DAILY MISSIONS COMPLETE";
 
-    const bossLine = `NEXT: ${nextBoss.name.toUpperCase()} · ${chapter.name.toUpperCase()}`;
+    const bossLine = `NEXT: ${nextBoss.name.toUpperCase()} · ${summary.cleared}/${summary.total} CLEARED`;
 
     this.add.rectangle(232, 226, 316, 25, 0x071107, 0.88)
       .setStrokeStyle(1, chapter.color, 0.42)
@@ -354,7 +356,7 @@ export class ResultScene extends Phaser.Scene {
       this.time.delayedCall(1300, () => shareText.setText("COPY RESULT"));
     });
 
-    const again = this.add.text(488, GAME_HEIGHT - 34, "NEXT FIGHT", {
+    const again = this.add.text(488, GAME_HEIGHT - 34, "NEXT BOSS", {
       fontFamily: "Arial", fontSize: "14px", color: "#050505", backgroundColor: "#39ff14", padding: { x: 22, y: 9 }, fontStyle: "bold",
     }).setOrigin(0.5).setDepth(4);
     again.setInteractive({ useHandCursor: true });

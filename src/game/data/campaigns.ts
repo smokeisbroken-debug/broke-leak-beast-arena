@@ -162,3 +162,41 @@ export function getCampaignUnlockLabel(profile: CampaignProfileState, chapter: C
   }
   return "Locked";
 }
+
+
+export function getCampaignBossUnlockLabel(profile: CampaignProfileState, bossId: string): string {
+  const boss = getArenaBossById(bossId);
+  const chapter = getCampaignChapterForBoss(boss.id);
+  if (!isCampaignChapterUnlocked(profile, chapter.id)) return getCampaignUnlockLabel(profile, chapter);
+  if (profile.level < boss.unlockLevel) return `Requires level ${boss.unlockLevel}`;
+  const bossIndex = chapter.bossIds.indexOf(boss.id);
+  if (bossIndex > 0) {
+    const previousBossId = chapter.bossIds[bossIndex - 1];
+    if (!profile.bossProgress[previousBossId]) return `Clear ${getArenaBossById(previousBossId).name}`;
+  }
+  return profile.bossProgress[boss.id] ? "Cleared · replay available" : "Ready";
+}
+
+export function getCampaignProgressSummary(profile: CampaignProfileState): { cleared: number; total: number; percent: number; currentChapterId: string; recommendedBossId: string } {
+  const total = CAMPAIGN_CHAPTERS.reduce((sum, chapter) => sum + chapter.bossIds.length, 0);
+  const cleared = CAMPAIGN_CHAPTERS.reduce((sum, chapter) => sum + chapter.bossIds.filter((bossId) => profile.bossProgress[bossId]).length, 0);
+  const recommended = getRecommendedCampaignBoss(profile);
+  return {
+    cleared,
+    total,
+    percent: total > 0 ? cleared / total : 0,
+    currentChapterId: getCampaignChapterForBoss(recommended.id).id,
+    recommendedBossId: recommended.id,
+  };
+}
+
+export function getNextCampaignBossAfter(profile: CampaignProfileState, bossId: string): ArenaBossDefinition {
+  const previewProfile: CampaignProfileState = {
+    ...profile,
+    bossProgress: {
+      ...profile.bossProgress,
+      [bossId]: true,
+    },
+  };
+  return getRecommendedCampaignBoss(previewProfile);
+}

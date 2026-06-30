@@ -5,8 +5,11 @@ import {
   CAMPAIGN_CHAPTERS,
   getCampaignBossState,
   getCampaignBosses,
+  getCampaignBossUnlockLabel,
   getCampaignProgress,
+  getCampaignProgressSummary,
   getCampaignUnlockLabel,
+  getRecommendedCampaignBoss,
   isCampaignChapterUnlocked,
   loadPlayerProfile,
   savePlayerProfile,
@@ -21,6 +24,7 @@ export class CampaignScene extends Phaser.Scene {
   private selectedChapter!: CampaignChapterDefinition;
   private chapterObjects: Phaser.GameObjects.GameObject[] = [];
   private bossObjects: Phaser.GameObjects.GameObject[] = [];
+  private flowStatusText!: Phaser.GameObjects.Text;
 
   constructor() {
     super(SCENE_KEYS.campaign);
@@ -44,6 +48,7 @@ export class CampaignScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(3);
 
     this.createProfileStrip();
+    this.createFlowStatusText();
     this.renderChapters();
     this.renderBosses();
     this.createBackButton();
@@ -51,13 +56,23 @@ export class CampaignScene extends Phaser.Scene {
 
   private createProfileStrip(): void {
     const progress = getCampaignProgress(this.profile);
+    const summary = getCampaignProgressSummary(this.profile);
+    const recommendedBoss = getRecommendedCampaignBoss(this.profile);
+    const currentChapter = CAMPAIGN_CHAPTERS.find((chapter) => chapter.id === summary.currentChapterId) ?? CAMPAIGN_CHAPTERS[0];
     const totalCleared = Object.values(progress).reduce((sum, value) => sum + value, 0);
-    this.add.rectangle(GAME_WIDTH / 2, 88, 702, 34, 0x071107, 0.88)
-      .setStrokeStyle(2, 0x72ff57, 0.22)
+    this.add.rectangle(GAME_WIDTH / 2, 88, 804, 34, 0x071107, 0.88)
+      .setStrokeStyle(2, currentChapter.color, 0.28)
       .setDepth(2);
-    this.add.text(GAME_WIDTH / 2, 88, `LEVEL ${this.profile.level} · COINS ${this.profile.coins} · CAMPAIGN CLEARS ${totalCleared}`, {
+    this.add.text(GAME_WIDTH / 2, 88, `LEVEL ${this.profile.level} · COINS ${this.profile.coins} · CLEARS ${totalCleared}/${summary.total} · NEXT ${recommendedBoss.name.toUpperCase()}`, {
       fontFamily: "Arial", fontSize: "12px", color: "#fcfff7", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
     }).setOrigin(0.5).setDepth(3);
+  }
+
+  private createFlowStatusText(): void {
+    const recommendedBoss = getRecommendedCampaignBoss(this.profile);
+    this.flowStatusText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 30, `Recommended next fight: ${recommendedBoss.name.toUpperCase()}`, {
+      fontFamily: "Arial", fontSize: "11px", color: "#d7ffd0", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(6);
   }
 
   private renderChapters(): void {
@@ -136,10 +151,11 @@ export class CampaignScene extends Phaser.Scene {
       .setDepth(3)
       .setInteractive({ useHandCursor: true });
     const stateLabel = state === "complete" ? "CLEARED · REPLAY" : state === "unlocked" ? "READY" : "LOCKED";
+    const lockReason = getCampaignBossUnlockLabel(this.profile, boss.id);
     const title = this.add.text(x - 186, y - 22, boss.name.toUpperCase(), {
       fontFamily: "Arial", fontSize: "13px", color: unlocked ? "#fcfff7" : "#888888", fontStyle: "bold", stroke: "#050805", strokeThickness: 4,
     }).setDepth(4);
-    const meta = this.add.text(x - 186, y - 3, `${stateLabel} · LEVEL ${boss.unlockLevel} · ${boss.leakLabel}`, {
+    const meta = this.add.text(x - 186, y - 3, unlocked ? `${stateLabel} · LEVEL ${boss.unlockLevel} · ${boss.leakLabel}` : `LOCKED · ${lockReason.toUpperCase()}`, {
       fontFamily: "Arial", fontSize: "10px", color: unlocked ? boss.color === 0xffeb72 ? "#ffeb72" : "#d7ffd0" : "#9c9c9c", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
     }).setDepth(4);
     const hint = this.add.text(x - 186, y + 16, boss.introLine, {
@@ -159,9 +175,17 @@ export class CampaignScene extends Phaser.Scene {
   }
 
   private selectBoss(boss: ArenaBossDefinition, unlocked: boolean): void {
-    if (!unlocked) return;
+    if (!unlocked) {
+      const reason = getCampaignBossUnlockLabel(this.profile, boss.id);
+      this.flowStatusText?.setText(`${boss.name.toUpperCase()} locked: ${reason}`);
+      this.flowStatusText?.setColor("#ffeb72");
+      this.cameras.main.shake(60, 0.0018);
+      return;
+    }
     this.profile = selectProfileCampaignBoss(this.profile, boss.id);
     savePlayerProfile(this.profile);
+    this.flowStatusText?.setText(`Starting ${boss.name.toUpperCase()}...`);
+    this.flowStatusText?.setColor("#72ff57");
     this.cameras.main.flash(80, 114, 255, 87, false);
     this.time.delayedCall(90, () => this.scene.start(SCENE_KEYS.arena));
   }

@@ -319,6 +319,22 @@ function syncLevelUnlocks(profile: PlayerProfile, oldLevel: number): { profile: 
   return { profile: normalizeProfile(normalized), unlocks, levelCoinReward, oldLevel, newLevel };
 }
 
+function syncCampaignFlowSelection(profile: PlayerProfile): PlayerProfile {
+  const normalized = normalizeProfile(profile);
+  normalized.campaignProgress = {
+    ...normalized.campaignProgress,
+    ...getCampaignProgress(normalized),
+  };
+  const nextBoss = getRecommendedCampaignBoss(normalized);
+  normalized.selectedBossId = nextBoss.id;
+  normalized.selectedCampaignId = getCampaignChapterForBoss(nextBoss.id).id;
+  const nextBossStage = getStageById(nextBoss.stageId);
+  if (normalized.unlockedStageIds.includes(nextBossStage.id) || normalized.level >= nextBossStage.unlockLevel) {
+    normalized.selectedStageId = nextBossStage.id;
+  }
+  return normalizeProfile(normalized);
+}
+
 export function selectProfileSkin(profile: PlayerProfile, skinId: string): PlayerProfile {
   const normalized = normalizeProfile(profile);
   if (!normalized.unlockedSkinIds.includes(skinId)) return normalized;
@@ -436,13 +452,10 @@ export function applyFightResultToProfile(profile: PlayerProfile, input: FightRe
     ...getCampaignProgress(normalized),
   };
 
-  const nextBoss = getRecommendedCampaignBoss(normalized);
-  normalized.selectedBossId = nextBoss.id;
-  normalized.selectedCampaignId = getCampaignChapterForBoss(nextBoss.id).id;
-
   const missionApplication = applyDailyMissionFightProgress(normalized, buildMissionStatsFromFight(input));
   const synced = syncLevelUnlocks(missionApplication.profile, oldLevel);
-  return { ...synced, baseRewards, completedMissionIds: missionApplication.completedMissionIds };
+  const finalProfile = syncCampaignFlowSelection(synced.profile);
+  return { ...synced, profile: finalProfile, baseRewards, completedMissionIds: missionApplication.completedMissionIds };
 }
 
 export function getPostFightRewardChoices(profile: PlayerProfile): RewardChoiceDefinition[] {
@@ -506,7 +519,7 @@ export function applyRewardChoiceToProfile(profile: PlayerProfile, choice: Rewar
 
   const synced = syncLevelUnlocks(normalized, oldLevel);
   return {
-    profile: synced.profile,
+    profile: syncCampaignFlowSelection(synced.profile),
     choice,
     oldLevel,
     newLevel: synced.newLevel,
@@ -554,7 +567,7 @@ export function claimDailyMissionReward(profile: PlayerProfile, missionId: strin
 
   const synced = syncLevelUnlocks(normalized, oldLevel);
   return {
-    profile: synced.profile,
+    profile: syncCampaignFlowSelection(synced.profile),
     missionId,
     reward: mission.reward,
     rewardLabel: formatMissionReward(mission.reward),
