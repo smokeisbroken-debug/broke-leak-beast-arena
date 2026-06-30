@@ -13,6 +13,7 @@ import {
   getSkinById,
   getStageById,
   getSaveStatus,
+  getPlayerProfileV2Summary,
   getXpProgress,
   loadPlayerProfile,
 } from "../data/gameRegistry";
@@ -33,6 +34,7 @@ export class ProfileScene extends Phaser.Scene {
       ultimate: getSkillById(profile.selectedSkillIds.ultimate),
     };
     const xp = getXpProgress(profile.xp);
+    const profileV2 = getPlayerProfileV2Summary(profile);
     const campaignProgress = getCampaignProgress(profile);
     const missionStates = getDailyMissionStates(profile);
     const completedMissions = missionStates.filter((mission) => mission.completed).length;
@@ -47,20 +49,28 @@ export class ProfileScene extends Phaser.Scene {
       fontFamily: "Arial", fontSize: "28px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 6,
     }).setOrigin(0.5).setDepth(3);
 
-    this.add.text(GAME_WIDTH / 2, 54, `FULL MENU SHELL · ${GAME_CONFIG.version}`, {
+    this.add.text(GAME_WIDTH / 2, 54, `PROFILE V2 · POWER ${profileV2.progress.powerScore} · ${GAME_CONFIG.version}`, {
       fontFamily: "Arial", fontSize: "11px", color: "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
     }).setOrigin(0.5).setDepth(3);
 
-    this.createHeroCard(skin, profile.level, profile.coins, profile.xp, xp.remaining);
-    this.createStatsCard(profile.totalWins, profile.totalLosses, profile.bestScore, completedMissions, claimableMissions);
+    this.createHeroCard(skin, profileV2.displayName, profile.level, profile.coins, profile.xp, xp.remaining, profileV2.progress.powerScore);
+    this.createStatsCard(profile.totalWins, profile.totalLosses, profile.bestScore, completedMissions, claimableMissions, profileV2.multiplayer.taskPoints, profileV2.multiplayer.rankPoints);
     this.createLoadoutCard(skin.name, stage.name, boss.name, skills.skill1.name, skills.skill2.name, skills.ultimate.name);
     this.createProgressCard(profile.unlockedSkinIds.length, profile.unlockedSkillIds.length, profile.unlockedStageIds.length, campaignProgress);
     const saveStatus = getSaveStatus();
-    this.createResourceCard(profile.leakPoints, profile.skinShards, profile.skillCards, saveStatus.mainReadable, saveStatus.backupReadable);
+    this.createResourceCard(
+      profile.leakPoints,
+      profile.skinShards,
+      profile.skillCards,
+      profileV2.multiplayer.tournamentPoints,
+      profileV2.multiplayer.duelRating,
+      saveStatus.mainReadable,
+      saveStatus.backupReadable,
+    );
     this.createFooterButtons();
   }
 
-  private createHeroCard(skin: ReturnType<typeof getSkinById>, level: number, coins: number, xp: number, xpRemaining: number): void {
+  private createHeroCard(skin: ReturnType<typeof getSkinById>, displayName: string, level: number, coins: number, xp: number, xpRemaining: number, powerScore: number): void {
     const x = 164;
     this.add.rectangle(x, 194, 250, 246, 0x071107, 0.88)
       .setStrokeStyle(2, skin.auraColor, 0.48)
@@ -71,23 +81,26 @@ export class ProfileScene extends Phaser.Scene {
       .setTint(skin.tintColor)
       .setDepth(4);
 
-    this.add.text(x, 306, skin.name.toUpperCase(), {
-      fontFamily: "Arial", fontSize: "15px", color: skin.uiColor, fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    this.add.text(x, 300, displayName.toUpperCase(), {
+      fontFamily: "Arial", fontSize: "13px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(4);
-    this.add.text(x, 330, `LEVEL ${level} · XP ${xp}\nNEXT LEVEL IN ${xpRemaining} XP\nCOINS ${coins}`, {
+    this.add.text(x, 318, skin.name.toUpperCase(), {
+      fontFamily: "Arial", fontSize: "12px", color: skin.uiColor, fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(4);
+    this.add.text(x, 342, `LV ${level} · POWER ${powerScore}\nXP ${xp} · NEXT ${xpRemaining}\nCOINS ${coins}`, {
       fontFamily: "Arial", fontSize: "12px", color: "#fcfff7", fontStyle: "bold", align: "center", stroke: "#041004", strokeThickness: 3,
       lineSpacing: 3,
     }).setOrigin(0.5).setDepth(4);
   }
 
-  private createStatsCard(wins: number, losses: number, bestScore: number, completedMissions: number, claimableMissions: number): void {
-    this.createPanel(430, 142, 246, 124, "COMBAT STATS", 0x72ff57);
+  private createStatsCard(wins: number, losses: number, bestScore: number, completedMissions: number, claimableMissions: number, taskPoints: number, rankPoints: number): void {
+    this.createPanel(430, 142, 246, 124, "PROFILE STATS V2", 0x72ff57);
     const lines = [
-      `WINS: ${wins}`,
-      `LOSSES: ${losses}`,
+      `WINS: ${wins} / LOSSES: ${losses}`,
       `BEST SCORE: ${bestScore}`,
       `MISSIONS DONE: ${completedMissions}`,
       `CLAIMABLE: ${claimableMissions}`,
+      `TASK PTS: ${taskPoints} · RANK PTS: ${rankPoints}`,
     ];
     this.writeLines(322, 130, lines, "#fcfff7");
   }
@@ -116,14 +129,14 @@ export class ProfileScene extends Phaser.Scene {
     ], "#fcfff7");
   }
 
-  private createResourceCard(leakPoints: number, skinShards: number, skillCards: number, saveOk: boolean, backupOk: boolean): void {
-    this.createPanel(700, 288, 266, 138, "RESOURCES / SAVE", 0x8cdcff);
+  private createResourceCard(leakPoints: number, skinShards: number, skillCards: number, tournamentPoints: number, duelRating: number, saveOk: boolean, backupOk: boolean): void {
+    this.createPanel(700, 288, 266, 138, "RESOURCES / SAVE V2", 0x8cdcff);
     this.writeLines(576, 274, [
-      `LEAK POINTS: ${leakPoints}`,
+      `LEAK: ${leakPoints} · TP: ${tournamentPoints}`,
+      `DUEL RATING: ${duelRating}`,
       `SKIN SHARDS: ${skinShards}`,
       `SKILL CARDS: ${skillCards}`,
-      `SAVE: ${saveOk ? "OK" : "EMPTY"}`,
-      `BACKUP: ${backupOk ? "OK" : "EMPTY"}`,
+      `SAVE ${saveOk ? "OK" : "EMPTY"} · BACKUP ${backupOk ? "OK" : "EMPTY"}`,
     ], "#d7ffd0", 11);
   }
 

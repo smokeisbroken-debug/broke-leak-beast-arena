@@ -112,3 +112,21 @@ export type { DuelSaveStateV2, LeaderboardSaveStateV2, MultiplayerSaveStateV2, P
 
 export { CONTENT_EXPANSION_NOTES, CONTENT_EXPANSION_VERSION, getContentExpansionSummary } from "./contentExpansion";
 export type { ContentExpansionSummary } from "./contentExpansion";
+export {
+  PLAYER_PROFILE_V2_DEFINITION,
+  PLAYER_PROFILE_V2_SYSTEM_VERSION,
+  getCampaignBossesCleared,
+  getPlayerProfileV2Summary,
+  getProfileCurrencyRows,
+  getProfileDisplayName,
+} from "../systems/ProfileSystem";
+export type {
+  PlayerProfileV2Summary,
+  PlayerProfileV2SystemDefinition,
+  ProfileCurrencyRow,
+  ProfileV2BlockDefinition,
+  ProfileV2BlockId,
+  ProfileV2MultiplayerSummary,
+  ProfileV2ProgressSummary,
+  ProfileV2UnlockSummary,
+} from "../types/PlayerProfileTypes";

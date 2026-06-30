@@ -29,6 +29,7 @@ import {
   type RewardBundle,
   type RewardChoiceDefinition,
 } from "./progression";
+import { calculatePowerScore, type PowerBreakdown } from "../types/ProgressionTypes";
 import {
   PROFILE_BACKUP_STORAGE_KEY,
   createSaveExport,
@@ -239,6 +240,42 @@ function safeNumberRecord(value: unknown): Record<string, number> {
   );
 }
 
+const EVOLUTION_POWER_BY_ID: Record<string, number> = {
+  broke_rookie: 0,
+  leak_fighter: 8,
+  wallet_guard: 16,
+  beast_breaker: 24,
+  anti_leak_champion: 32,
+  broke_legend: 40,
+};
+
+function sumRecordValues(value: Record<string, number>): number {
+  return Object.values(value).reduce((total, amount) => total + safeInteger(amount), 0);
+}
+
+function calculateProfilePowerBreakdown(profile: PlayerProfile): PowerBreakdown {
+  const skillLevelPower = sumRecordValues(profile.progressionV2.skillLevels) * 3;
+  const masteryBranchPower = sumRecordValues(profile.progressionV2.masteryBranchLevels) * 3;
+  const savedEvolutionPower = safeInteger(profile.progressionV2.powerBreakdown.evolution);
+
+  return {
+    level: (Math.max(1, profile.level) - 1) * 10 + Math.floor(Math.max(0, profile.xp) / 1000),
+    skills: profile.unlockedSkillIds.length * 4 + skillLevelPower,
+    evolution: EVOLUTION_POWER_BY_ID[profile.progressionV2.evolutionId] ?? savedEvolutionPower,
+    mastery: profile.progressionV2.masteryPoints * 2 + masteryBranchPower,
+    charms: profile.progressionV2.equippedCharmIds.length * 8,
+  };
+}
+
+function syncProfilePower(profile: PlayerProfile): void {
+  const power = calculatePowerScore(calculateProfilePowerBreakdown(profile));
+  profile.progressionV2 = {
+    ...profile.progressionV2,
+    powerScore: power.score,
+    powerBreakdown: power.cappedBreakdown,
+  };
+}
+
 export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefined): PlayerProfile {
   const normalized = {
     ...createDefaultProfile(),
@@ -436,6 +473,8 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
   } else {
     normalized.selectedCampaignId = getCampaignChapterForBoss(normalized.selectedBossId).id;
   }
+
+  syncProfilePower(normalized);
 
   return normalized;
 }
@@ -773,9 +812,9 @@ export { DAILY_MISSIONS, formatMissionReward };
 export type { DailyMissionState, DailyMissionDefinition, DailyMissionFightStats, MissionRewardBundle };
 
 export function loadPlayerProfile(): PlayerProfile {
-  if (typeof window === "undefined") return createDefaultProfile();
+  if (typeof window === "undefined") return normalizeProfile(createDefaultProfile());
   const raw = window.localStorage.getItem(PROFILE_STORAGE_KEY);
-  if (!raw) return createDefaultProfile();
+  if (!raw) return normalizeProfile(createDefaultProfile());
 
   const parsed = parseSaveImport(raw);
   if (parsed.ok) return normalizeProfile(parsed.profile);

@@ -13,8 +13,9 @@ import { TASK_SKELETON_DEFINITIONS } from "../types/TaskTypes";
 import { TOURNAMENT_DEFINITIONS } from "../types/TournamentTypes";
 import { LEAK_DUEL_DEFINITION } from "../types/DuelTypes";
 import { SAVE_SCHEMA_DEFINITION_V2 } from "../types/SaveSchemaTypes";
+import { PLAYER_PROFILE_V2_DEFINITION } from "./ProfileSystem";
 
-export const GAME_SYSTEMS_VERSION = "0.9.1-save-schema-v2";
+export const GAME_SYSTEMS_VERSION = "0.9.2-player-profile-v2";
 
 export type GameSystemId =
   | "modes"
@@ -63,6 +64,7 @@ export interface GameSystemsRegistrySnapshot {
   tournamentSkeletons: typeof TOURNAMENT_DEFINITIONS;
   duelSkeleton: typeof LEAK_DUEL_DEFINITION;
   saveSchema: typeof SAVE_SCHEMA_DEFINITION_V2;
+  playerProfile: typeof PLAYER_PROFILE_V2_DEFINITION;
 }
 
 export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
@@ -81,7 +83,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     title: "Player Profile",
     status: "existing",
     priority: "now",
-    goal: "Store identity, selected loadout, progression and future multiplayer-safe fields.",
+    goal: "Store identity, selected loadout, synced wallet, capped power score and future multiplayer-safe fields.",
     dependsOn: ["modes"],
     relatedModes: ["profile", "arena", "campaign"],
     nextPatch: "v0.9.2-player-profile-v2",
@@ -89,7 +91,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
   {
     id: "progression",
     title: "Progression",
-    status: "skeleton",
+    status: "existing",
     priority: "now",
     goal: "Unify level, XP, evolution, mastery and capped power score.",
     dependsOn: ["modes", "profile"],
@@ -225,6 +227,7 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   tournamentSkeletons: TOURNAMENT_DEFINITIONS,
   duelSkeleton: LEAK_DUEL_DEFINITION,
   saveSchema: SAVE_SCHEMA_DEFINITION_V2,
+  playerProfile: PLAYER_PROFILE_V2_DEFINITION,
 };
 
 export function getGameSystem(systemId: GameSystemId): GameSystemDefinition {
