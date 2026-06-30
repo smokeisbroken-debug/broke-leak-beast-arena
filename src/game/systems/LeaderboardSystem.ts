@@ -16,11 +16,11 @@ import {
   type LeaderboardSystemDefinition,
 } from "../types/LeaderboardTypes";
 
-export const LEADERBOARD_SYSTEM_VERSION = "0.10.2-leaderboard-types";
+export const LEADERBOARD_SYSTEM_VERSION = "0.10.3-local-leaderboard-mock";
 
 export const LEADERBOARD_SYSTEM_DEFINITION: LeaderboardSystemDefinition = {
   version: LEADERBOARD_SYSTEM_VERSION,
-  goal: "Define multiplayer-ready leaderboard contracts before local mock UI, remote adapters, tournament scoring and Leak Duel ranked submission are enabled.",
+  goal: "Define multiplayer-ready leaderboard contracts and feed local mock snapshots before real remote adapters, tournament scoring and Leak Duel ranked submission are enabled.",
   leaderboardIds: LEADERBOARD_DEFINITIONS.map((leaderboard) => leaderboard.id),
   localPreviewLeaderboards: LEADERBOARD_DEFINITIONS.filter((leaderboard) => leaderboard.backendStatus === "local_mock").map(
     (leaderboard) => leaderboard.id,
@@ -30,8 +30,8 @@ export const LEADERBOARD_SYSTEM_DEFINITION: LeaderboardSystemDefinition = {
   ),
   scoreBuckets: LEADERBOARD_SCORE_BUCKETS,
   rules: [
-    "Leaderboard definitions are available to UI and systems, but public submission remains disabled.",
-    "Global Power can be displayed locally because it uses capped profile progression data.",
+    "Leaderboard definitions and local mock snapshots are available to UI and systems, but public submission remains disabled.",
+    "Global Power can be displayed locally because it uses capped profile progression data and deterministic mock rivals.",
     "Weekly Arena, Task Points, Tournament, Leak Duel and Boss Damage are leaderboard-sensitive and require backend validation before public ranking.",
     "Tournament participation points and Leak Duel rank points must be verified against event windows, duel seeds and anti-cheat payloads before rewards become real.",
   ],

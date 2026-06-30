@@ -373,3 +373,19 @@ export type {
   LeaderboardSystemDefinition,
   LeaderboardValidationTier,
 } from "../types/LeaderboardTypes";
+
+export {
+  LOCAL_LEADERBOARD_MOCK_PERSONAS,
+  LOCAL_LEADERBOARD_MOCK_SYSTEM_DEFINITION,
+  LOCAL_LEADERBOARD_MOCK_SYSTEM_VERSION,
+  createAllLocalLeaderboardMockSnapshots,
+  createLocalLeaderboardMockSnapshot,
+  getLocalLeaderboardMockSummary,
+} from "../systems/LocalLeaderboardMockSystem";
+export type {
+  LocalLeaderboardMockPersonaDefinition,
+  LocalLeaderboardMockRow,
+  LocalLeaderboardMockSnapshot,
+  LocalLeaderboardMockSource,
+  LocalLeaderboardMockSystemDefinition,
+} from "../types/LocalLeaderboardMockTypes";
