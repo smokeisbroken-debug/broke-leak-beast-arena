@@ -14,7 +14,7 @@ import {
 } from "../types/LocalLeaderboardMockTypes";
 import { createLeaderboardEntryFromProfile, getLeaderboardValueForProfile } from "./LeaderboardSystem";
 
-export const LOCAL_LEADERBOARD_MOCK_SYSTEM_VERSION = "0.10.4-leaderboard-scene";
+export const LOCAL_LEADERBOARD_MOCK_SYSTEM_VERSION = "0.10.5-weekly-leaderboard";
 
 export const LOCAL_LEADERBOARD_MOCK_PERSONAS: readonly LocalLeaderboardMockPersonaDefinition[] = [
   {

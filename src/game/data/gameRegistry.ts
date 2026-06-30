@@ -389,3 +389,26 @@ export type {
   LocalLeaderboardMockSource,
   LocalLeaderboardMockSystemDefinition,
 } from "../types/LocalLeaderboardMockTypes";
+
+export {
+  WEEKLY_LEADERBOARD_SYSTEM_DEFINITION,
+  WEEKLY_LEADERBOARD_SYSTEM_VERSION,
+  getAllWeeklyLeaderboardPreviews,
+  getWeeklyLeaderboardIds,
+  getWeeklyLeaderboardPeriodState,
+  getWeeklyLeaderboardPreview,
+} from "../systems/WeeklyLeaderboardSystem";
+export {
+  WEEKLY_LEADERBOARD_IDS,
+  WEEKLY_LEADERBOARD_RESET_POLICY,
+  isWeeklyLeaderboardId,
+} from "../types/WeeklyLeaderboardTypes";
+export type {
+  WeeklyLeaderboardId,
+  WeeklyLeaderboardPeriodState,
+  WeeklyLeaderboardPreview,
+  WeeklyLeaderboardResetPolicy,
+  WeeklyLeaderboardResetTimezone,
+  WeeklyLeaderboardSubmitLock,
+  WeeklyLeaderboardSystemDefinition,
+} from "../types/WeeklyLeaderboardTypes";

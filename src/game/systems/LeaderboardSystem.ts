@@ -16,7 +16,7 @@ import {
   type LeaderboardSystemDefinition,
 } from "../types/LeaderboardTypes";
 
-export const LEADERBOARD_SYSTEM_VERSION = "0.10.4-leaderboard-scene";
+export const LEADERBOARD_SYSTEM_VERSION = "0.10.5-weekly-leaderboard";
 
 export const LEADERBOARD_SYSTEM_DEFINITION: LeaderboardSystemDefinition = {
   version: LEADERBOARD_SYSTEM_VERSION,
@@ -30,9 +30,9 @@ export const LEADERBOARD_SYSTEM_DEFINITION: LeaderboardSystemDefinition = {
   ),
   scoreBuckets: LEADERBOARD_SCORE_BUCKETS,
   rules: [
-    "Leaderboard definitions and local mock snapshots are available to UI and systems, but public submission remains disabled.",
+    "Leaderboard definitions, local mock snapshots and weekly period keys are available to UI and systems, but public submission remains disabled.",
     "Global Power can be displayed locally because it uses capped profile progression data and deterministic mock rivals.",
-    "Weekly Arena, Task Points, Tournament, Leak Duel and Boss Damage are leaderboard-sensitive and require backend validation before public ranking.",
+    "Weekly Arena, Task Points and Boss Damage use the UTC weekly reset skeleton before backend reset jobs exist.",
     "Tournament participation points and Leak Duel rank points must be verified against event windows, duel seeds and anti-cheat payloads before rewards become real.",
   ],
 };

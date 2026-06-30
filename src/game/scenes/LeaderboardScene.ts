@@ -7,6 +7,8 @@ import {
   createLocalLeaderboardMockSnapshot,
   getLeaderboardDefinition,
   getLeaderboardReadiness,
+  getWeeklyLeaderboardPreview,
+  isWeeklyLeaderboardId,
   loadPlayerProfile,
   type LeaderboardId,
   type LocalLeaderboardMockRow,
@@ -95,6 +97,7 @@ export class LeaderboardScene extends Phaser.Scene {
     const snapshot = createLocalLeaderboardMockSnapshot(this.selectedLeaderboardId, profile);
     const payload = createLeaderboardSubmitPayload(this.selectedLeaderboardId, profile);
     const readiness = getLeaderboardReadiness(this.selectedLeaderboardId);
+    const weeklyPreview = getWeeklyLeaderboardPreview(this.selectedLeaderboardId, profile);
     const playerEntry = snapshot.playerEntry;
     const color = this.getLeaderboardColor(this.selectedLeaderboardId);
 
@@ -125,12 +128,29 @@ export class LeaderboardScene extends Phaser.Scene {
       }).setDepth(4));
     });
 
-    const requirements = readiness.requiredBeforePublicSubmit.slice(0, 3);
-    this.content.add(this.add.text(68, 325, "PUBLIC SUBMIT REQUIRES:", {
+    if (weeklyPreview) {
+      this.content.add(this.add.text(68, 304, "WEEKLY WINDOW:", {
+        fontFamily: "Arial", fontSize: "10px", color: "#8cdcff", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+      }).setDepth(4));
+      [
+        `RESET: ${weeklyPreview.resetNotice}`,
+        `NEXT: ${weeklyPreview.period.nextResetAtIso.slice(0, 10)} ${weeklyPreview.period.nextResetAtIso.slice(11, 16)} UTC`,
+        `LOCK: ${weeklyPreview.submitLock.replace(/_/g, " ")}`,
+      ].forEach((line, index) => {
+        this.content?.add(this.add.text(68, 321 + index * 14, line.toUpperCase(), {
+          fontFamily: "Arial", fontSize: "8px", color: index === 2 ? "#ffeb72" : "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 2,
+          wordWrap: { width: 270 },
+        }).setDepth(4));
+      });
+    }
+
+    const requirements = readiness.requiredBeforePublicSubmit.slice(0, weeklyPreview ? 2 : 3);
+    const requirementsY = weeklyPreview ? 368 : 325;
+    this.content.add(this.add.text(68, requirementsY, "PUBLIC SUBMIT REQUIRES:", {
       fontFamily: "Arial", fontSize: "10px", color: "#8cdcff", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
     }).setDepth(4));
     requirements.forEach((line, index) => {
-      this.content?.add(this.add.text(68, 342 + index * 15, `• ${line}`.toUpperCase(), {
+      this.content?.add(this.add.text(68, requirementsY + 17 + index * 14, `• ${line}`.toUpperCase(), {
         fontFamily: "Arial", fontSize: "8px", color: "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 2,
         wordWrap: { width: 270 },
       }).setDepth(4));
@@ -147,7 +167,7 @@ export class LeaderboardScene extends Phaser.Scene {
       fontFamily: "Arial", fontSize: "13px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setDepth(4));
 
-    this.content.add(this.add.text(398, 370, snapshot.lockedNotice ?? snapshot.mockNotice, {
+    this.content.add(this.add.text(398, 370, this.getSnapshotNotice(snapshot.lockedNotice ?? snapshot.mockNotice), {
       fontFamily: "Arial", fontSize: "9px", color: snapshot.lockedNotice ? "#ffeb72" : "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
       wordWrap: { width: 430 },
     }).setDepth(4));
@@ -175,6 +195,12 @@ export class LeaderboardScene extends Phaser.Scene {
     this.content?.add(this.add.text(790, y, status, {
       fontFamily: "Arial", fontSize: "9px", color: entry.backendLocked ? "#ffeb72" : "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
     }).setDepth(4));
+  }
+
+
+  private getSnapshotNotice(notice: string): string {
+    if (!isWeeklyLeaderboardId(this.selectedLeaderboardId)) return notice;
+    return `${notice} Weekly reset skeleton is active for preview only.`;
   }
 
   private createFooterButtons(): void {
