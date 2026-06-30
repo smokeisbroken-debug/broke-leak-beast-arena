@@ -651,6 +651,18 @@ export {
   createDuelResultPreviewMap,
   getDuelResultSummary,
 } from "../systems/DuelResultSystem";
+export {
+  DUEL_LEADERBOARD_LINK_SYSTEM_DEFINITION,
+  DUEL_LEADERBOARD_LINK_SYSTEM_VERSION,
+  LOCAL_DUEL_DISPLAY_NAME,
+  LOCAL_DUEL_PLAYER_ID,
+  calculateDuelRankPointPreview,
+  createDuelLeaderboardSubmitPreview,
+  createDuelLeaderboardSubmitPreviewFromResult,
+  createDuelLeaderboardSubmitPreviewMap,
+  createSampleDuelLeaderboardSubmitPreview,
+  getDuelLeaderboardLinkSummary,
+} from "../systems/DuelLeaderboardLinkSystem";
 export type {
   DuelSeedDifficultyBand,
   DuelSeedFairnessRuleId,
@@ -683,4 +695,17 @@ export type {
   DuelResultSystemDefinition,
   DuelResultTone,
 } from "../types/DuelResultTypes";
+export type {
+  DuelLeaderboardLinkInput,
+  DuelLeaderboardLinkLock,
+  DuelLeaderboardLinkLockId,
+  DuelLeaderboardLinkSource,
+  DuelLeaderboardLinkStatus,
+  DuelLeaderboardLinkSummary,
+  DuelLeaderboardLinkSystemDefinition,
+  DuelLeaderboardPointFormulaInput,
+  DuelLeaderboardPointFormulaResult,
+  DuelLeaderboardResultBridge,
+  DuelLeaderboardSubmitPreview,
+} from "../types/DuelLeaderboardLinkTypes";
 

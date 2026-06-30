@@ -2,8 +2,10 @@ import Phaser from "phaser";
 import { GAME_CONFIG, GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import {
+  createDuelLeaderboardSubmitPreviewFromResult,
   createDuelResultPreview,
   DUEL_MODIFIER_LABELS,
+  type DuelLeaderboardSubmitPreview,
   type DuelModeId,
   type DuelResultLock,
   type DuelResultPreview,
@@ -16,6 +18,7 @@ interface DuelResultSceneData {
 export class DuelResultScene extends Phaser.Scene {
   private duelId: DuelModeId = "leak_duel_async";
   private preview!: DuelResultPreview;
+  private leaderboardPreview!: DuelLeaderboardSubmitPreview;
   private copyText?: Phaser.GameObjects.Text;
 
   constructor() {
@@ -28,6 +31,7 @@ export class DuelResultScene extends Phaser.Scene {
 
   create(): void {
     this.preview = createDuelResultPreview(this.duelId);
+    this.leaderboardPreview = createDuelLeaderboardSubmitPreviewFromResult(this.preview, "Local Broke Duelist");
 
     this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "menu-start-screen")
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
@@ -129,9 +133,10 @@ export class DuelResultScene extends Phaser.Scene {
       .map((reward) => `${reward.amount} ${reward.currencyId.replace(/_/g, " ").toUpperCase()}`)
       .join(" · ");
     this.add.text(508, 260, `REWARD PREVIEW: ${rewardLine || "NONE"}`, this.smallLineStyle("#d7ffd0", 330)).setDepth(4);
-    this.add.text(508, 281, `SUBMIT STATUS: ${this.preview.leaderboardSubmissionStatus.replace(/_/g, " ").toUpperCase()}`, this.smallLineStyle("#ffeb72", 330)).setDepth(4);
+    this.add.text(508, 281, `RANK PAYLOAD: ${this.leaderboardPreview.value.toLocaleString("en-US")} RP · PREVIEW ONLY`, this.smallLineStyle("#ffeb72", 330)).setDepth(4);
+    this.add.text(508, 302, `SUBMIT STATUS: ${this.leaderboardPreview.submissionStatus.replace(/_/g, " ").toUpperCase()}`, this.smallLineStyle("#ffeb72", 330)).setDepth(4);
 
-    this.preview.locks.slice(0, 4).forEach((lock, index) => this.createLockRow(lock, 306 + index * 19));
+    this.preview.locks.slice(0, 3).forEach((lock, index) => this.createLockRow(lock, 327 + index * 18));
   }
 
   private createLockRow(lock: DuelResultLock, y: number): void {
@@ -180,7 +185,12 @@ export class DuelResultScene extends Phaser.Scene {
 
   private async copyDuelResult(): Promise<boolean> {
     try {
-      await navigator.clipboard.writeText(this.preview.shareLines.join("\n"));
+      await navigator.clipboard.writeText([
+        ...this.preview.shareLines,
+        `Rank payload preview: ${this.leaderboardPreview.value} RP`,
+        `Leaderboard: ${this.leaderboardPreview.leaderboardId}`,
+        `Submit: ${this.leaderboardPreview.linkStatus.replace(/_/g, " ")}`,
+      ].join("\n"));
       return true;
     } catch {
       return false;
