@@ -10,6 +10,7 @@ import { StageSelectScene } from "./scenes/StageSelectScene";
 import { CampaignScene } from "./scenes/CampaignScene";
 import { MissionsScene } from "./scenes/MissionsScene";
 import { LeaderboardScene } from "./scenes/LeaderboardScene";
+import { TournamentScene } from "./scenes/TournamentScene";
 import { ProfileScene } from "./scenes/ProfileScene";
 import { SettingsScene } from "./scenes/SettingsScene";
 import { ArenaScene } from "./scenes/ArenaScene";
@@ -45,6 +46,6 @@ export function createLeakBeastArenaGame(parent: string): Phaser.Game {
     input: {
       activePointers: 6,
     },
-    scene: [BootScene, PreloadScene, MainMenuScene, SkinSelectScene, SkillLoadoutScene, StageSelectScene, CampaignScene, MissionsScene, LeaderboardScene, ProfileScene, SettingsScene, ArenaScene, ResultScene],
+    scene: [BootScene, PreloadScene, MainMenuScene, SkinSelectScene, SkillLoadoutScene, StageSelectScene, CampaignScene, MissionsScene, LeaderboardScene, TournamentScene, ProfileScene, SettingsScene, ArenaScene, ResultScene],
   });
 }

@@ -10,7 +10,7 @@ import {
   type GameModeRouteDefinition,
 } from "../types/GameModeTypes";
 
-export const MODE_REGISTRY_VERSION = "0.10.4-leaderboard-scene";
+export const MODE_REGISTRY_VERSION = "0.11.0-tournament-scene";
 
 export interface GameModeRegistrySnapshot {
   version: string;
@@ -95,13 +95,14 @@ export const GAME_MODE_ROUTES: readonly GameModeRouteDefinition[] = [
     modeId: "tournament",
     menuLabel: "TOURNAMENTS",
     menuSubLabel: "EVENT POINTS",
-    plannedSceneKey: "TournamentScene",
-    availability: "backend_locked",
-    entryPoint: "future_backend",
+    currentSceneKey: SCENE_KEYS.tournament,
+    plannedSceneKey: SCENE_KEYS.tournament,
+    availability: "mock_ready",
+    entryPoint: "main_menu",
     sortOrder: 60,
     requiresBackend: true,
     requiresValidation: true,
-    nextUnlockPatch: "v0.10.7-tournament-types",
+    nextUnlockPatch: "v0.11.0-tournament-scene",
   },
   {
     modeId: "leak_duel",

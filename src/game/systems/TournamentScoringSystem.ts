@@ -25,7 +25,7 @@ import type {
   TournamentScoringSystemDefinition,
 } from "../types/TournamentScoringTypes";
 
-export const TOURNAMENT_SCORING_SYSTEM_VERSION = "0.10.9-tournament-scoring";
+export const TOURNAMENT_SCORING_SYSTEM_VERSION = "0.11.0-tournament-scene";
 
 export const TOURNAMENT_SCORE_CAPS: TournamentScoreCaps = {
   score: 50000,

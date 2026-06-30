@@ -16,7 +16,7 @@ import type {
   TournamentRegistrySystemDefinition,
 } from "../types/TournamentRegistryTypes";
 
-export const TOURNAMENT_REGISTRY_SYSTEM_VERSION = "0.10.9-tournament-scoring";
+export const TOURNAMENT_REGISTRY_SYSTEM_VERSION = "0.11.0-tournament-scene";
 export const FEATURED_TOURNAMENT_ID: TournamentId = "no_spend_arena_preview";
 
 export const TOURNAMENT_REGISTRY_FILTER_LABELS: Record<TournamentRegistryFilterId, string> = {
@@ -145,7 +145,7 @@ export function createTournamentRegistrySnapshot(): TournamentRegistrySnapshot {
     backendLockedCount: cards.filter((card) => card.backendValidationRequired && !card.localPreviewEnabled).length,
     weeklyCount: cards.filter((card) => card.resetLabel.toLowerCase().includes("weekly")).length,
     publicSubmitEnabled: false,
-    nextPatch: "v0.10.9-tournament-scoring",
+    nextPatch: "v0.11.0-tournament-scene",
   };
 }
 
