@@ -445,6 +445,24 @@ export {
   getTournamentScorePreviewMap,
 } from "../systems/TournamentSystem";
 export {
+  TOURNAMENT_REGISTRY_FILTER_LABELS,
+  TOURNAMENT_REGISTRY_SYSTEM_DEFINITION,
+  TOURNAMENT_REGISTRY_SYSTEM_VERSION,
+  createTournamentRegistrySnapshot,
+  getTournamentRegistryCard,
+  getTournamentRegistryCardsByFilter,
+  getTournamentRegistryFeaturedCard,
+  getTournamentRegistryGroupSummary,
+} from "../systems/TournamentRegistrySystem";
+export type {
+  TournamentRegistryCard,
+  TournamentRegistryCardTone,
+  TournamentRegistryFilterId,
+  TournamentRegistryGroupSummary,
+  TournamentRegistrySnapshot,
+  TournamentRegistrySystemDefinition,
+} from "../types/TournamentRegistryTypes";
+export {
   DEFAULT_TOURNAMENT_EVENT_WINDOW,
   DEFAULT_TOURNAMENT_SCORE_WEIGHTS,
   TOURNAMENT_DEFINITIONS,

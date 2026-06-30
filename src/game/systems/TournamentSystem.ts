@@ -9,10 +9,10 @@ import {
   type TournamentSystemDefinition,
 } from "../types/TournamentTypes";
 
-export const TOURNAMENT_SYSTEM_VERSION = "0.10.7-tournament-types";
+export const TOURNAMENT_SYSTEM_VERSION = "0.10.8-tournament-registry";
 
 const REQUIRED_BEFORE_LIVE_TOURNAMENTS = [
-  "Tournament Registry scene and mode navigation",
+  "Tournament Scene and mode navigation",
   "Tournament run result payload",
   "Leaderboard adapter submit implementation",
   "Backend identity and run validation",
