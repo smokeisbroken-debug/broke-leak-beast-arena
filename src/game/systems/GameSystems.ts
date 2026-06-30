@@ -1,11 +1,17 @@
 import { GAME_MODE_DEFINITIONS, type GameModeId } from "../types/GameModeTypes";
 import { LEADERBOARD_DEFINITIONS, type LeaderboardId } from "../types/LeaderboardTypes";
-import { CURRENCY_DEFINITIONS, DEFAULT_POWER_CAPS, type CurrencyId } from "../types/ProgressionTypes";
+import { DEFAULT_POWER_CAPS } from "../types/ProgressionTypes";
+import {
+  CURRENCY_DEFINITIONS,
+  ECONOMY_SYSTEM_DEFINITION,
+  REWARD_SOURCE_DEFINITIONS,
+  type CurrencyId,
+} from "../types/EconomyTypes";
 import { TASK_SKELETON_DEFINITIONS } from "../types/TaskTypes";
 import { TOURNAMENT_DEFINITIONS } from "../types/TournamentTypes";
 import { LEAK_DUEL_DEFINITION } from "../types/DuelTypes";
 
-export const GAME_SYSTEMS_VERSION = "0.8.7-game-systems-skeleton";
+export const GAME_SYSTEMS_VERSION = "0.8.8-economy-types";
 
 export type GameSystemId =
   | "profile"
@@ -39,7 +45,9 @@ export interface GameSystemsRegistrySnapshot {
   version: string;
   systems: readonly GameSystemDefinition[];
   modes: typeof GAME_MODE_DEFINITIONS;
+  economy: typeof ECONOMY_SYSTEM_DEFINITION;
   currencies: typeof CURRENCY_DEFINITIONS;
+  rewardSources: typeof REWARD_SOURCE_DEFINITIONS;
   powerCaps: typeof DEFAULT_POWER_CAPS;
   leaderboards: typeof LEADERBOARD_DEFINITIONS;
   taskSkeletons: typeof TASK_SKELETON_DEFINITIONS;
@@ -174,7 +182,9 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   version: GAME_SYSTEMS_VERSION,
   systems: GAME_SYSTEMS,
   modes: GAME_MODE_DEFINITIONS,
+  economy: ECONOMY_SYSTEM_DEFINITION,
   currencies: CURRENCY_DEFINITIONS,
+  rewardSources: REWARD_SOURCE_DEFINITIONS,
   powerCaps: DEFAULT_POWER_CAPS,
   leaderboards: LEADERBOARD_DEFINITIONS,
   taskSkeletons: TASK_SKELETON_DEFINITIONS,

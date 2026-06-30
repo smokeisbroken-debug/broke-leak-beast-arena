@@ -1,42 +1,37 @@
-export type CurrencyId =
-  | "xp"
-  | "coins"
-  | "leak_points"
-  | "rank_points"
-  | "tournament_points"
-  | "skill_cards"
-  | "skin_shards"
-  | "cosmetic_tokens";
+export {
+  CURRENCY_DEFINITIONS,
+  CURRENCY_IDS,
+  ECONOMY_SYSTEM_DEFINITION,
+  REWARD_SOURCE_DEFINITIONS,
+  REWARD_SOURCE_IDS,
+  ZERO_CURRENCY_WALLET,
+  buildRewardWalletDelta,
+  createEconomyTransactionPreview,
+  createEmptyWallet,
+  getBackendValidatedCurrencies,
+  getCurrencyDefinition,
+  getLocalOnlyCurrencies,
+  getRewardSourceDefinition,
+  isRankedCurrency,
+  normalizeRewardAmount,
+  normalizeRewardBundle,
+  sumRewardAmounts,
+} from "./EconomyTypes";
 
-export type RewardSourceId =
-  | "arena_run"
-  | "campaign_boss"
-  | "daily_task"
-  | "weekly_task"
-  | "tournament_participation"
-  | "tournament_rank"
-  | "duel_participation"
-  | "duel_win"
-  | "weekly_boss_damage";
-
-export interface CurrencyDefinition {
-  id: CurrencyId;
-  label: string;
-  purpose: string;
-  multiplayerSensitive: boolean;
-  backendValidationRequired: boolean;
-}
-
-export interface RewardAmount {
-  currencyId: CurrencyId;
-  amount: number;
-}
-
-export interface RewardBundleV2 {
-  sourceId: RewardSourceId;
-  rewards: RewardAmount[];
-  notes?: string;
-}
+export type {
+  CurrencyCategory,
+  CurrencyDefinition,
+  CurrencyId,
+  CurrencyWalletV2,
+  EconomyEventType,
+  EconomySystemDefinition,
+  EconomyTransactionPreview,
+  EconomyValidationTier,
+  RewardAmount,
+  RewardBundleV2,
+  RewardSourceDefinition,
+  RewardSourceId,
+} from "./EconomyTypes";
 
 export type PowerSourceId = "level" | "skills" | "evolution" | "mastery" | "charms";
 
@@ -61,65 +56,6 @@ export interface PowerScoreResult {
   cappedBreakdown: PowerBreakdown;
   caps: PowerCaps;
 }
-
-export const CURRENCY_DEFINITIONS: readonly CurrencyDefinition[] = [
-  {
-    id: "xp",
-    label: "XP",
-    purpose: "Mascot level growth and long-term progression.",
-    multiplayerSensitive: false,
-    backendValidationRequired: false,
-  },
-  {
-    id: "coins",
-    label: "Coins",
-    purpose: "Upgrade costs, skill growth, charms and non-ranked purchases.",
-    multiplayerSensitive: false,
-    backendValidationRequired: false,
-  },
-  {
-    id: "leak_points",
-    label: "Leak Points",
-    purpose: "Core SmokeIsBroke themed progression and anti-leak status.",
-    multiplayerSensitive: true,
-    backendValidationRequired: true,
-  },
-  {
-    id: "rank_points",
-    label: "Rank Points",
-    purpose: "Leaderboard and ranked competitive placement.",
-    multiplayerSensitive: true,
-    backendValidationRequired: true,
-  },
-  {
-    id: "tournament_points",
-    label: "Tournament Points",
-    purpose: "Time-boxed event scoring, participation and reward brackets.",
-    multiplayerSensitive: true,
-    backendValidationRequired: true,
-  },
-  {
-    id: "skill_cards",
-    label: "Skill Cards",
-    purpose: "Skill upgrades without infinite raw power scaling.",
-    multiplayerSensitive: false,
-    backendValidationRequired: false,
-  },
-  {
-    id: "skin_shards",
-    label: "Skin Shards",
-    purpose: "Cosmetic and evolution unlock progress.",
-    multiplayerSensitive: false,
-    backendValidationRequired: false,
-  },
-  {
-    id: "cosmetic_tokens",
-    label: "Cosmetic Tokens",
-    purpose: "Seasonal skins, titles, banners and visual prestige.",
-    multiplayerSensitive: true,
-    backendValidationRequired: true,
-  },
-];
 
 export const DEFAULT_POWER_CAPS: PowerCaps = {
   level: 100,
@@ -147,12 +83,4 @@ export function calculatePowerScore(breakdown: Partial<PowerBreakdown>, caps: Po
     cappedBreakdown,
     caps,
   };
-}
-
-export function getCurrencyDefinition(currencyId: CurrencyId): CurrencyDefinition {
-  const currency = CURRENCY_DEFINITIONS.find((candidate) => candidate.id === currencyId);
-  if (!currency) {
-    throw new Error(`Unknown currency: ${currencyId}`);
-  }
-  return currency;
 }
