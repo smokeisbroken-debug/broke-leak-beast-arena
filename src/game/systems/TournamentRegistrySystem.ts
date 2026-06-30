@@ -1,12 +1,12 @@
 import {
   TOURNAMENT_DEFINITIONS,
-  calculateTournamentScorePreview,
   getTournamentPeriodKey,
   getTournamentReadiness,
   type TournamentDefinition,
   type TournamentId,
   type TournamentRuleId,
 } from "../types/TournamentTypes";
+import { calculateTournamentScoreSnapshot } from "./TournamentScoringSystem";
 import type {
   TournamentRegistryCard,
   TournamentRegistryCardTone,
@@ -16,7 +16,7 @@ import type {
   TournamentRegistrySystemDefinition,
 } from "../types/TournamentRegistryTypes";
 
-export const TOURNAMENT_REGISTRY_SYSTEM_VERSION = "0.10.8-tournament-registry";
+export const TOURNAMENT_REGISTRY_SYSTEM_VERSION = "0.10.9-tournament-scoring";
 export const FEATURED_TOURNAMENT_ID: TournamentId = "no_spend_arena_preview";
 
 export const TOURNAMENT_REGISTRY_FILTER_LABELS: Record<TournamentRegistryFilterId, string> = {
@@ -71,7 +71,7 @@ function getRuleLabels(tournament: TournamentDefinition): TournamentRuleId[] {
 
 function createTournamentRegistryCard(tournament: TournamentDefinition): TournamentRegistryCard {
   const readiness = getTournamentReadiness(tournament.id);
-  const scorePreview = calculateTournamentScorePreview(tournament.id, {
+  const scorePreview = calculateTournamentScoreSnapshot(tournament.id, {
     score: 100,
     leaksDefeated: 5,
     bossDamage: 250,
@@ -80,7 +80,7 @@ function createTournamentRegistryCard(tournament: TournamentDefinition): Tournam
     guards: 3,
     damageTaken: 20,
     participated: true,
-  });
+  }, "sample_preview");
   const localPreviewEnabled = tournament.backendStatus === "local_preview";
 
   return {

@@ -445,6 +445,30 @@ export {
   getTournamentScorePreviewMap,
 } from "../systems/TournamentSystem";
 export {
+  TOURNAMENT_SCORE_CAPS,
+  TOURNAMENT_SCORING_SAMPLE_INPUT,
+  TOURNAMENT_SCORING_SYSTEM_DEFINITION,
+  TOURNAMENT_SCORING_SYSTEM_VERSION,
+  calculateTournamentScoreSnapshot,
+  createTournamentScoringPreviewCard,
+  createTournamentScoringPreviewCardMap,
+  getTournamentScoringSummary,
+  normalizeTournamentScoreInput,
+} from "../systems/TournamentScoringSystem";
+export type {
+  TournamentNormalizedScoreInput,
+  TournamentScoreCaps,
+  TournamentScorePenaltyRow,
+  TournamentScorePreviewCard,
+  TournamentScorePreviewCardMap,
+  TournamentScoreSafetyTier,
+  TournamentScoreSource,
+  TournamentScoreVerdict,
+  TournamentScoringSnapshot,
+  TournamentScoringSummary,
+  TournamentScoringSystemDefinition,
+} from "../types/TournamentScoringTypes";
+export {
   TOURNAMENT_REGISTRY_FILTER_LABELS,
   TOURNAMENT_REGISTRY_SYSTEM_DEFINITION,
   TOURNAMENT_REGISTRY_SYSTEM_VERSION,
