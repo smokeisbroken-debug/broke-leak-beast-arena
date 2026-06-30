@@ -58,6 +58,8 @@ import { getEvolutionDefinition, getEvolutionPower, getUnlockedEvolutionForProgr
 import { getSkillUpgradePowerForProfile, normalizeSkillLevelsForProfile } from "../systems/SkillUpgradeSystem";
 import { getMasteryPowerForProfile, normalizeMasteryBranchLevelsForProfile } from "../systems/MasterySystem";
 import { applyTaskProgressEventsToProfile, createTaskProgressEventsFromStats, syncTaskPeriodsForProfile } from "../systems/TaskSystem";
+import { claimCompletedLocalTasksToProfile, claimTaskRewardToProfile } from "../systems/TaskClaimSystem";
+import type { TaskClaimApplication, TaskClaimBatchApplication } from "../types/TaskClaimTypes";
 
 export interface PlayerProfile {
   version: number;
@@ -153,6 +155,20 @@ export interface MissionClaimApplication {
   levelCoinReward: number;
   unlocks: string[];
   claimed: boolean;
+}
+
+export interface TaskClaimRewardApplication extends TaskClaimApplication<PlayerProfile> {
+  oldLevel: number;
+  newLevel: number;
+  levelCoinReward: number;
+  unlocks: string[];
+}
+
+export interface TaskClaimBatchRewardApplication extends TaskClaimBatchApplication<PlayerProfile> {
+  oldLevel: number;
+  newLevel: number;
+  levelCoinReward: number;
+  unlocks: string[];
 }
 
 export const PROFILE_STORAGE_KEY = "broke_leak_fighter_profile_v1";
@@ -796,6 +812,60 @@ export function applyRewardChoiceToProfile(profile: PlayerProfile, choice: Rewar
   };
 }
 
+
+export function claimTaskReward(profile: PlayerProfile, taskId: string): TaskClaimRewardApplication {
+  const normalized = normalizeProfile(profile);
+  const oldLevel = normalized.level;
+  const application = claimTaskRewardToProfile(normalized, taskId);
+
+  if (!application.claimed) {
+    return {
+      ...application,
+      profile: normalizeProfile(application.profile),
+      oldLevel,
+      newLevel: oldLevel,
+      levelCoinReward: 0,
+      unlocks: [],
+    };
+  }
+
+  const synced = syncLevelUnlocks(application.profile, oldLevel);
+  return {
+    ...application,
+    profile: syncCampaignFlowSelection(synced.profile),
+    oldLevel,
+    newLevel: synced.newLevel,
+    levelCoinReward: synced.levelCoinReward,
+    unlocks: synced.unlocks,
+  };
+}
+
+export function claimCompletedTaskRewards(profile: PlayerProfile): TaskClaimBatchRewardApplication {
+  const normalized = normalizeProfile(profile);
+  const oldLevel = normalized.level;
+  const application = claimCompletedLocalTasksToProfile(normalized);
+
+  if (application.claimedCount <= 0) {
+    return {
+      ...application,
+      profile: normalizeProfile(application.profile),
+      oldLevel,
+      newLevel: oldLevel,
+      levelCoinReward: 0,
+      unlocks: [],
+    };
+  }
+
+  const synced = syncLevelUnlocks(application.profile, oldLevel);
+  return {
+    ...application,
+    profile: syncCampaignFlowSelection(synced.profile),
+    oldLevel,
+    newLevel: synced.newLevel,
+    levelCoinReward: synced.levelCoinReward,
+    unlocks: synced.unlocks,
+  };
+}
 
 export function getDailyMissionStates(profile: PlayerProfile): DailyMissionState[] {
   const normalized = normalizeProfile(profile);

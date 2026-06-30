@@ -137,11 +137,11 @@ export const TASK_POINT_LEADERBOARD_ID: LeaderboardId = "task_points";
 export const DEFAULT_DAILY_TASK_IDS = ["daily_win_one_arena", "daily_defeat_five_leaks", "daily_use_guard"] as const;
 export const DEFAULT_WEEKLY_TASK_IDS = ["weekly_tournament_participation", "weekly_duel_win", "weekly_boss_damage_push"] as const;
 
-export const TASK_SYSTEM_VERSION = "0.9.9-task-progress-tracking";
+export const TASK_SYSTEM_VERSION = "0.10.0-task-claim-flow";
 
 export const TASK_SYSTEM_DEFINITION: TaskSystemDefinition = {
   version: TASK_SYSTEM_VERSION,
-  goal: "Define daily, weekly, tournament, duel and boss tasks as a multiplayer-ready progression layer before reward previews, claim flow and leaderboard submission are enabled.",
+  goal: "Define daily, weekly, tournament, duel and boss tasks as a multiplayer-ready progression layer before reward previews, safe local daily claim flow and leaderboard submission are enabled.",
   defaultDailyTaskIds: DEFAULT_DAILY_TASK_IDS,
   defaultWeeklyTaskIds: DEFAULT_WEEKLY_TASK_IDS,
   backendLockedCadences: ["weekly", "tournament", "season"],
@@ -149,8 +149,8 @@ export const TASK_SYSTEM_DEFINITION: TaskSystemDefinition = {
   rules: [
     "Daily task rewards may stay local during skeleton development, but Leak Points remain future validation-sensitive.",
     "Weekly, tournament, duel and boss task points are leaderboard-sensitive and must be backend-validated before public ranking.",
-    "Task reward previews and progress tracking are now defined, but this system still does not enable task claiming, ranked submission or real multiplayer rewards.",
-    "Task progress is updated from local gameplay events; Task Points remain preview-only until claim flow and backend validation exist.",
+    "Task reward previews, progress tracking and safe local daily claim flow are now defined; ranked submission and real multiplayer rewards remain disabled.",
+    "Task progress is updated from local gameplay events; Task Points may be stored locally after daily claims but remain non-public until leaderboard validation exists.",
   ],
 };
 

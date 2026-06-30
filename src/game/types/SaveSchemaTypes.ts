@@ -121,7 +121,7 @@ export const SAVE_SCHEMA_DEFINITION_V2: SaveSchemaDefinitionV2 = {
     "v1 saves remain readable and normalize into schema v2 fields.",
     "Ranked values stay local placeholders until backend validation exists.",
     "Leaderboard, tournament and duel submissions must use pending queues before remote adapters are enabled.",
-    "Task progress fields are local skeleton data until task event tracking and claim flow patches are enabled.",
+    "Task progress and completed local daily task claims are stored locally; ranked task rewards still require future backend reconciliation.",
   ],
 };
 

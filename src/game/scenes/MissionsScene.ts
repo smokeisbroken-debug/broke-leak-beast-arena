@@ -2,9 +2,11 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import {
+  claimCompletedTaskRewards,
   claimDailyMissionReward,
   formatMissionReward,
   getDailyMissionStates,
+  getTaskRewardProfileSummary,
   getXpProgress,
   loadPlayerProfile,
   savePlayerProfile,
@@ -37,6 +39,8 @@ export class MissionsScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(3);
 
     const xp = getXpProgress(this.profile.xp);
+    const taskSummary = getTaskRewardProfileSummary(this.profile);
+
     this.add.text(GAME_WIDTH / 2, 56, `LEVEL ${this.profile.level} · COINS ${this.profile.coins} · XP TO NEXT ${xp.remaining} · CLAIMS ${this.profile.totalMissionClaims}`, {
       fontFamily: "Arial",
       fontSize: "12px",
@@ -46,9 +50,18 @@ export class MissionsScene extends Phaser.Scene {
       strokeThickness: 4,
     }).setOrigin(0.5).setDepth(3);
 
-    this.statusText = this.add.text(GAME_WIDTH / 2, 78, "Complete missions in fights, then claim rewards here.", {
+    this.add.text(GAME_WIDTH / 2, 76, `TASKS READY ${taskSummary.claimablePreviewCount} · LOCAL TASK POINTS ${this.profile.taskPoints} · WEEKLY LOCKED ${taskSummary.backendLockedPreviewCount}`, {
       fontFamily: "Arial",
-      fontSize: "11px",
+      fontSize: "10px",
+      color: "#ffeb72",
+      fontStyle: "bold",
+      stroke: "#041004",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(3);
+
+    this.statusText = this.add.text(GAME_WIDTH / 2, 94, "Complete missions in fights, then claim mission rewards or local daily task rewards here.", {
+      fontFamily: "Arial",
+      fontSize: "10px",
       color: "#d7ffd0",
       fontStyle: "bold",
       stroke: "#041004",
@@ -157,18 +170,54 @@ export class MissionsScene extends Phaser.Scene {
     this.time.delayedCall(450, () => this.scene.restart());
   }
 
+  private formatClaimedTaskRewards(rewards: { currencyId: string; amount: number }[]): string {
+    const labelMap: Record<string, string> = {
+      xp: "XP",
+      coins: "COINS",
+      leak_points: "LP",
+      rank_points: "RP",
+      tournament_points: "TP",
+      skill_cards: "CARDS",
+      skin_shards: "SHARDS",
+      cosmetic_tokens: "COS",
+    };
+    return rewards.length
+      ? rewards.map((reward) => `+${reward.amount} ${labelMap[reward.currencyId] ?? reward.currencyId.toUpperCase()}`).join(" · ")
+      : "NO REWARDS";
+  }
+
+  private claimTasks(): void {
+    const application = claimCompletedTaskRewards(loadPlayerProfile());
+    savePlayerProfile(application.profile);
+    const rewardLabel = this.formatClaimedTaskRewards(application.rewardsApplied);
+    this.statusText.setText(application.claimedCount > 0 ? `${application.message}: ${rewardLabel} · +${application.taskPointsAwarded} TASK PTS` : application.message);
+    this.statusText.setColor(application.claimedCount > 0 ? "#ffeb72" : "#fcfff7");
+    this.cameras.main.flash(70, 255, 235, 114, false);
+    this.time.delayedCall(450, () => this.scene.restart());
+  }
+
   private createFooterButtons(): void {
-    const play = this.add.text(GAME_WIDTH / 2 - 120, GAME_HEIGHT - 30, "PLAY", {
+    const play = this.add.text(GAME_WIDTH / 2 - 205, GAME_HEIGHT - 30, "PLAY", {
       fontFamily: "Arial",
       fontSize: "16px",
       color: "#041004",
       backgroundColor: "#72ff57",
-      padding: { x: 24, y: 9 },
+      padding: { x: 22, y: 9 },
       fontStyle: "bold",
     }).setOrigin(0.5).setDepth(10).setInteractive({ useHandCursor: true });
     play.on("pointerdown", () => this.scene.start(SCENE_KEYS.arena));
 
-    const back = this.add.text(GAME_WIDTH / 2 + 92, GAME_HEIGHT - 30, "BACK TO MENU", {
+    const claimTasks = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 30, "CLAIM TASKS", {
+      fontFamily: "Arial",
+      fontSize: "14px",
+      color: "#041004",
+      backgroundColor: "#ffeb72",
+      padding: { x: 22, y: 9 },
+      fontStyle: "bold",
+    }).setOrigin(0.5).setDepth(10).setInteractive({ useHandCursor: true });
+    claimTasks.on("pointerdown", () => this.claimTasks());
+
+    const back = this.add.text(GAME_WIDTH / 2 + 220, GAME_HEIGHT - 30, "BACK TO MENU", {
       fontFamily: "Arial",
       fontSize: "14px",
       color: "#fcfff7",

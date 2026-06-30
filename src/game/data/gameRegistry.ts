@@ -93,6 +93,8 @@ export {
   applyFightResultToProfile,
   applyRewardChoiceToProfile,
   claimDailyMissionReward,
+  claimTaskReward,
+  claimCompletedTaskRewards,
   formatMissionReward,
   getDailyMissionStates,
   getPostFightRewardChoices,
@@ -104,7 +106,7 @@ export {
   unlockProfileSkin,
   unlockProfileStage,
 } from "./playerProfile";
-export type { DailyMissionDefinition, DailyMissionFightStats, DailyMissionState, FightRewardApplication, FightRewardInput, MissionClaimApplication, MissionRewardBundle, PlayerProfile, RewardChoiceApplication } from "./playerProfile";
+export type { DailyMissionDefinition, DailyMissionFightStats, DailyMissionState, FightRewardApplication, FightRewardInput, MissionClaimApplication, MissionRewardBundle, PlayerProfile, RewardChoiceApplication, TaskClaimBatchRewardApplication, TaskClaimRewardApplication } from "./playerProfile";
 export { SAVE_FORMAT, SAVE_FORMAT_VERSION, SAVE_MIN_SUPPORTED_FORMAT_VERSION } from "./saveSystem";
 export type { ExportedSaveFile, SaveParseResult, SaveStatus } from "./saveSystem";
 export { CURRENT_SAVE_SCHEMA_VERSION, SAVE_SCHEMA_DEFINITION_V2, SAVE_SCHEMA_VERSION_LABEL, createDefaultSaveSystemsState } from "../types/SaveSchemaTypes";
@@ -295,3 +297,18 @@ export type {
   TaskRewardRiskTier,
   TaskRewardSystemDefinition,
 } from "../types/TaskRewardTypes";
+
+export {
+  TASK_CLAIM_SYSTEM_DEFINITION,
+  TASK_CLAIM_SYSTEM_VERSION,
+  claimCompletedLocalTasksToProfile,
+  claimTaskRewardToProfile,
+  getTaskClaimEligibility,
+} from "../systems/TaskClaimSystem";
+export type {
+  TaskClaimApplication,
+  TaskClaimBatchApplication,
+  TaskClaimEligibility,
+  TaskClaimOutcome,
+  TaskClaimSystemDefinition,
+} from "../types/TaskClaimTypes";

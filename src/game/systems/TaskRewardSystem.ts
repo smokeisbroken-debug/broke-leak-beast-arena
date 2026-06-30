@@ -22,17 +22,17 @@ import type {
   TaskRewardSystemDefinition,
 } from "../types/TaskRewardTypes";
 
-export const TASK_REWARD_SYSTEM_VERSION = "0.9.8-task-rewards";
+export const TASK_REWARD_SYSTEM_VERSION = "0.10.0-task-claim-flow";
 
 export const TASK_REWARD_POLICIES: readonly TaskRewardPolicyDefinition[] = [
   {
     id: "daily_local_preview",
     label: "Daily Local Preview",
     riskTier: "leaderboard_sensitive",
-    claimEnabled: false,
+    claimEnabled: true,
     leaderboardSubmissionEnabled: false,
     backendValidationRequired: false,
-    description: "Daily task rewards can be previewed locally, but Task Points are not submitted to public leaderboards yet.",
+    description: "Completed daily task rewards can now be claimed locally; Task Points are still not submitted to public leaderboards.",
   },
   {
     id: "weekly_backend_locked",
@@ -83,13 +83,13 @@ export const TASK_REWARD_POLICIES: readonly TaskRewardPolicyDefinition[] = [
 
 export const TASK_REWARD_SYSTEM_DEFINITION: TaskRewardSystemDefinition = {
   version: TASK_REWARD_SYSTEM_VERSION,
-  goal: "Define task reward previews, safety policies and backend locks before claim flow, wallet mutation or leaderboard submission are enabled.",
+  goal: "Define task reward previews, safety policies and backend locks after safe local daily claim flow is enabled.",
   policies: TASK_REWARD_POLICIES,
   rules: [
-    "This system returns reward previews only; it does not mutate player wallets or save claimed rewards.",
-    "Task Points are displayed as progression intent, not submitted to public leaderboards yet.",
+    "Completed local-preview daily tasks can be claimed through TaskClaimSystem; backend-locked tasks remain preview-only.",
+    "Task Points can be stored locally after daily task claims, but they are not submitted to public leaderboards yet.",
     "Weekly, tournament, duel, boss and season rewards stay backend-locked until validation and anti-cheat patches exist.",
-    "Daily rewards can be previewed locally, but ranked currencies remain validation-sensitive before real multiplayer launch.",
+    "Daily rewards can be claimed locally, but ranked-sensitive currencies are queued for future backend reconciliation before real multiplayer launch.",
   ],
 };
 
@@ -165,14 +165,14 @@ export function getTaskRewardPreview(task: TaskDefinitionV2, input?: { progress?
     rewards: transaction.normalizedRewards,
     walletDelta: transaction.walletDelta,
     backendValidationRequired,
-    claimEnabled: false,
+    claimEnabled: policy.claimEnabled && (input?.status ?? "active") === "completed",
     leaderboardSubmissionEnabled: false,
     rewardNotes: [
       policy.description,
       source.description,
       backendValidationRequired
         ? "Backend validation is required before this reward can affect wallet, leaderboard or tournament state."
-        : "Local preview is allowed, but claim flow is intentionally disabled in this patch.",
+        : "Local daily claim is allowed when the task is completed; public leaderboard submission is still disabled.",
     ],
   };
 }
@@ -222,7 +222,7 @@ export function getTaskRewardCatalogSummary(tasks: readonly TaskDefinitionV2[] =
     totalTaskPointsAvailable: previews.reduce((total, preview) => total + preview.taskPoints, 0),
     localPreviewWallet,
     backendLockedWallet,
-    claimEnabled: false,
+    claimEnabled: true,
     leaderboardSubmissionEnabled: false,
   };
 }
@@ -242,7 +242,7 @@ export function getTaskRewardProfileSummary(profile: PlayerProfile): TaskRewardP
     activeTaskCount: previews.filter((preview) => preview.status === "active").length,
     completedTaskCount: previews.filter((preview) => preview.status === "completed").length,
     claimedTaskCount: previews.filter((preview) => preview.status === "claimed").length,
-    claimablePreviewCount: previews.filter((preview) => preview.status === "completed" && !preview.backendValidationRequired).length,
+    claimablePreviewCount: previews.filter((preview) => preview.claimEnabled).length,
     backendLockedPreviewCount: previews.filter((preview) => preview.backendValidationRequired).length,
     completedTaskPointsPreview: completedPreviews.reduce((total, preview) => total + preview.taskPoints, 0),
     completedRewardWalletPreview,
