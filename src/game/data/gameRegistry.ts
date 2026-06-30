@@ -264,3 +264,28 @@ export type {
   TaskSystemSummary,
   TaskValidationTier,
 } from "../types/TaskTypes";
+
+export {
+  TASK_REWARD_POLICIES,
+  TASK_REWARD_SYSTEM_DEFINITION,
+  TASK_REWARD_SYSTEM_VERSION,
+  formatTaskRewardWallet,
+  getTaskRewardCatalogSummary,
+  getTaskRewardPolicy,
+  getTaskRewardPolicyId,
+  getTaskRewardPreview,
+  getTaskRewardPreviewForProfile,
+  getTaskRewardPreviewsForCatalog,
+  getTaskRewardPreviewsForProfile,
+  getTaskRewardProfileSummary,
+  getTaskRewardRiskTier,
+} from "../systems/TaskRewardSystem";
+export type {
+  TaskRewardCatalogSummary,
+  TaskRewardPolicyDefinition,
+  TaskRewardPolicyId,
+  TaskRewardPreview,
+  TaskRewardProfileSummary,
+  TaskRewardRiskTier,
+  TaskRewardSystemDefinition,
+} from "../types/TaskRewardTypes";

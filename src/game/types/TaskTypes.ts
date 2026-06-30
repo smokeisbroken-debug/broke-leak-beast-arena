@@ -106,11 +106,11 @@ export const TASK_POINT_LEADERBOARD_ID: LeaderboardId = "task_points";
 export const DEFAULT_DAILY_TASK_IDS = ["daily_win_one_arena", "daily_defeat_five_leaks", "daily_use_guard"] as const;
 export const DEFAULT_WEEKLY_TASK_IDS = ["weekly_tournament_participation", "weekly_duel_win", "weekly_boss_damage_push"] as const;
 
-export const TASK_SYSTEM_VERSION = "0.9.7-task-system-skeleton";
+export const TASK_SYSTEM_VERSION = "0.9.8-task-rewards";
 
 export const TASK_SYSTEM_DEFINITION: TaskSystemDefinition = {
   version: TASK_SYSTEM_VERSION,
-  goal: "Define daily, weekly, tournament, duel and boss tasks as a multiplayer-ready progression layer before claim flow and leaderboard submission are enabled.",
+  goal: "Define daily, weekly, tournament, duel and boss tasks as a multiplayer-ready progression layer before reward previews, claim flow and leaderboard submission are enabled.",
   defaultDailyTaskIds: DEFAULT_DAILY_TASK_IDS,
   defaultWeeklyTaskIds: DEFAULT_WEEKLY_TASK_IDS,
   backendLockedCadences: ["weekly", "tournament", "season"],
@@ -118,7 +118,7 @@ export const TASK_SYSTEM_DEFINITION: TaskSystemDefinition = {
   rules: [
     "Daily task rewards may stay local during skeleton development, but Leak Points remain future validation-sensitive.",
     "Weekly, tournament, duel and boss task points are leaderboard-sensitive and must be backend-validated before public ranking.",
-    "This patch defines task contracts only; it does not enable task claiming, ranked submission or real multiplayer rewards.",
+    "Task reward previews are now defined, but this system still does not enable task claiming, ranked submission or real multiplayer rewards.",
     "Task Points become the bridge between daily activity, tournament participation and future leaderboard placement.",
   ],
 };
