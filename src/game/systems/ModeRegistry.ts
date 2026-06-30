@@ -10,7 +10,7 @@ import {
   type GameModeRouteDefinition,
 } from "../types/GameModeTypes";
 
-export const MODE_REGISTRY_VERSION = "0.11.0-tournament-scene";
+export const MODE_REGISTRY_VERSION = "0.11.1-tournament-run-result";
 
 export interface GameModeRegistrySnapshot {
   version: string;
@@ -102,7 +102,7 @@ export const GAME_MODE_ROUTES: readonly GameModeRouteDefinition[] = [
     sortOrder: 60,
     requiresBackend: true,
     requiresValidation: true,
-    nextUnlockPatch: "v0.11.0-tournament-scene",
+    nextUnlockPatch: "v0.11.1-tournament-run-result",
   },
   {
     modeId: "leak_duel",

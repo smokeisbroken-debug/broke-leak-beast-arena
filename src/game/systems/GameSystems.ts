@@ -21,6 +21,12 @@ import { TOURNAMENT_DEFINITIONS } from "../types/TournamentTypes";
 import { TOURNAMENT_SYSTEM_DEFINITION, getTournamentRegistrySummary, getTournamentReadinessMap, getTournamentScorePreviewMap } from "./TournamentSystem";
 import { TOURNAMENT_REGISTRY_SYSTEM_DEFINITION, createTournamentRegistrySnapshot, getTournamentRegistryFeaturedCard } from "./TournamentRegistrySystem";
 import {
+  TOURNAMENT_RUN_RESULT_SYSTEM_DEFINITION,
+  createTournamentRunResultPreviewMap,
+  createSampleTournamentRunResultPreview,
+  getTournamentRunResultSummary,
+} from "./TournamentRunResultSystem";
+import {
   TOURNAMENT_SCORING_SYSTEM_DEFINITION,
   calculateTournamentScoreSnapshot,
   createTournamentScoringPreviewCardMap,
@@ -34,7 +40,7 @@ import { SKILL_UPGRADE_SYSTEM_DEFINITION } from "../types/SkillUpgradeTypes";
 import { MASTERY_SYSTEM_DEFINITION } from "../types/MasteryTypes";
 import { PROGRESSION_UI_SYSTEM_DEFINITION } from "./ProgressionUiSystem";
 
-export const GAME_SYSTEMS_VERSION = "0.11.0-tournament-scene";
+export const GAME_SYSTEMS_VERSION = "0.11.1-tournament-run-result";
 
 export type GameSystemId =
   | "modes"
@@ -108,6 +114,10 @@ export interface GameSystemsRegistrySnapshot {
   tournamentScoringSummary: ReturnType<typeof getTournamentScoringSummary>;
   tournamentScoringPreviewCardMap: ReturnType<typeof createTournamentScoringPreviewCardMap>;
   tournamentScoreSnapshotFactory: typeof calculateTournamentScoreSnapshot;
+  tournamentRunResultSystem: typeof TOURNAMENT_RUN_RESULT_SYSTEM_DEFINITION;
+  tournamentRunResultSummary: ReturnType<typeof getTournamentRunResultSummary>;
+  tournamentRunResultPreviewMap: ReturnType<typeof createTournamentRunResultPreviewMap>;
+  tournamentRunResultPreviewFactory: typeof createSampleTournamentRunResultPreview;
   duelSkeleton: typeof LEAK_DUEL_DEFINITION;
   saveSchema: typeof SAVE_SCHEMA_DEFINITION_V2;
   playerProfile: typeof PLAYER_PROFILE_V2_DEFINITION;
@@ -126,7 +136,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Centralize playable, ranked and backend-locked mode routes before UI and multiplayer work expands.",
     dependsOn: [],
     relatedModes: ["arena", "campaign", "tasks", "profile", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.11.1-tournament-run-result",
+    nextPatch: "v0.11.2-tournament-leaderboard-link",
   },
   {
     id: "profile",
@@ -136,7 +146,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Store identity, selected loadout, synced wallet, capped power score and future multiplayer-safe fields.",
     dependsOn: ["modes"],
     relatedModes: ["profile", "arena", "campaign"],
-    nextPatch: "v0.11.1-tournament-run-result",
+    nextPatch: "v0.11.2-tournament-leaderboard-link",
   },
   {
     id: "progression",
@@ -146,7 +156,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Unify level, XP, mastery placeholders and capped power score.",
     dependsOn: ["modes", "profile"],
     relatedModes: ["profile", "campaign", "leaderboard"],
-    nextPatch: "v0.11.1-tournament-run-result",
+    nextPatch: "v0.11.2-tournament-leaderboard-link",
   },
   {
     id: "evolution",
@@ -156,7 +166,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped long-term mascot forms for profile identity, PowerScore and future seasons without direct combat scaling yet.",
     dependsOn: ["modes", "profile", "progression"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel"],
-    nextPatch: "v0.11.1-tournament-run-result",
+    nextPatch: "v0.11.2-tournament-leaderboard-link",
   },
   {
     id: "skill_upgrades",
@@ -166,7 +176,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped skill levels, upgrade costs and PowerScore contribution before real upgrade spending and combat scaling are enabled.",
     dependsOn: ["modes", "profile", "progression", "evolution"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel"],
-    nextPatch: "v0.11.1-tournament-run-result",
+    nextPatch: "v0.11.2-tournament-leaderboard-link",
   },
   {
     id: "mastery",
@@ -176,7 +186,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define long-term horizontal branches for guard, dash, skills, bosses, leak control and survival without direct combat scaling yet.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.11.1-tournament-run-result",
+    nextPatch: "v0.11.2-tournament-leaderboard-link",
   },
   {
     id: "economy",
@@ -186,7 +196,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Separate XP, coins, leak points, rank points, tournament points and cosmetics.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades", "mastery"],
     relatedModes: ["tasks", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.11.1-tournament-run-result",
+    nextPatch: "v0.11.2-tournament-leaderboard-link",
   },
   {
     id: "balance",
@@ -196,7 +206,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped power score, difficulty score and matchup evaluation before ranked systems go live.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades", "mastery", "economy"],
     relatedModes: ["arena", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.11.1-tournament-run-result",
+    nextPatch: "v0.11.2-tournament-leaderboard-link",
   },
   {
     id: "tasks",
@@ -206,7 +216,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define daily, weekly, tournament, duel and boss tasks, reward previews, local progress tracking and safe daily claim flow before task-point leaderboard payloads are enabled.",
     dependsOn: ["profile", "economy", "balance"],
     relatedModes: ["tasks", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.11.1-tournament-run-result",
+    nextPatch: "v0.11.2-tournament-leaderboard-link",
   },
   {
     id: "leaderboard",
@@ -216,7 +226,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Display typed score contracts, deterministic local mock snapshots and weekly reset previews before remote submission is enabled.",
     dependsOn: ["profile", "progression", "evolution", "skill_upgrades", "mastery", "balance", "tasks", "anti_cheat"],
     relatedModes: ["leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.11.1-tournament-run-result",
+    nextPatch: "v0.11.2-tournament-leaderboard-link",
   },
   {
     id: "tournaments",
@@ -226,7 +236,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define time-boxed events with rules, participation points, deterministic scoring and ranked leaderboard wiring.",
     dependsOn: ["leaderboard", "economy", "balance", "anti_cheat"],
     relatedModes: ["tournament", "leaderboard"],
-    nextPatch: "v0.11.1-tournament-run-result",
+    nextPatch: "v0.11.2-tournament-leaderboard-link",
   },
   {
     id: "duels",
@@ -329,6 +339,10 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   tournamentScoringSummary: getTournamentScoringSummary(),
   tournamentScoringPreviewCardMap: createTournamentScoringPreviewCardMap(),
   tournamentScoreSnapshotFactory: calculateTournamentScoreSnapshot,
+  tournamentRunResultSystem: TOURNAMENT_RUN_RESULT_SYSTEM_DEFINITION,
+  tournamentRunResultSummary: getTournamentRunResultSummary(),
+  tournamentRunResultPreviewMap: createTournamentRunResultPreviewMap(),
+  tournamentRunResultPreviewFactory: createSampleTournamentRunResultPreview,
   duelSkeleton: LEAK_DUEL_DEFINITION,
   saveSchema: SAVE_SCHEMA_DEFINITION_V2,
   playerProfile: PLAYER_PROFILE_V2_DEFINITION,

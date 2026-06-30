@@ -3,7 +3,7 @@ import { GAME_CONFIG, GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import {
   TOURNAMENT_REGISTRY_FILTER_LABELS,
-  calculateTournamentScoreSnapshot,
+  createSampleTournamentRunResultPreview,
   createTournamentRegistrySnapshot,
   getTournamentDefinition,
   getTournamentRegistryCardsByFilter,
@@ -98,7 +98,8 @@ export class TournamentScene extends Phaser.Scene {
     const cards = getTournamentRegistryCardsByFilter(this.selectedFilterId);
     const selectedCard = this.getSelectedCard(cards, snapshot.cards);
     const tournament = getTournamentDefinition(selectedCard.id);
-    const scoreSnapshot = calculateTournamentScoreSnapshot(selectedCard.id, undefined, "sample_preview");
+    const runResultPreview = createSampleTournamentRunResultPreview(selectedCard.id);
+    const scoreSnapshot = runResultPreview.scoreSnapshot;
     const color = this.getTournamentColor(selectedCard);
 
     this.content.add(this.createPanel(218, 230, 330, 248, color));
@@ -133,7 +134,8 @@ export class TournamentScene extends Phaser.Scene {
       `STATUS: ${selectedCard.status}`,
       `PERIOD: ${selectedCard.periodKey}`,
       `LEADERBOARD: ${selectedCard.leaderboardId}`,
-      `SUBMIT: ${selectedCard.publicSubmitEnabled ? "enabled" : "disabled"}`,
+      `RUN ID: ${runResultPreview.runId.replace("local-run:", "")}`,
+      `SUBMIT: ${runResultPreview.leaderboardSubmitEnabled ? "enabled" : "disabled"}`,
       `LOCK: ${selectedCard.lockLabel}`,
     ];
     statusRows.forEach((line, index) => {
@@ -148,7 +150,7 @@ export class TournamentScene extends Phaser.Scene {
       }).setDepth(4));
     });
 
-    this.content.add(this.add.text(398, 294, `SAMPLE SCORE: ${scoreSnapshot.points.toLocaleString("en-US")} TOURNAMENT POINTS`, {
+    this.content.add(this.add.text(398, 294, `RUN RESULT PREVIEW: ${runResultPreview.result.points.toLocaleString("en-US")} TOURNAMENT POINTS`, {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#72ff57",
@@ -180,7 +182,7 @@ export class TournamentScene extends Phaser.Scene {
       wordWrap: { width: 230 },
     }).setDepth(4));
 
-    this.content.add(this.add.text(640, 370, `PLAYER: LV ${profile.level} · POWER PREP · NO LIVE ENTRY`, {
+    this.content.add(this.add.text(640, 370, `RESULT: ${runResultPreview.result.validationStatus.toUpperCase()} · CLAIM LOCKED`, {
       fontFamily: "Arial",
       fontSize: "10px",
       color: "#d7ffd0",
@@ -189,7 +191,15 @@ export class TournamentScene extends Phaser.Scene {
       strokeThickness: 3,
       wordWrap: { width: 230 },
     }).setDepth(4));
-
+    this.content.add(this.add.text(640, 386, `PENDING PARTICIPATION: ${runResultPreview.result.participationPoints.toLocaleString("en-US")} PTS`, {
+      fontFamily: "Arial",
+      fontSize: "9px",
+      color: "#ffeb72",
+      fontStyle: "bold",
+      stroke: "#041004",
+      strokeThickness: 3,
+      wordWrap: { width: 230 },
+    }).setDepth(4));
     this.createPreviewButton(selectedCard);
   }
 
@@ -284,7 +294,7 @@ export class TournamentScene extends Phaser.Scene {
       .setStrokeStyle(2, enabled ? 0x72ff57 : 0xffeb72, 0.72)
       .setDepth(5)
       .setInteractive({ useHandCursor: true });
-    const label = enabled ? "LOCAL PREVIEW ONLY" : "BACKEND LOCKED";
+    const label = enabled ? "RESULT PREVIEW" : "BACKEND LOCKED";
     this.content?.add(button);
     this.content?.add(this.add.text(button.x, button.y, label, {
       fontFamily: "Arial",
@@ -296,7 +306,7 @@ export class TournamentScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(6));
 
     button.on("pointerdown", () => {
-      // v0.11.0 intentionally does not start a tournament run or submit a score.
+      // v0.11.1 intentionally opens only a local arena preview; no tournament submit or reward claim is enabled.
       this.scene.start(SCENE_KEYS.arena);
     });
   }

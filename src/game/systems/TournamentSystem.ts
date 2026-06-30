@@ -9,7 +9,7 @@ import {
 } from "../types/TournamentTypes";
 import { calculateTournamentScoreSnapshot } from "./TournamentScoringSystem";
 
-export const TOURNAMENT_SYSTEM_VERSION = "0.11.0-tournament-scene";
+export const TOURNAMENT_SYSTEM_VERSION = "0.11.1-tournament-run-result";
 
 const REQUIRED_BEFORE_LIVE_TOURNAMENTS = [
   "Tournament Scene and mode navigation",

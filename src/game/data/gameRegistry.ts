@@ -455,6 +455,30 @@ export {
   getTournamentScoringSummary,
   normalizeTournamentScoreInput,
 } from "../systems/TournamentScoringSystem";
+
+export {
+  LOCAL_TOURNAMENT_PLAYER_ID,
+  LOCAL_TOURNAMENT_RESULT_TIMESTAMP,
+  TOURNAMENT_RUN_RESULT_SYSTEM_DEFINITION,
+  TOURNAMENT_RUN_RESULT_SYSTEM_VERSION,
+  createSampleTournamentRunResultPreview,
+  createTournamentRunResultPreview,
+  createTournamentRunResultPreviewMap,
+  getTournamentRunResultSummary,
+} from "../systems/TournamentRunResultSystem";
+export type {
+  TournamentRunResultInput,
+  TournamentRunResultLock,
+  TournamentRunResultLockId,
+  TournamentRunResultPreview,
+  TournamentRunResultPreviewMap,
+  TournamentRunResultRewardPreview,
+  TournamentRunResultSource,
+  TournamentRunResultSummary,
+  TournamentRunResultSystemDefinition,
+  TournamentRunResultTone,
+} from "../types/TournamentRunResultTypes";
+
 export type {
   TournamentNormalizedScoreInput,
   TournamentScoreCaps,
