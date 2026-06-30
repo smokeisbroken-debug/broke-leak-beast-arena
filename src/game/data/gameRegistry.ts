@@ -51,6 +51,29 @@ export {
   isCampaignChapterUnlocked,
 } from "./campaigns";
 export type { CampaignChapterDefinition, CampaignProfileState } from "./campaigns";
+export {
+  CAMPAIGN_CHAPTER_SYSTEM_DEFINITION,
+  CAMPAIGN_CHAPTER_SYSTEM_VERSION,
+  createCampaignChapterSnapshot,
+  getCampaignChapterCard,
+  getCampaignChapterContract,
+  getCampaignChapterContracts,
+} from "../systems/CampaignChapterSystem";
+export type {
+  CampaignChapterCard,
+  CampaignChapterContract,
+  CampaignChapterGateId,
+  CampaignChapterGateRule,
+  CampaignChapterId,
+  CampaignChapterLaneId,
+  CampaignChapterNodeDefinition,
+  CampaignChapterNodeType,
+  CampaignChapterRewardPreview,
+  CampaignChapterRewardPreviewId,
+  CampaignChapterSnapshot,
+  CampaignChapterStatus,
+  CampaignChapterSystemDefinition,
+} from "../types/CampaignChapterTypes";
 export { BOSS_MECHANIC_PROFILES, getBossMechanicProfile } from "./bossMechanics";
 export type { BossMechanicProfile, BossMechanicProfileId, BossPhaseDefinition, BossSpecialDefinition, BossSpecialEffect } from "./bossMechanics";
 
