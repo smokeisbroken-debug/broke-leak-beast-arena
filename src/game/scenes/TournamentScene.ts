@@ -3,6 +3,7 @@ import { GAME_CONFIG, GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import {
   TOURNAMENT_REGISTRY_FILTER_LABELS,
+  createSampleTournamentLeaderboardSubmitPreview,
   createSampleTournamentRunResultPreview,
   createTournamentRegistrySnapshot,
   getTournamentDefinition,
@@ -99,6 +100,7 @@ export class TournamentScene extends Phaser.Scene {
     const selectedCard = this.getSelectedCard(cards, snapshot.cards);
     const tournament = getTournamentDefinition(selectedCard.id);
     const runResultPreview = createSampleTournamentRunResultPreview(selectedCard.id);
+    const leaderboardLinkPreview = createSampleTournamentLeaderboardSubmitPreview(selectedCard.id);
     const scoreSnapshot = runResultPreview.scoreSnapshot;
     const color = this.getTournamentColor(selectedCard);
 
@@ -135,13 +137,15 @@ export class TournamentScene extends Phaser.Scene {
       `PERIOD: ${selectedCard.periodKey}`,
       `LEADERBOARD: ${selectedCard.leaderboardId}`,
       `RUN ID: ${runResultPreview.runId.replace("local-run:", "")}`,
-      `SUBMIT: ${runResultPreview.leaderboardSubmitEnabled ? "enabled" : "disabled"}`,
-      `LOCK: ${selectedCard.lockLabel}`,
+      `RANK VALUE: ${leaderboardLinkPreview.value.toLocaleString("en-US")} pts`,
+      `ADAPTER: ${leaderboardLinkPreview.providerId.replace(/_/g, " ")}`,
+      `SUBMIT: ${leaderboardLinkPreview.publicSubmitEnabled ? "enabled" : "disabled"}`,
+      `LOCK: ${leaderboardLinkPreview.adapterSubmitLock.replace(/_/g, " ")}`,
     ];
     statusRows.forEach((line, index) => {
-      this.content?.add(this.add.text(398, 186 + index * 16, line.toUpperCase(), {
+      this.content?.add(this.add.text(398, 178 + index * 13, line.toUpperCase(), {
         fontFamily: "Arial",
-        fontSize: index === statusRows.length - 1 ? "8px" : "10px",
+        fontSize: index >= 6 ? "8px" : "9px",
         color: index >= 4 ? "#ffeb72" : "#fcfff7",
         fontStyle: "bold",
         stroke: "#041004",
@@ -150,7 +154,7 @@ export class TournamentScene extends Phaser.Scene {
       }).setDepth(4));
     });
 
-    this.content.add(this.add.text(398, 294, `RUN RESULT PREVIEW: ${runResultPreview.result.points.toLocaleString("en-US")} TOURNAMENT POINTS`, {
+    this.content.add(this.add.text(398, 294, `LEADERBOARD PAYLOAD: ${leaderboardLinkPreview.value.toLocaleString("en-US")} TOURNAMENT POINTS`, {
       fontFamily: "Arial",
       fontSize: "13px",
       color: "#72ff57",
@@ -182,18 +186,18 @@ export class TournamentScene extends Phaser.Scene {
       wordWrap: { width: 230 },
     }).setDepth(4));
 
-    this.content.add(this.add.text(640, 370, `RESULT: ${runResultPreview.result.validationStatus.toUpperCase()} · CLAIM LOCKED`, {
+    this.content.add(this.add.text(640, 370, `PAYLOAD: ${leaderboardLinkPreview.submissionStatus.replace(/_/g, " ").toUpperCase()}`, {
       fontFamily: "Arial",
-      fontSize: "10px",
+      fontSize: "9px",
       color: "#d7ffd0",
       fontStyle: "bold",
       stroke: "#041004",
       strokeThickness: 3,
       wordWrap: { width: 230 },
     }).setDepth(4));
-    this.content.add(this.add.text(640, 386, `PENDING PARTICIPATION: ${runResultPreview.result.participationPoints.toLocaleString("en-US")} PTS`, {
+    this.content.add(this.add.text(640, 386, `BUCKETS: RUN ${runResultPreview.result.points.toLocaleString("en-US")} + PARTICIPATION ${runResultPreview.result.participationPoints.toLocaleString("en-US")}`, {
       fontFamily: "Arial",
-      fontSize: "9px",
+      fontSize: "8px",
       color: "#ffeb72",
       fontStyle: "bold",
       stroke: "#041004",
@@ -306,7 +310,7 @@ export class TournamentScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(6));
 
     button.on("pointerdown", () => {
-      // v0.11.1 intentionally opens only a local arena preview; no tournament submit or reward claim is enabled.
+      // v0.11.2 still opens only a local arena preview; leaderboard submit payload is preview-only.
       this.scene.start(SCENE_KEYS.arena);
     });
   }

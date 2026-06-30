@@ -479,6 +479,28 @@ export type {
   TournamentRunResultTone,
 } from "../types/TournamentRunResultTypes";
 
+export {
+  LOCAL_TOURNAMENT_DISPLAY_NAME,
+  TOURNAMENT_LEADERBOARD_LINK_SYSTEM_DEFINITION,
+  TOURNAMENT_LEADERBOARD_LINK_SYSTEM_VERSION,
+  createSampleTournamentLeaderboardSubmitPreview,
+  createTournamentLeaderboardSubmitPreview,
+  createTournamentLeaderboardSubmitPreviewFromRunInput,
+  createTournamentLeaderboardSubmitPreviewFromRunResult,
+  createTournamentLeaderboardSubmitPreviewMap,
+  getTournamentLeaderboardLinkSummary,
+} from "../systems/TournamentLeaderboardLinkSystem";
+export type {
+  TournamentLeaderboardLinkInput,
+  TournamentLeaderboardLinkLock,
+  TournamentLeaderboardLinkLockId,
+  TournamentLeaderboardLinkSource,
+  TournamentLeaderboardLinkStatus,
+  TournamentLeaderboardLinkSummary,
+  TournamentLeaderboardLinkSystemDefinition,
+  TournamentLeaderboardSubmitPreview,
+} from "../types/TournamentLeaderboardLinkTypes";
+
 export type {
   TournamentNormalizedScoreInput,
   TournamentScoreCaps,
