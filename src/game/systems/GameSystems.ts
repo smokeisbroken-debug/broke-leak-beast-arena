@@ -17,8 +17,9 @@ import { PLAYER_PROFILE_V2_DEFINITION } from "./ProfileSystem";
 import { EVOLUTION_SYSTEM_DEFINITION } from "../types/EvolutionTypes";
 import { SKILL_UPGRADE_SYSTEM_DEFINITION } from "../types/SkillUpgradeTypes";
 import { MASTERY_SYSTEM_DEFINITION } from "../types/MasteryTypes";
+import { PROGRESSION_UI_SYSTEM_DEFINITION } from "./ProgressionUiSystem";
 
-export const GAME_SYSTEMS_VERSION = "0.9.5-mastery-skeleton";
+export const GAME_SYSTEMS_VERSION = "0.9.6-progression-ui";
 
 export type GameSystemId =
   | "modes"
@@ -74,6 +75,7 @@ export interface GameSystemsRegistrySnapshot {
   evolution: typeof EVOLUTION_SYSTEM_DEFINITION;
   skillUpgrades: typeof SKILL_UPGRADE_SYSTEM_DEFINITION;
   mastery: typeof MASTERY_SYSTEM_DEFINITION;
+  progressionUi: typeof PROGRESSION_UI_SYSTEM_DEFINITION;
 }
 
 export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
@@ -270,6 +272,7 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   evolution: EVOLUTION_SYSTEM_DEFINITION,
   skillUpgrades: SKILL_UPGRADE_SYSTEM_DEFINITION,
   mastery: MASTERY_SYSTEM_DEFINITION,
+  progressionUi: PROGRESSION_UI_SYSTEM_DEFINITION,
 };
 
 export function getGameSystem(systemId: GameSystemId): GameSystemDefinition {

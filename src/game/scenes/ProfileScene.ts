@@ -2,22 +2,19 @@ import Phaser from "phaser";
 import { GAME_CONFIG, GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import {
-  CAMPAIGN_CHAPTERS,
-  SKILLS,
-  SKINS,
-  STAGES,
-  getSkillById,
-  getCampaignProgress,
-  getDailyMissionStates,
+  getProgressionDashboard,
+  getSaveStatus,
   getSelectedCampaignBoss,
   getSkinById,
   getStageById,
-  getSaveStatus,
-  getPlayerProfileV2Summary,
-  getMasterySummary,
-  getSkillUpgradeSummary,
-  getXpProgress,
   loadPlayerProfile,
+  type EvolutionUiRow,
+  type MasteryProgressionUiRow,
+  type PowerBreakdownUiRow,
+  type ProgressionGoalUiRow,
+  type ProgressionMeterRow,
+  type ProgressionUiRowTone,
+  type SkillProgressionUiRow,
 } from "../data/gameRegistry";
 
 export class ProfileScene extends Phaser.Scene {
@@ -30,77 +27,39 @@ export class ProfileScene extends Phaser.Scene {
     const skin = getSkinById(profile.selectedSkinId);
     const stage = getStageById(profile.selectedStageId);
     const boss = getSelectedCampaignBoss(profile);
-    const skills = {
-      skill1: getSkillById(profile.selectedSkillIds.skill1),
-      skill2: getSkillById(profile.selectedSkillIds.skill2),
-      ultimate: getSkillById(profile.selectedSkillIds.ultimate),
-    };
-    const xp = getXpProgress(profile.xp);
-    const profileV2 = getPlayerProfileV2Summary(profile);
-    const skillUpgradeSummary = getSkillUpgradeSummary(profile);
-    const masterySummary = getMasterySummary(profile);
-    const campaignProgress = getCampaignProgress(profile);
-    const missionStates = getDailyMissionStates(profile);
-    const completedMissions = missionStates.filter((mission) => mission.completed).length;
-    const claimableMissions = missionStates.filter((mission) => mission.completed && !mission.claimed).length;
+    const dashboard = getProgressionDashboard(profile);
+    const saveStatus = getSaveStatus();
 
     this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "menu-start-screen")
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
       .setDepth(0);
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x020304, 0.66).setDepth(1);
+    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x020304, 0.68).setDepth(1);
 
-    this.add.text(GAME_WIDTH / 2, 24, "PLAYER PROFILE", {
-      fontFamily: "Arial", fontSize: "28px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 6,
+    this.add.text(GAME_WIDTH / 2, 22, dashboard.title, {
+      fontFamily: "Arial", fontSize: "27px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 6,
     }).setOrigin(0.5).setDepth(3);
 
-    this.add.text(GAME_WIDTH / 2, 54, `PROFILE V2 · POWER ${profileV2.progress.powerScore} · ${GAME_CONFIG.version}`, {
-      fontFamily: "Arial", fontSize: "11px", color: "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+    this.add.text(GAME_WIDTH / 2, 51, `${dashboard.subtitle} · ${GAME_CONFIG.version}`.toUpperCase(), {
+      fontFamily: "Arial", fontSize: "10px", color: "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
     }).setOrigin(0.5).setDepth(3);
 
     this.createHeroCard(
       skin,
-      profileV2.displayName,
+      profile.identity.displayName,
       profile.level,
-      profile.coins,
       profile.xp,
-      xp.remaining,
-      profileV2.progress.powerScore,
-      profileV2.progress.evolutionName,
-      profileV2.progress.evolutionTitle,
-      profileV2.progress.nextEvolutionName,
-      profileV2.progress.nextEvolutionRequirement,
-    );
-    this.createStatsCard(profile.totalWins, profile.totalLosses, profile.bestScore, completedMissions, claimableMissions, profileV2.multiplayer.taskPoints, profileV2.multiplayer.rankPoints);
-    const skillLine = (skillId: string, name: string): string => {
-      const state = skillUpgradeSummary.activeLoadout.find((item) => item.skillId === skillId);
-      return `${name} LV ${state?.level ?? 1}/${state?.maxLevel ?? 10}`;
-    };
-    this.createLoadoutCard(
+      profile.coins,
+      profile.leakPoints,
+      dashboard.powerScore,
+      dashboard.evolutionRows.find((row) => row.status === "current"),
       stage.name,
       boss.name,
-      skillLine(profile.selectedSkillIds.skill1, skills.skill1.name),
-      skillLine(profile.selectedSkillIds.skill2, skills.skill2.name),
-      skillLine(profile.selectedSkillIds.ultimate, skills.ultimate.name),
-      profileV2.progress.skillUpgradePower,
-      profileV2.progress.readySkillUpgrades,
     );
-    this.createProgressCard(profile.unlockedSkinIds.length, profile.unlockedSkillIds.length, profile.unlockedStageIds.length, campaignProgress);
-    const saveStatus = getSaveStatus();
-    this.createResourceCard(
-      profile.leakPoints,
-      profile.skinShards,
-      profile.skillCards,
-      profileV2.multiplayer.tournamentPoints,
-      profileV2.multiplayer.duelRating,
-      masterySummary.totalBranchLevels,
-      masterySummary.totalMaxBranchLevels,
-      masterySummary.totalMasteryPower,
-      masterySummary.availablePoints,
-      masterySummary.nextUnlockBranch?.shortName,
-      masterySummary.nextUnlockBranch?.unlockLabel,
-      saveStatus.mainReadable,
-      saveStatus.backupReadable,
-    );
+    this.createPowerCard(dashboard.powerRows, dashboard.xpRows[0]);
+    this.createGoalsCard(dashboard.nextGoals);
+    this.createEvolutionCard(dashboard.evolutionRows);
+    this.createSkillMasteryCard(dashboard.activeSkillRows, dashboard.upgradeCandidateRows, dashboard.masteryRows);
+    this.createFooterStatus(saveStatus.mainReadable, saveStatus.backupReadable);
     this.createFooterButtons();
   }
 
@@ -108,114 +67,167 @@ export class ProfileScene extends Phaser.Scene {
     skin: ReturnType<typeof getSkinById>,
     displayName: string,
     level: number,
-    coins: number,
     xp: number,
-    xpRemaining: number,
+    coins: number,
+    leakPoints: number,
     powerScore: number,
-    evolutionName: string,
-    evolutionTitle: string,
-    nextEvolutionName?: string,
-    nextEvolutionRequirement?: string,
+    currentEvolution: EvolutionUiRow | undefined,
+    stageName: string,
+    bossName: string,
   ): void {
-    const x = 164;
-    this.add.rectangle(x, 194, 250, 246, 0x071107, 0.88)
-      .setStrokeStyle(2, skin.auraColor, 0.48)
+    const x = 150;
+    this.add.rectangle(x, 204, 248, 260, 0x071107, 0.9)
+      .setStrokeStyle(2, skin.auraColor, 0.52)
       .setDepth(2);
-    this.add.ellipse(x, 196, 122, 178, skin.auraColor, 0.08).setDepth(3);
-    this.add.image(x, 188, skin.previewKey)
-      .setDisplaySize(138, 176)
+    this.add.ellipse(x, 182, 126, 170, skin.auraColor, 0.08).setDepth(3);
+    this.add.image(x, 170, skin.previewKey)
+      .setDisplaySize(132, 168)
       .setTint(skin.tintColor)
       .setDepth(4);
 
-    this.add.text(x, 300, displayName.toUpperCase(), {
+    this.add.text(x, 276, (displayName || "Broke Fighter").toUpperCase(), {
       fontFamily: "Arial", fontSize: "13px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(4);
-    this.add.text(x, 318, skin.name.toUpperCase(), {
-      fontFamily: "Arial", fontSize: "12px", color: skin.uiColor, fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+    this.add.text(x, 296, `${currentEvolution?.name ?? "Broke Rookie"} · ${skin.name}`.toUpperCase(), {
+      fontFamily: "Arial", fontSize: "11px", color: skin.uiColor, fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(4);
-    const nextEvolutionLine = nextEvolutionName ? `NEXT EVO: ${nextEvolutionName} (${nextEvolutionRequirement})` : "NEXT EVO: SEASON PRESTIGE";
-    this.add.text(x, 342, `LV ${level} · POWER ${powerScore}\nXP ${xp} · NEXT ${xpRemaining} · COINS ${coins}\nEVO: ${evolutionName} · ${evolutionTitle}\n${nextEvolutionLine}`, {
-      fontFamily: "Arial", fontSize: "10px", color: "#fcfff7", fontStyle: "bold", align: "center", stroke: "#041004", strokeThickness: 3,
-      lineSpacing: 2,
-      wordWrap: { width: 224 },
-    }).setOrigin(0.5).setDepth(4);
+
+    this.writeLines(42, 318, [
+      `LV ${level} · POWER ${powerScore}`,
+      `XP ${xp} · COINS ${coins} · LEAK ${leakPoints}`,
+      `STAGE: ${stageName}`,
+      `BOSS: ${bossName}`,
+    ], "#fcfff7", 10, 18);
   }
 
-  private createStatsCard(wins: number, losses: number, bestScore: number, completedMissions: number, claimableMissions: number, taskPoints: number, rankPoints: number): void {
-    this.createPanel(430, 142, 246, 124, "PROFILE STATS V2", 0x72ff57);
-    const lines = [
-      `WINS: ${wins} / LOSSES: ${losses}`,
-      `BEST SCORE: ${bestScore}`,
-      `MISSIONS DONE: ${completedMissions}`,
-      `CLAIMABLE: ${claimableMissions}`,
-      `TASK PTS: ${taskPoints} · RANK PTS: ${rankPoints}`,
-    ];
-    this.writeLines(322, 130, lines, "#fcfff7");
+  private createPowerCard(powerRows: readonly PowerBreakdownUiRow[], xpRow: ProgressionMeterRow | undefined): void {
+    this.createPanel(430, 141, 250, 128, "POWER / LEVEL", 0x72ff57);
+    if (xpRow) {
+      this.add.text(318, 101, `${xpRow.label} · ${xpRow.detail}`.toUpperCase(), {
+        fontFamily: "Arial", fontSize: "10px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+      }).setDepth(3);
+      this.createMeter(318, 120, 214, xpRow.percent, this.getToneColor(xpRow.tone));
+    }
+
+    powerRows.slice(0, 5).forEach((row, index) => {
+      const y = 144 + index * 18;
+      this.add.text(318, y, row.label, {
+        fontFamily: "Arial", fontSize: "9px", color: "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+      }).setDepth(3);
+      this.createMeter(386, y + 4, 96, row.percent, this.getToneColor(row.tone));
+      this.add.text(490, y, row.detail, {
+        fontFamily: "Arial", fontSize: "9px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+      }).setDepth(3);
+    });
   }
 
-  private createLoadoutCard(stage: string, boss: string, skill1: string, skill2: string, ultimate: string, skillPower: number, readySkillUpgrades: number): void {
-    this.createPanel(430, 288, 246, 138, "ACTIVE LOADOUT", 0xb66cff);
-    this.writeLines(322, 268, [
-      `SKILL POWER: ${skillPower} · READY: ${readySkillUpgrades}`,
-      `S1: ${skill1}`,
-      `S2: ${skill2}`,
-      `ULT: ${ultimate}`,
-      `STAGE: ${stage}`,
-      `BOSS: ${boss}`,
-    ], "#d7ffd0", 10);
+  private createGoalsCard(goals: readonly ProgressionGoalUiRow[]): void {
+    this.createPanel(704, 141, 276, 128, "NEXT GOALS", 0xffeb72);
+    goals.slice(0, 5).forEach((goal, index) => {
+      const y = 102 + index * 22;
+      const color = this.getToneColor(goal.tone);
+      this.add.circle(586, y + 5, 4, color, 0.92).setDepth(3);
+      this.add.text(596, y, goal.label.toUpperCase(), {
+        fontFamily: "Arial", fontSize: "10px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+      }).setDepth(3);
+      this.add.text(596, y + 11, goal.detail.toUpperCase(), {
+        fontFamily: "Arial", fontSize: "8px", color: "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 2,
+      }).setDepth(3);
+    });
   }
 
-  private createProgressCard(unlockedSkins: number, unlockedSkills: number, unlockedStages: number, campaignProgress: Record<string, number>): void {
-    this.createPanel(700, 142, 266, 124, "UNLOCK PROGRESS", 0xffeb72);
-    const cleared = CAMPAIGN_CHAPTERS.reduce((sum, chapter) => sum + (campaignProgress[chapter.id] ?? 0), 0);
-    this.writeLines(576, 130, [
-      `SKINS: ${unlockedSkins}/${SKINS.length}`,
-      `SKILLS: ${unlockedSkills}/${SKILLS.length}`,
-      `STAGES: ${unlockedStages}/${STAGES.length}`,
-      `BOSSES CLEARED: ${cleared}`,
-      `CHAPTERS: ${CAMPAIGN_CHAPTERS.length}`,
-    ], "#fcfff7");
+  private createEvolutionCard(rows: readonly EvolutionUiRow[]): void {
+    this.createPanel(430, 294, 250, 136, "MASCOT EVOLUTION", 0xb66cff);
+    rows.slice(0, 6).forEach((row, index) => {
+      const y = 257 + index * 18;
+      const color = row.status === "current" ? "#72ff57" : row.status === "unlocked" ? "#8cdcff" : "#7f8a78";
+      const marker = row.status === "current" ? "▶" : row.status === "unlocked" ? "✓" : "×";
+      this.add.text(316, y, `${marker} T${row.tier} ${row.name}`.toUpperCase(), {
+        fontFamily: "Arial", fontSize: "9px", color, fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+      }).setDepth(3);
+      this.add.text(458, y, `PWR ${row.powerValue}`.toUpperCase(), {
+        fontFamily: "Arial", fontSize: "9px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+      }).setDepth(3);
+      this.add.text(316, y + 9, row.status === "locked" ? row.requirement.toUpperCase() : row.title.toUpperCase(), {
+        fontFamily: "Arial", fontSize: "7px", color: "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 2,
+      }).setDepth(3);
+    });
   }
 
-  private createResourceCard(
-    leakPoints: number,
-    skinShards: number,
-    skillCards: number,
-    tournamentPoints: number,
-    duelRating: number,
-    masteryBranchTotal: number,
-    masteryBranchMax: number,
-    masteryPower: number,
-    masteryAvailablePoints: number,
-    nextMasteryName: string | undefined,
-    nextMasteryRequirement: string | undefined,
-    saveOk: boolean,
-    backupOk: boolean,
+  private createSkillMasteryCard(
+    activeSkills: readonly SkillProgressionUiRow[],
+    candidates: readonly SkillProgressionUiRow[],
+    masteryRows: readonly MasteryProgressionUiRow[],
   ): void {
-    this.createPanel(700, 288, 266, 138, "RESOURCES / MASTERY", 0x8cdcff);
-    const nextMasteryLine = nextMasteryName ? `NEXT ${nextMasteryName}: ${nextMasteryRequirement}` : "NEXT MASTERY: ALL BRANCHES OPEN";
-    this.writeLines(576, 270, [
-      `MASTERY: ${masteryBranchTotal}/${masteryBranchMax} · PWR ${masteryPower}`,
-      `FREE POINTS: ${masteryAvailablePoints} · DUEL ${duelRating}`,
-      `LEAK: ${leakPoints} · TP: ${tournamentPoints}`,
-      `CARDS: ${skillCards} · SHARDS: ${skinShards}`,
-      nextMasteryLine,
-      `SAVE ${saveOk ? "OK" : "EMPTY"} · BACKUP ${backupOk ? "OK" : "EMPTY"}`,
-    ], "#d7ffd0", 10);
+    this.createPanel(704, 294, 276, 136, "SKILLS / MASTERY", 0x8cdcff);
+    const loadoutRows = activeSkills.slice(-3);
+    loadoutRows.forEach((row, index) => {
+      const y = 255 + index * 18;
+      this.add.text(578, y, `${row.role}: ${row.name}`.toUpperCase(), {
+        fontFamily: "Arial", fontSize: "9px", color: "#fcfff7", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+      }).setDepth(3);
+      this.add.text(738, y, `LV ${row.level}/${row.maxLevel} P${row.powerValue}`.toUpperCase(), {
+        fontFamily: "Arial", fontSize: "9px", color: row.status === "ready" ? "#72ff57" : "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+      }).setDepth(3);
+    });
+
+    const candidate = candidates[0];
+    this.add.text(578, 314, candidate ? `NEXT UPGRADE: ${candidate.name}`.toUpperCase() : "NEXT UPGRADE: WAITING FOR CARDS", {
+      fontFamily: "Arial", fontSize: "9px", color: candidate?.status === "ready" ? "#72ff57" : "#ffeb72", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+    }).setDepth(3);
+    this.add.text(578, 326, candidate ? candidate.costLabel.toUpperCase() : "UPGRADE FLOW LOCKED", {
+      fontFamily: "Arial", fontSize: "8px", color: "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 2,
+    }).setDepth(3);
+
+    masteryRows.slice(0, 6).forEach((row, index) => {
+      const x = 582 + (index % 3) * 86;
+      const y = 354 + Math.floor(index / 3) * 22;
+      const color = row.status === "locked" ? "#7f8a78" : row.status === "active" ? "#72ff57" : "#8cdcff";
+      this.add.text(x, y, `${row.shortName} ${row.level}/${row.maxLevel}`.toUpperCase(), {
+        fontFamily: "Arial", fontSize: "8px", color, fontStyle: "bold", stroke: "#041004", strokeThickness: 2,
+      }).setDepth(3);
+      this.add.text(x, y + 10, row.status === "locked" ? row.unlockLabel.toUpperCase() : `PWR ${row.powerValue}`.toUpperCase(), {
+        fontFamily: "Arial", fontSize: "7px", color: "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 2,
+      }).setDepth(3);
+    });
+  }
+
+  private createFooterStatus(saveOk: boolean, backupOk: boolean): void {
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 62, `PROGRESSION UI ONLY · COMBAT BONUSES LOCKED · SAVE ${saveOk ? "OK" : "EMPTY"} · BACKUP ${backupOk ? "OK" : "EMPTY"}`, {
+      fontFamily: "Arial", fontSize: "9px", color: "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(4);
   }
 
   private createPanel(x: number, y: number, w: number, h: number, title: string, color: number): void {
     this.add.rectangle(x, y, w, h, 0x071107, 0.9)
-      .setStrokeStyle(2, color, 0.42)
+      .setStrokeStyle(2, color, 0.44)
       .setDepth(2);
     this.add.text(x, y - h / 2 + 16, title, {
-      fontFamily: "Arial", fontSize: "13px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
+      fontFamily: "Arial", fontSize: "12px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(3);
   }
 
-  private writeLines(x: number, y: number, lines: string[], color: string, fontSize = 11): void {
+  private createMeter(x: number, y: number, width: number, percent: number, color: number): void {
+    const fillWidth = Math.max(2, Math.floor(width * Math.max(0, Math.min(100, percent)) / 100));
+    this.add.rectangle(x, y, width, 6, 0x1a2a1a, 0.92).setOrigin(0, 0.5).setDepth(3);
+    this.add.rectangle(x, y, fillWidth, 6, color, 0.86).setOrigin(0, 0.5).setDepth(4);
+  }
+
+  private getToneColor(tone: ProgressionUiRowTone): number {
+    switch (tone) {
+      case "ready": return 0x72ff57;
+      case "active": return 0x8cdcff;
+      case "locked": return 0xff9a3d;
+      case "capped": return 0xffeb72;
+      case "future":
+      default:
+        return 0xb66cff;
+    }
+  }
+
+  private writeLines(x: number, y: number, lines: string[], color: string, fontSize = 11, step = 19): void {
     lines.forEach((line, index) => {
-      this.add.text(x, y + index * 19, line.toUpperCase(), {
+      this.add.text(x, y + index * step, line.toUpperCase(), {
         fontFamily: "Arial", fontSize: `${fontSize}px`, color, fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
       }).setDepth(3);
     });

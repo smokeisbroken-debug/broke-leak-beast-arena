@@ -208,3 +208,21 @@ export {
   normalizeMasteryBranchLevelsForProfile,
 } from "../systems/MasterySystem";
 export type { MasterySummary } from "../systems/MasterySystem";
+
+export {
+  PROGRESSION_UI_SYSTEM_DEFINITION,
+  PROGRESSION_UI_SYSTEM_VERSION,
+  getProgressionDashboard,
+} from "../systems/ProgressionUiSystem";
+export type {
+  EvolutionUiRow,
+  MasteryProgressionUiRow,
+  PowerBreakdownUiRow,
+  ProgressionDashboardUiModel,
+  ProgressionGoalUiRow,
+  ProgressionMeterRow,
+  ProgressionUiPanelId,
+  ProgressionUiRowTone,
+  ProgressionUiSystemDefinition,
+  SkillProgressionUiRow,
+} from "../types/ProgressionUiTypes";
