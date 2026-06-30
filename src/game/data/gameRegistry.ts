@@ -76,6 +76,35 @@ export type {
 } from "../types/CampaignChapterTypes";
 export { BOSS_MECHANIC_PROFILES, getBossMechanicProfile } from "./bossMechanics";
 export type { BossMechanicProfile, BossMechanicProfileId, BossPhaseDefinition, BossSpecialDefinition, BossSpecialEffect } from "./bossMechanics";
+export {
+  BOSS_REGISTRY_SYSTEM_DEFINITION,
+  BOSS_REGISTRY_SYSTEM_VERSION,
+  calculateBossDifficultyScore,
+  createBossRegistrySnapshot,
+  createCampaignBossRegistryEntry,
+  createWeeklyBossRegistryEntry,
+  getBossRegistryChapterGroups,
+  getBossRegistryEntries,
+  getBossRegistryEntriesForChapter,
+  getBossRegistryEntry,
+  getBossRegistrySummary,
+} from "../systems/BossRegistrySystem";
+export type {
+  BossDifficultyBand,
+  BossDifficultyScore,
+  BossDifficultyScoreBreakdown,
+  BossRegistryChapterGroup,
+  BossRegistryEntry,
+  BossRegistryEntryId,
+  BossRegistryRewardPreview,
+  BossRegistryRewardPreviewId,
+  BossRegistryScope,
+  BossRegistrySnapshot,
+  BossRegistryStatus,
+  BossRegistrySummary,
+  BossRegistrySystemDefinition,
+  BossThreatTag,
+} from "../types/BossRegistryTypes";
 
 export {
   STAGES,
