@@ -9,7 +9,7 @@ import {
   REWARD_SOURCE_DEFINITIONS,
   type CurrencyId,
 } from "../types/EconomyTypes";
-import { TASK_SKELETON_DEFINITIONS } from "../types/TaskTypes";
+import { TASK_SKELETON_DEFINITIONS, TASK_SYSTEM_DEFINITION } from "../types/TaskTypes";
 import { TOURNAMENT_DEFINITIONS } from "../types/TournamentTypes";
 import { LEAK_DUEL_DEFINITION } from "../types/DuelTypes";
 import { SAVE_SCHEMA_DEFINITION_V2 } from "../types/SaveSchemaTypes";
@@ -19,7 +19,7 @@ import { SKILL_UPGRADE_SYSTEM_DEFINITION } from "../types/SkillUpgradeTypes";
 import { MASTERY_SYSTEM_DEFINITION } from "../types/MasteryTypes";
 import { PROGRESSION_UI_SYSTEM_DEFINITION } from "./ProgressionUiSystem";
 
-export const GAME_SYSTEMS_VERSION = "0.9.6-progression-ui";
+export const GAME_SYSTEMS_VERSION = "0.9.7-task-system-skeleton";
 
 export type GameSystemId =
   | "modes"
@@ -67,6 +67,7 @@ export interface GameSystemsRegistrySnapshot {
   rewardSources: typeof REWARD_SOURCE_DEFINITIONS;
   powerCaps: typeof DEFAULT_POWER_CAPS;
   leaderboards: typeof LEADERBOARD_DEFINITIONS;
+  taskSystem: typeof TASK_SYSTEM_DEFINITION;
   taskSkeletons: typeof TASK_SKELETON_DEFINITIONS;
   tournamentSkeletons: typeof TOURNAMENT_DEFINITIONS;
   duelSkeleton: typeof LEAK_DUEL_DEFINITION;
@@ -87,7 +88,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Centralize playable, ranked and backend-locked mode routes before UI and multiplayer work expands.",
     dependsOn: [],
     relatedModes: ["arena", "campaign", "tasks", "profile", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.9.6-progression-ui",
+    nextPatch: "v0.9.7-task-system-skeleton",
   },
   {
     id: "profile",
@@ -97,7 +98,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Store identity, selected loadout, synced wallet, capped power score and future multiplayer-safe fields.",
     dependsOn: ["modes"],
     relatedModes: ["profile", "arena", "campaign"],
-    nextPatch: "v0.9.6-progression-ui",
+    nextPatch: "v0.9.7-task-system-skeleton",
   },
   {
     id: "progression",
@@ -107,7 +108,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Unify level, XP, mastery placeholders and capped power score.",
     dependsOn: ["modes", "profile"],
     relatedModes: ["profile", "campaign", "leaderboard"],
-    nextPatch: "v0.9.6-progression-ui",
+    nextPatch: "v0.9.7-task-system-skeleton",
   },
   {
     id: "evolution",
@@ -117,7 +118,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped long-term mascot forms for profile identity, PowerScore and future seasons without direct combat scaling yet.",
     dependsOn: ["modes", "profile", "progression"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel"],
-    nextPatch: "v0.9.6-progression-ui",
+    nextPatch: "v0.9.7-task-system-skeleton",
   },
   {
     id: "skill_upgrades",
@@ -127,7 +128,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped skill levels, upgrade costs and PowerScore contribution before real upgrade spending and combat scaling are enabled.",
     dependsOn: ["modes", "profile", "progression", "evolution"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel"],
-    nextPatch: "v0.9.6-progression-ui",
+    nextPatch: "v0.9.7-task-system-skeleton",
   },
   {
     id: "mastery",
@@ -137,7 +138,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define long-term horizontal branches for guard, dash, skills, bosses, leak control and survival without direct combat scaling yet.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.9.6-progression-ui",
+    nextPatch: "v0.9.7-task-system-skeleton",
   },
   {
     id: "economy",
@@ -147,7 +148,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Separate XP, coins, leak points, rank points, tournament points and cosmetics.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades", "mastery"],
     relatedModes: ["tasks", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.9.6-progression-ui",
+    nextPatch: "v0.9.7-task-system-skeleton",
   },
   {
     id: "balance",
@@ -157,17 +158,17 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped power score, difficulty score and matchup evaluation before ranked systems go live.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades", "mastery", "economy"],
     relatedModes: ["arena", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.9.6-progression-ui",
+    nextPatch: "v0.9.7-task-system-skeleton",
   },
   {
     id: "tasks",
-    title: "Tasks",
+    title: "Task System",
     status: "skeleton",
-    priority: "next",
-    goal: "Award task points, progression rewards and future leaderboard activity score.",
+    priority: "now",
+    goal: "Define daily, weekly, tournament, duel and boss task contracts before claim flow and leaderboard scoring are enabled.",
     dependsOn: ["profile", "economy", "balance"],
-    relatedModes: ["tasks", "leaderboard", "tournament", "leak_duel"],
-    nextPatch: "v0.9.7-task-system-skeleton",
+    relatedModes: ["tasks", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
+    nextPatch: "v0.9.8-task-rewards",
   },
   {
     id: "leaderboard",
@@ -264,6 +265,7 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   rewardSources: REWARD_SOURCE_DEFINITIONS,
   powerCaps: DEFAULT_POWER_CAPS,
   leaderboards: LEADERBOARD_DEFINITIONS,
+  taskSystem: TASK_SYSTEM_DEFINITION,
   taskSkeletons: TASK_SKELETON_DEFINITIONS,
   tournamentSkeletons: TOURNAMENT_DEFINITIONS,
   duelSkeleton: LEAK_DUEL_DEFINITION,

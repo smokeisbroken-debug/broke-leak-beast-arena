@@ -43,6 +43,8 @@ export interface TaskSaveStateV2 {
   activeDailyTaskIds: string[];
   activeWeeklyTaskIds: string[];
   claimedTaskIds: string[];
+  completedTaskIds: string[];
+  taskProgressById: Record<string, number>;
   taskPointsByPeriod: Record<string, number>;
   lastDailyResetKey: string;
   lastWeeklyResetKey: string;
@@ -119,6 +121,7 @@ export const SAVE_SCHEMA_DEFINITION_V2: SaveSchemaDefinitionV2 = {
     "v1 saves remain readable and normalize into schema v2 fields.",
     "Ranked values stay local placeholders until backend validation exists.",
     "Leaderboard, tournament and duel submissions must use pending queues before remote adapters are enabled.",
+    "Task progress fields are local skeleton data until task event tracking and claim flow patches are enabled.",
   ],
 };
 
@@ -166,9 +169,11 @@ export function createDefaultSaveSystemsState(nowIso = new Date().toISOString())
       pendingSubmissionCount: 0,
     },
     tasks: {
-      activeDailyTaskIds: [],
-      activeWeeklyTaskIds: [],
+      activeDailyTaskIds: ["daily_win_one_arena", "daily_defeat_five_leaks", "daily_use_guard"],
+      activeWeeklyTaskIds: ["weekly_tournament_participation", "weekly_duel_win", "weekly_boss_damage_push"],
       claimedTaskIds: [],
+      completedTaskIds: [],
+      taskProgressById: {},
       taskPointsByPeriod: {},
       lastDailyResetKey: "",
       lastWeeklyResetKey: "",

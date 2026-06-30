@@ -8,7 +8,7 @@ import { getMasterySummary } from "./MasterySystem";
 import { getXpProgress } from "../data/progression";
 import type { PlayerProfileV2SystemDefinition, PlayerProfileV2Summary, ProfileCurrencyRow } from "../types/PlayerProfileTypes";
 
-export const PLAYER_PROFILE_V2_SYSTEM_VERSION = "0.9.5-mastery-skeleton";
+export const PLAYER_PROFILE_V2_SYSTEM_VERSION = "0.9.7-task-system-skeleton";
 
 export const PLAYER_PROFILE_V2_DEFINITION: PlayerProfileV2SystemDefinition = {
   version: PLAYER_PROFILE_V2_SYSTEM_VERSION,
@@ -36,6 +36,12 @@ export const PLAYER_PROFILE_V2_DEFINITION: PlayerProfileV2SystemDefinition = {
       title: "Multiplayer Totals",
       status: "local_skeleton",
       purpose: "Prepare rank, tournament, task, duel and weekly boss totals without remote submission yet.",
+    },
+    {
+      id: "tasks",
+      title: "Task Progress",
+      status: "local_skeleton",
+      purpose: "Prepare daily and weekly task ids, task points and future claim state before task tracking is enabled.",
     },
     {
       id: "leaderboards",
@@ -68,6 +74,7 @@ export const PLAYER_PROFILE_V2_DEFINITION: PlayerProfileV2SystemDefinition = {
     "Mascot evolution is visible in the profile and feeds capped PowerScore, but evolution bonuses are not applied to combat yet.",
     "Skill upgrade levels are visible and feed capped PowerScore, but upgrade bonuses are not applied to combat yet.",
     "Mastery branches are visible and feed capped PowerScore, but mastery bonuses are not applied to combat yet.",
+    "Task state is visible to systems as local skeleton data, but task claiming and leaderboard submission remain locked.",
     "Legacy top-level profile fields stay supported while wallet and multiplayer mirrors are introduced.",
   ],
 };

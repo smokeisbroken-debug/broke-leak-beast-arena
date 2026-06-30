@@ -226,3 +226,41 @@ export type {
   ProgressionUiSystemDefinition,
   SkillProgressionUiRow,
 } from "../types/ProgressionUiTypes";
+
+export {
+  TASK_SYSTEM_DEFINITION,
+  TASK_SYSTEM_VERSION,
+  createTaskProgressEvent,
+  getActiveTaskDefinitionsForProfile,
+  getActiveTaskIdsForCadence,
+  getTaskPeriodKey,
+  getTaskPeriodSnapshot,
+  getTaskProgressForProfile,
+  getTaskProgressState,
+  getTaskStatesForProfile,
+  getTaskSystemSummary,
+} from "../systems/TaskSystem";
+export {
+  DEFAULT_DAILY_TASK_IDS,
+  DEFAULT_WEEKLY_TASK_IDS,
+  TASK_POINT_LEADERBOARD_ID,
+  TASK_SKELETON_DEFINITIONS,
+  getDefaultTaskIdsForCadence,
+  getTaskDefinitionsByCadence,
+  getTaskSkeletonDefinition,
+} from "../types/TaskTypes";
+export type {
+  TaskCadence,
+  TaskCategory,
+  TaskClaimResult,
+  TaskDefinitionV2,
+  TaskEventSource,
+  TaskPeriodSnapshot,
+  TaskProgressEvent,
+  TaskProgressMetric,
+  TaskProgressState,
+  TaskStatus,
+  TaskSystemDefinition,
+  TaskSystemSummary,
+  TaskValidationTier,
+} from "../types/TaskTypes";

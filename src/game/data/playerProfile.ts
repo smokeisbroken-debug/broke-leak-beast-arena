@@ -344,12 +344,16 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
     ...systems.multiplayer,
     ...(profile?.multiplayer ?? {}),
   };
+  const incomingDailyTaskIds = uniqueStrings(profile?.tasksV2?.activeDailyTaskIds);
+  const incomingWeeklyTaskIds = uniqueStrings(profile?.tasksV2?.activeWeeklyTaskIds);
   normalized.tasksV2 = {
     ...systems.tasks,
     ...(profile?.tasksV2 ?? {}),
-    activeDailyTaskIds: uniqueStrings(profile?.tasksV2?.activeDailyTaskIds),
-    activeWeeklyTaskIds: uniqueStrings(profile?.tasksV2?.activeWeeklyTaskIds),
+    activeDailyTaskIds: incomingDailyTaskIds.length ? incomingDailyTaskIds : systems.tasks.activeDailyTaskIds,
+    activeWeeklyTaskIds: incomingWeeklyTaskIds.length ? incomingWeeklyTaskIds : systems.tasks.activeWeeklyTaskIds,
     claimedTaskIds: uniqueStrings(profile?.tasksV2?.claimedTaskIds),
+    completedTaskIds: uniqueStrings(profile?.tasksV2?.completedTaskIds),
+    taskProgressById: safeNumberRecord(profile?.tasksV2?.taskProgressById),
     taskPointsByPeriod: safeNumberRecord(profile?.tasksV2?.taskPointsByPeriod),
   };
   normalized.leaderboards = {
