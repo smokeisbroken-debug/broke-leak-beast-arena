@@ -46,6 +46,12 @@ import {
   getDuelReadinessMap,
   getDuelRegistrySummary,
 } from "./DuelSystem";
+import {
+  DUEL_SEED_SYSTEM_DEFINITION,
+  createDefaultDuelSeedSnapshot,
+  createDuelSeedPreviewCard,
+  createDuelSeedSnapshot,
+} from "./DuelSeedSystem";
 import { SAVE_SCHEMA_DEFINITION_V2 } from "../types/SaveSchemaTypes";
 import { PLAYER_PROFILE_V2_DEFINITION } from "./ProfileSystem";
 import { EVOLUTION_SYSTEM_DEFINITION } from "../types/EvolutionTypes";
@@ -53,7 +59,7 @@ import { SKILL_UPGRADE_SYSTEM_DEFINITION } from "../types/SkillUpgradeTypes";
 import { MASTERY_SYSTEM_DEFINITION } from "../types/MasteryTypes";
 import { PROGRESSION_UI_SYSTEM_DEFINITION } from "./ProgressionUiSystem";
 
-export const GAME_SYSTEMS_VERSION = "0.11.3-duel-types";
+export const GAME_SYSTEMS_VERSION = "0.11.4-duel-seed-system";
 
 export type GameSystemId =
   | "modes"
@@ -137,6 +143,10 @@ export interface GameSystemsRegistrySnapshot {
   tournamentLeaderboardSubmitPreviewFactory: typeof createSampleTournamentLeaderboardSubmitPreview;
   duelDefinitions: typeof DUEL_DEFINITIONS;
   duelSystem: typeof DUEL_SYSTEM_DEFINITION;
+  duelSeedSystem: typeof DUEL_SEED_SYSTEM_DEFINITION;
+  duelSeedSnapshot: ReturnType<typeof createDefaultDuelSeedSnapshot>;
+  duelSeedSnapshotFactory: typeof createDuelSeedSnapshot;
+  duelSeedPreviewCardFactory: typeof createDuelSeedPreviewCard;
   duelRegistrySummary: ReturnType<typeof getDuelRegistrySummary>;
   duelReadinessMap: ReturnType<typeof getDuelReadinessMap>;
   duelContractPreviewMap: ReturnType<typeof createDuelContractPreviewMap>;
@@ -159,7 +169,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Centralize playable, ranked and backend-locked mode routes before UI and multiplayer work expands.",
     dependsOn: [],
     relatedModes: ["arena", "campaign", "tasks", "profile", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.11.4-duel-seed-system",
+    nextPatch: "v0.11.5-duel-score-formula",
   },
   {
     id: "profile",
@@ -169,7 +179,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Store identity, selected loadout, synced wallet, capped power score and future multiplayer-safe fields.",
     dependsOn: ["modes"],
     relatedModes: ["profile", "arena", "campaign"],
-    nextPatch: "v0.11.4-duel-seed-system",
+    nextPatch: "v0.11.5-duel-score-formula",
   },
   {
     id: "progression",
@@ -179,7 +189,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Unify level, XP, mastery placeholders and capped power score.",
     dependsOn: ["modes", "profile"],
     relatedModes: ["profile", "campaign", "leaderboard"],
-    nextPatch: "v0.11.4-duel-seed-system",
+    nextPatch: "v0.11.5-duel-score-formula",
   },
   {
     id: "evolution",
@@ -189,7 +199,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped long-term mascot forms for profile identity, PowerScore and future seasons without direct combat scaling yet.",
     dependsOn: ["modes", "profile", "progression"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel"],
-    nextPatch: "v0.11.4-duel-seed-system",
+    nextPatch: "v0.11.5-duel-score-formula",
   },
   {
     id: "skill_upgrades",
@@ -199,7 +209,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped skill levels, upgrade costs and PowerScore contribution before real upgrade spending and combat scaling are enabled.",
     dependsOn: ["modes", "profile", "progression", "evolution"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel"],
-    nextPatch: "v0.11.4-duel-seed-system",
+    nextPatch: "v0.11.5-duel-score-formula",
   },
   {
     id: "mastery",
@@ -209,7 +219,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define long-term horizontal branches for guard, dash, skills, bosses, leak control and survival without direct combat scaling yet.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.11.4-duel-seed-system",
+    nextPatch: "v0.11.5-duel-score-formula",
   },
   {
     id: "economy",
@@ -219,7 +229,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Separate XP, coins, leak points, rank points, tournament points and cosmetics.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades", "mastery"],
     relatedModes: ["tasks", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.11.4-duel-seed-system",
+    nextPatch: "v0.11.5-duel-score-formula",
   },
   {
     id: "balance",
@@ -229,7 +239,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped power score, difficulty score and matchup evaluation before ranked systems go live.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades", "mastery", "economy"],
     relatedModes: ["arena", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.11.4-duel-seed-system",
+    nextPatch: "v0.11.5-duel-score-formula",
   },
   {
     id: "tasks",
@@ -239,7 +249,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define daily, weekly, tournament, duel and boss tasks, reward previews, local progress tracking and safe daily claim flow before task-point leaderboard payloads are enabled.",
     dependsOn: ["profile", "economy", "balance"],
     relatedModes: ["tasks", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.11.4-duel-seed-system",
+    nextPatch: "v0.11.5-duel-score-formula",
   },
   {
     id: "leaderboard",
@@ -249,7 +259,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Display typed score contracts, deterministic local mock snapshots and weekly reset previews before remote submission is enabled.",
     dependsOn: ["profile", "progression", "evolution", "skill_upgrades", "mastery", "balance", "tasks", "anti_cheat"],
     relatedModes: ["leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.11.4-duel-seed-system",
+    nextPatch: "v0.11.5-duel-score-formula",
   },
   {
     id: "tournaments",
@@ -259,7 +269,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define time-boxed events with rules, participation points, deterministic scoring and ranked leaderboard wiring.",
     dependsOn: ["leaderboard", "economy", "balance", "anti_cheat"],
     relatedModes: ["tournament", "leaderboard"],
-    nextPatch: "v0.11.4-duel-seed-system",
+    nextPatch: "v0.11.5-duel-score-formula",
   },
   {
     id: "duels",
@@ -269,7 +279,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Create asynchronous 1 vs 1 battles on identical leak-pressure seeds.",
     dependsOn: ["leaderboard", "economy", "balance", "anti_cheat"],
     relatedModes: ["leak_duel", "leaderboard"],
-    nextPatch: "v0.11.4-duel-seed-system",
+    nextPatch: "v0.11.5-duel-score-formula",
   },
   {
     id: "campaign",
@@ -372,6 +382,10 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   tournamentLeaderboardSubmitPreviewFactory: createSampleTournamentLeaderboardSubmitPreview,
   duelDefinitions: DUEL_DEFINITIONS,
   duelSystem: DUEL_SYSTEM_DEFINITION,
+  duelSeedSystem: DUEL_SEED_SYSTEM_DEFINITION,
+  duelSeedSnapshot: createDefaultDuelSeedSnapshot(),
+  duelSeedSnapshotFactory: createDuelSeedSnapshot,
+  duelSeedPreviewCardFactory: createDuelSeedPreviewCard,
   duelRegistrySummary: getDuelRegistrySummary(),
   duelReadinessMap: getDuelReadinessMap(),
   duelContractPreviewMap: createDuelContractPreviewMap(),

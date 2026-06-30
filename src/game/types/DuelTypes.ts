@@ -207,8 +207,8 @@ export const DEFAULT_DUEL_EVENT_WINDOW: DuelEventWindow = {
 export const DEFAULT_LEAK_DUEL_SEED: DuelSeedDefinition = {
   seedId: "leak-duel-preview-seed-001",
   seedKey: "LD-PREVIEW-001-SAME-LEAK-PRESSURE",
-  stageId: "subway",
-  bossId: "subscription_beast",
+  stageId: "subscription_office",
+  bossId: "subscription_leech",
   durationSeconds: 120,
   modifiers: ["subscription_swarm", "cold_wallet"],
   seedStatus: "local_preview",

@@ -10,8 +10,9 @@ import {
   type DuelRegistrySummary,
   type DuelSystemDefinition,
 } from "../types/DuelTypes";
+import { createDefaultDuelSeedSnapshot } from "./DuelSeedSystem";
 
-export const DUEL_SYSTEM_VERSION = "0.11.3-duel-types";
+export const DUEL_SYSTEM_VERSION = "0.11.4-duel-seed-system";
 
 const REQUIRED_BEFORE_LIVE_DUELS = [
   "Duel seed system with deterministic stage, boss, modifiers and time box",
@@ -24,7 +25,7 @@ const REQUIRED_BEFORE_LIVE_DUELS = [
 
 export const DUEL_SYSTEM_DEFINITION: DuelSystemDefinition = {
   version: DUEL_SYSTEM_VERSION,
-  goal: "Define 1v1 Leak Duel contracts before seed generation, duel UI, result submit or real matchmaking are enabled.",
+  goal: "Define 1v1 Leak Duel contracts and deterministic equal-condition seed previews before duel UI, result submit or real matchmaking are enabled.",
   duelIds: DUEL_DEFINITIONS.map((duel) => duel.id),
   localContractDuelIds: getLocalContractDuels().map((duel) => duel.id),
   backendLockedDuelIds: getBackendLockedDuels().map((duel) => duel.id),
@@ -60,6 +61,7 @@ export function getDuelReadinessMap(): Record<DuelModeId, ReturnType<typeof getD
 export function createDuelContractPreview(duelId: DuelModeId = LEAK_DUEL_DEFINITION.id): DuelContractPreview {
   const duel = DUEL_DEFINITIONS.find((candidate) => candidate.id === duelId) ?? LEAK_DUEL_DEFINITION;
   const readiness = getDuelReadiness(duel.id);
+  const seedSnapshot = createDefaultDuelSeedSnapshot();
   const scorePreview = calculateDuelScore(
     {
       damageDealt: 420,
@@ -80,7 +82,7 @@ export function createDuelContractPreview(duelId: DuelModeId = LEAK_DUEL_DEFINIT
     matchType: duel.matchType,
     leaderboardId: duel.leaderboardId,
     periodKey: duel.eventWindow.periodKey,
-    seed: duel.defaultSeed,
+    seed: duel.id === "leak_duel_async" ? seedSnapshot.seed : duel.defaultSeed,
     scorePreview,
     readiness,
     rewardPreview: {
@@ -91,7 +93,7 @@ export function createDuelContractPreview(duelId: DuelModeId = LEAK_DUEL_DEFINIT
     },
     summaryRows: [
       `${duel.shortTitle}: ${duel.description}`,
-      `Seed: ${duel.defaultSeed.seedKey}`,
+      `Seed: ${(duel.id === "leak_duel_async" ? seedSnapshot.seed : duel.defaultSeed).seedKey}`,
       `Leaderboard: ${duel.leaderboardId}`,
       `Public submit: ${readiness.publicSubmitEnabled ? "enabled" : "locked"}`,
       `Rewards: backend validation required`,
