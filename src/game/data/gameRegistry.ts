@@ -633,6 +633,17 @@ export {
   createDuelSeedPreviewCard,
   createDuelSeedSnapshot,
 } from "../systems/DuelSeedSystem";
+export {
+  DUEL_SCORE_CAPS,
+  DUEL_SCORE_MODIFIER_NOTES,
+  DUEL_SCORE_SYSTEM_DEFINITION,
+  DUEL_SCORE_SYSTEM_VERSION,
+  calculateDuelScoreSnapshot,
+  createSampleDuelScoreSnapshot,
+  createSampleDuelVersusPreview,
+  getDuelScoreQualityBand,
+  normalizeDuelScoreForSeed,
+} from "../systems/DuelScoreSystem";
 export type {
   DuelSeedDifficultyBand,
   DuelSeedFairnessRuleId,
@@ -644,3 +655,16 @@ export type {
   DuelSeedSystemDefinition,
   DuelSeedTemplate,
 } from "../types/DuelSeedTypes";
+export type {
+  DuelModifierScoreNote,
+  DuelScoreCaps,
+  DuelScoreFormulaInput,
+  DuelScoreFormulaSnapshot,
+  DuelScoreQualityBand,
+  DuelScoreSystemDefinition,
+  DuelScoreValidationFlag,
+  DuelScoreValidationFlagId,
+  DuelScoreValidationSeverity,
+  DuelScoreVersusPreview,
+} from "../types/DuelScoreTypes";
+

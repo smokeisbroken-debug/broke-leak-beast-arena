@@ -1,7 +1,6 @@
 import {
   DUEL_DEFINITIONS,
   LEAK_DUEL_DEFINITION,
-  calculateDuelScore,
   getBackendLockedDuels,
   getDuelReadiness,
   getLocalContractDuels,
@@ -11,11 +10,13 @@ import {
   type DuelSystemDefinition,
 } from "../types/DuelTypes";
 import { createDefaultDuelSeedSnapshot } from "./DuelSeedSystem";
+import { calculateDuelScoreSnapshot } from "./DuelScoreSystem";
 
-export const DUEL_SYSTEM_VERSION = "0.11.4-duel-seed-system";
+export const DUEL_SYSTEM_VERSION = "0.11.5-duel-score-formula";
 
 const REQUIRED_BEFORE_LIVE_DUELS = [
   "Duel seed system with deterministic stage, boss, modifiers and time box",
+  "Capped duel score formula for same-seed score comparison",
   "Duel result payload connected to Arena result stats",
   "Leaderboard adapter submit implementation for duel_ranked",
   "Backend identity and opponent matching",
@@ -25,13 +26,14 @@ const REQUIRED_BEFORE_LIVE_DUELS = [
 
 export const DUEL_SYSTEM_DEFINITION: DuelSystemDefinition = {
   version: DUEL_SYSTEM_VERSION,
-  goal: "Define 1v1 Leak Duel contracts and deterministic equal-condition seed previews before duel UI, result submit or real matchmaking are enabled.",
+  goal: "Define 1v1 Leak Duel contracts, deterministic equal-condition seeds and capped score formula before duel UI, result submit or real matchmaking are enabled.",
   duelIds: DUEL_DEFINITIONS.map((duel) => duel.id),
   localContractDuelIds: getLocalContractDuels().map((duel) => duel.id),
   backendLockedDuelIds: getBackendLockedDuels().map((duel) => duel.id),
   requiredBeforeLiveDuels: REQUIRED_BEFORE_LIVE_DUELS,
   rules: [
     "Leak Duel launches asynchronous first: both players fight the same leak-pressure seed and score is compared after both runs finish.",
+    "Duel scoring is capped by seed duration and anti-abuse stat ceilings before leaderboard submission exists.",
     "Live real-time 1v1 stays locked until backend authority, reconnect and anti-cheat exist.",
     "Rank Points, Leak Points and win rewards remain backend-sensitive and cannot be publicly claimed from local preview data.",
     "Competitive duels must not include paid advantage; score comes from discipline, survival, guard timing, leak control and clean damage.",
@@ -62,8 +64,12 @@ export function createDuelContractPreview(duelId: DuelModeId = LEAK_DUEL_DEFINIT
   const duel = DUEL_DEFINITIONS.find((candidate) => candidate.id === duelId) ?? LEAK_DUEL_DEFINITION;
   const readiness = getDuelReadiness(duel.id);
   const seedSnapshot = createDefaultDuelSeedSnapshot();
-  const scorePreview = calculateDuelScore(
-    {
+  const scorePreview = calculateDuelScoreSnapshot({
+    participantSlot: "player_a",
+    displayName: "YOU",
+    seed: duel.id === "leak_duel_async" ? seedSnapshot.seed : duel.defaultSeed,
+    weights: duel.scoreWeights,
+    rawScore: {
       damageDealt: 420,
       leaksDefeated: 8,
       survivedSeconds: 118,
@@ -73,8 +79,7 @@ export function createDuelContractPreview(duelId: DuelModeId = LEAK_DUEL_DEFINIT
       damageTaken: 32,
       participated: true,
     },
-    duel.scoreWeights,
-  );
+  }).score;
 
   return {
     duelId: duel.id,
