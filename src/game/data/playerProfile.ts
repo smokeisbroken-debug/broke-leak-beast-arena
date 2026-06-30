@@ -404,7 +404,8 @@ export function applyFightResultToProfile(profile: PlayerProfile, input: FightRe
     };
   }
 
-  const baseRewards = calculateFightReward(input.victory, input.bossesBroken, input.leaksDefeated, input.score);
+  const defeatedBossIds = Array.from(new Set(input.defeatedBossIds ?? []));
+  const baseRewards = calculateFightReward(input.victory, input.bossesBroken, input.leaksDefeated, input.score, defeatedBossIds);
 
   if (resultId) {
     normalized.processedFightResultIds = [...normalized.processedFightResultIds, resultId].slice(-30);
@@ -418,7 +419,6 @@ export function applyFightResultToProfile(profile: PlayerProfile, input: FightRe
   normalized.bestScore = Math.max(normalized.bestScore, input.score);
   normalized.totalWins += input.victory ? 1 : 0;
   normalized.totalLosses += input.victory ? 0 : 1;
-  const defeatedBossIds = Array.from(new Set(input.defeatedBossIds ?? []));
   for (const bossId of defeatedBossIds) {
     normalized.bossProgress[bossId] = true;
   }

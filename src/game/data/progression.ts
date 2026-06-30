@@ -31,12 +31,16 @@ export interface RewardChoiceDefinition {
 
 export const LEVELS: LevelDefinition[] = [
   { level: 1, xpRequired: 0, coinReward: 0, unlocks: ["green_punch", "power_kick", "wallet_guard", "broke_dash"] },
-  { level: 2, xpRequired: 100, coinReward: 80, unlocks: ["green_slash", "luxury_mall"] },
-  { level: 3, xpRequired: 260, coinReward: 120, unlocks: ["cashback_heal", "casino_district", "subscription_office"] },
-  { level: 4, xpRequired: 520, coinReward: 170, unlocks: ["anti_fomo_pulse", "crypto_arena", "fast_food_alley"] },
+  { level: 2, xpRequired: 100, coinReward: 80, unlocks: ["green_slash", "luxury_mall", "subscription_office"] },
+  { level: 3, xpRequired: 260, coinReward: 120, unlocks: ["cashback_heal", "casino_district", "fast_food_alley"] },
+  { level: 4, xpRequired: 520, coinReward: 170, unlocks: ["anti_fomo_pulse", "crypto_arena"] },
   { level: 5, xpRequired: 900, coinReward: 250, unlocks: ["wallet_protection_mode", "debt_breaker", "vacation_island"] },
-  { level: 6, xpRequired: 1350, coinReward: 340, unlocks: ["dark_wallet_vault"] },
-];
+  { level: 6, xpRequired: 1350, coinReward: 340, unlocks: ["leak_trap", "scam_buster_slash", "receipt_refund"] },
+  { level: 7, xpRequired: 1900, coinReward: 460, unlocks: ["spending_freeze", "dark_wallet_vault"] },
+  { level: 8, xpRequired: 2600, coinReward: 620, unlocks: ["green_finisher"] },
+  { level: 9, xpRequired: 3400, coinReward: 780, unlocks: [] },
+  { level: 10, xpRequired: 4400, coinReward: 1000, unlocks: [] },
+]
 
 export const BASE_FIGHT_REWARDS: RewardBundle = {
   xp: 95,
@@ -102,7 +106,7 @@ export function getXpProgress(xp: number): { level: LevelDefinition; nextLevel?:
   };
 }
 
-export function calculateFightReward(victory: boolean, bossesBroken: number, leaksDefeated = 0, score = 0): RewardBundle {
+export function calculateFightReward(victory: boolean, bossesBroken: number, leaksDefeated = 0, score = 0, defeatedBossIds: string[] = []): RewardBundle {
   const multiplier = victory ? 1 : 0.35;
   const scoreBonus = Math.min(70, Math.floor(score / 90));
   const leakBonus = leaksDefeated * 14;
@@ -112,7 +116,7 @@ export function calculateFightReward(victory: boolean, bossesBroken: number, lea
     leakPoints: Math.round((BASE_FIGHT_REWARDS.leakPoints + bossesBroken * 7 + leaksDefeated * 3) * multiplier),
     skinShards: victory && bossesBroken > 0 ? 1 : 0,
     skillCards: victory ? 1 : 0,
-    bossTrophies: victory ? ["wallet_destroyer"] : [],
+    bossTrophies: victory ? Array.from(new Set(defeatedBossIds)) : [],
   };
 }
 

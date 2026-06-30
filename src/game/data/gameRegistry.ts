@@ -104,3 +104,6 @@ export {
 export type { DailyMissionDefinition, DailyMissionFightStats, DailyMissionState, FightRewardApplication, FightRewardInput, MissionClaimApplication, MissionRewardBundle, PlayerProfile, RewardChoiceApplication } from "./playerProfile";
 export { SAVE_FORMAT, SAVE_FORMAT_VERSION } from "./saveSystem";
 export type { ExportedSaveFile, SaveParseResult, SaveStatus } from "./saveSystem";
+
+export { CONTENT_EXPANSION_NOTES, CONTENT_EXPANSION_VERSION, getContentExpansionSummary } from "./contentExpansion";
+export type { ContentExpansionSummary } from "./contentExpansion";

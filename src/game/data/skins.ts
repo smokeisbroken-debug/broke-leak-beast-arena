@@ -92,8 +92,8 @@ export const SKINS: SkinDefinition[] = [
     auraColor: 0x4de8ff,
     uiColor: "#4de8ff",
     bonuses: { kickDamagePercent: 6, speedPercent: 2 },
-    unlock: { type: "achievement", value: "win_10_fights" },
-    description: "Aggressive arena fighter with stronger kicks.",
+    unlock: { type: "boss_trophy", value: "gambling_demon" },
+    description: "Aggressive arena fighter unlocked by breaking risky burst pressure.",
   },
   {
     id: "diamond_broke",
@@ -106,8 +106,8 @@ export const SKINS: SkinDefinition[] = [
     auraColor: 0xb6e8ff,
     uiColor: "#b6e8ff",
     bonuses: { hpPercent: 8, blockReductionPercent: 8 },
-    unlock: { type: "achievement", value: "perfect_boss_win" },
-    description: "High durability skin for boss runs.",
+    unlock: { type: "boss_trophy", value: "wallet_destroyer_boss" },
+    description: "High durability skin for final boss runs.",
   },
   {
     id: "street_broke",
@@ -134,8 +134,8 @@ export const SKINS: SkinDefinition[] = [
     auraColor: 0x39ff14,
     uiColor: "#39ff14",
     bonuses: { hpPercent: 4, speedPercent: 2 },
-    unlock: { type: "event", value: "launch_event" },
-    description: "Event skin prepared for future economy hooks.",
+    unlock: { type: "boss_trophy", value: "lifestyle_dragon" },
+    description: "Late campaign skin prepared for lifestyle leak victories.",
   },
   {
     id: "shadow_broke",
