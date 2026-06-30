@@ -10,6 +10,7 @@ export const SCENE_KEYS = {
   leaderboard: "LeaderboardScene",
   tournament: "TournamentScene",
   duel: "DuelScene",
+  duelResult: "DuelResultScene",
   profile: "ProfileScene",
   settings: "SettingsScene",
   arena: "ArenaScene",

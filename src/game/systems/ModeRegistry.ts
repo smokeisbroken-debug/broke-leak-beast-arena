@@ -10,7 +10,7 @@ import {
   type GameModeRouteDefinition,
 } from "../types/GameModeTypes";
 
-export const MODE_REGISTRY_VERSION = "0.11.6-duel-scene-skeleton";
+export const MODE_REGISTRY_VERSION = "0.11.7-duel-result-screen";
 
 export interface GameModeRegistrySnapshot {
   version: string;
@@ -115,7 +115,7 @@ export const GAME_MODE_ROUTES: readonly GameModeRouteDefinition[] = [
     sortOrder: 70,
     requiresBackend: true,
     requiresValidation: true,
-    nextUnlockPatch: "v0.11.6-duel-scene-skeleton",
+    nextUnlockPatch: "v0.11.7-duel-result-screen",
   },
   {
     modeId: "weekly_boss",

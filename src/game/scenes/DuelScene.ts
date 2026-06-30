@@ -196,7 +196,7 @@ export class DuelScene extends Phaser.Scene {
       `PUBLIC SUBMIT: ${preview.readiness.publicSubmitEnabled ? "enabled" : "locked"}`,
       `VALIDATION: ${preview.readiness.backendValidationRequired ? "backend required" : "local"}`,
       `REWARDS: ${preview.rewardPreview.claimEnabled ? "claim enabled" : "claim locked"}`,
-      `NEXT: Duel result screen + run payload bridge`,
+      `NEXT: Run payload bridge + duel leaderboard submit preview`,
     ];
     statusRows.forEach((line, index) => {
       this.content?.add(this.add.text(640, 260 + index * 18, line.toUpperCase(), {
@@ -273,7 +273,7 @@ export class DuelScene extends Phaser.Scene {
       .setDepth(5)
       .setInteractive({ useHandCursor: true });
     this.content?.add(button);
-    this.content?.add(this.add.text(button.x, button.y, enabled ? "RUN PREVIEW" : "BACKEND LOCKED", {
+    this.content?.add(this.add.text(button.x, button.y, enabled ? "VIEW RESULT" : "BACKEND LOCKED", {
       fontFamily: "Arial",
       fontSize: "10px",
       color: enabled ? "#72ff57" : "#ffeb72",
@@ -284,7 +284,7 @@ export class DuelScene extends Phaser.Scene {
 
     button.on("pointerdown", () => {
       if (enabled) {
-        this.scene.start(SCENE_KEYS.arena);
+        this.scene.start(SCENE_KEYS.duelResult, { duelId: definition.id });
       }
     });
   }

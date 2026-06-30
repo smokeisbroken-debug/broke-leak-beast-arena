@@ -12,12 +12,12 @@ import {
 import { createDefaultDuelSeedSnapshot } from "./DuelSeedSystem";
 import { calculateDuelScoreSnapshot } from "./DuelScoreSystem";
 
-export const DUEL_SYSTEM_VERSION = "0.11.5-duel-score-formula";
+export const DUEL_SYSTEM_VERSION = "0.11.7-duel-result-screen";
 
 const REQUIRED_BEFORE_LIVE_DUELS = [
   "Duel seed system with deterministic stage, boss, modifiers and time box",
   "Capped duel score formula for same-seed score comparison",
-  "Duel result payload connected to Arena result stats",
+  "Duel result preview screen created before Arena result payload bridge",
   "Leaderboard adapter submit implementation for duel_ranked",
   "Backend identity and opponent matching",
   "Anti-cheat validation for seed, duration, score, HP, damage and impossible inputs",
