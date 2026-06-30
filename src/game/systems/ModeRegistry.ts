@@ -10,7 +10,7 @@ import {
   type GameModeRouteDefinition,
 } from "../types/GameModeTypes";
 
-export const MODE_REGISTRY_VERSION = "0.11.3-duel-types";
+export const MODE_REGISTRY_VERSION = "0.11.6-duel-scene-skeleton";
 
 export interface GameModeRegistrySnapshot {
   version: string;
@@ -107,14 +107,15 @@ export const GAME_MODE_ROUTES: readonly GameModeRouteDefinition[] = [
   {
     modeId: "leak_duel",
     menuLabel: "LEAK DUEL",
-    menuSubLabel: "1 VS 1",
-    plannedSceneKey: "DuelScene",
-    availability: "backend_locked",
-    entryPoint: "future_backend",
+    menuSubLabel: "1 VS 1 PREVIEW",
+    currentSceneKey: SCENE_KEYS.duel,
+    plannedSceneKey: SCENE_KEYS.duel,
+    availability: "mock_ready",
+    entryPoint: "main_menu",
     sortOrder: 70,
     requiresBackend: true,
     requiresValidation: true,
-    nextUnlockPatch: "v0.11.4-duel-seed-system",
+    nextUnlockPatch: "v0.11.6-duel-scene-skeleton",
   },
   {
     modeId: "weekly_boss",

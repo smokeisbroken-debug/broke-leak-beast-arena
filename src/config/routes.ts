@@ -9,6 +9,7 @@ export const SCENE_KEYS = {
   missions: "MissionsScene",
   leaderboard: "LeaderboardScene",
   tournament: "TournamentScene",
+  duel: "DuelScene",
   profile: "ProfileScene",
   settings: "SettingsScene",
   arena: "ArenaScene",
