@@ -15,7 +15,7 @@ import type { ActiveSkillSlot, PlayerProfile, SkillDefinition } from "../data/ga
 const LOADOUT_SLOTS: Array<{ slot: ActiveSkillSlot; title: string; subtitle: string }> = [
   { slot: "skill1", title: "SKILL 1", subtitle: "OFFENSE" },
   { slot: "skill2", title: "SKILL 2", subtitle: "UTILITY" },
-  { slot: "ultimate", title: "ULTIMATE", subtitle: "ENERGY NEXT" },
+  { slot: "ultimate", title: "ULTIMATE", subtitle: "100 ENERGY" },
 ];
 
 export class SkillLoadoutScene extends Phaser.Scene {
@@ -44,7 +44,7 @@ export class SkillLoadoutScene extends Phaser.Scene {
       strokeThickness: 6,
     }).setOrigin(0.5).setDepth(3);
 
-    this.add.text(GAME_WIDTH / 2, 58, "CHOOSE ACTIVE SKILLS · COOLDOWNS WORK IN BATTLE · ENERGY SYSTEM NEXT", {
+    this.add.text(GAME_WIDTH / 2, 58, "CHOOSE ACTIVE SKILLS · COOLDOWNS AND ENERGY WORK IN BATTLE", {
       fontFamily: "Arial",
       fontSize: "12px",
       color: "#fcfff7",
@@ -55,6 +55,7 @@ export class SkillLoadoutScene extends Phaser.Scene {
 
     this.createLoadoutPanel();
     this.createSkillCards();
+    this.createFooterActions();
 
     const back = this.add.text(64, GAME_HEIGHT - 30, "BACK", {
       fontFamily: "Arial",
@@ -67,6 +68,34 @@ export class SkillLoadoutScene extends Phaser.Scene {
       padding: { x: 18, y: 8 },
     }).setOrigin(0.5).setDepth(10).setInteractive({ useHandCursor: true });
     back.on("pointerdown", () => this.scene.start(SCENE_KEYS.menu));
+  }
+
+  private createFooterActions(): void {
+    const unlockedCount = getSkillsForLoadoutSlot(this.selectedSlot)
+      .filter((skill) => isSkillUnlocked(this.profile.unlockedSkillIds, skill.id)).length;
+    const totalCount = getSkillsForLoadoutSlot(this.selectedSlot).length;
+    const activeSkill = getSkillById(this.profile.selectedSkillIds[this.selectedSlot]);
+
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 34, `ACTIVE ${activeSkill.name.toUpperCase()} · UNLOCKED ${unlockedCount}/${totalCount}`, {
+      fontFamily: "Arial",
+      fontSize: "12px",
+      color: activeSkill.uiColor,
+      fontStyle: "bold",
+      stroke: "#041004",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(10);
+
+    const fight = this.add.text(GAME_WIDTH - 94, GAME_HEIGHT - 30, "FIGHT", {
+      fontFamily: "Arial",
+      fontSize: "18px",
+      color: "#041004",
+      fontStyle: "bold",
+      stroke: "#72ff57",
+      strokeThickness: 2,
+      backgroundColor: "#72ff57",
+      padding: { x: 20, y: 8 },
+    }).setOrigin(0.5).setDepth(10).setInteractive({ useHandCursor: true });
+    fight.on("pointerdown", () => this.scene.start(SCENE_KEYS.arena));
   }
 
   private createLoadoutPanel(): void {
@@ -106,7 +135,7 @@ export class SkillLoadoutScene extends Phaser.Scene {
         stroke: "#041004",
         strokeThickness: 5,
       }).setOrigin(0.5).setDepth(5);
-      this.add.text(x, y + 28, `${Math.round(skill.cooldownMs / 1000)}s CD · ${skill.energyCost} ENERGY`, {
+      this.add.text(x, y + 28, `${skill.effect.toUpperCase()} · ${Math.round(skill.cooldownMs / 1000)}s CD · ${skill.energyCost}E`, {
         fontFamily: "Arial",
         fontSize: "10px",
         color: "#fcfff7",
@@ -185,7 +214,7 @@ export class SkillLoadoutScene extends Phaser.Scene {
       strokeThickness: 3,
     }).setOrigin(0, 0).setDepth(6);
 
-    const buttonLabel = active ? "ACTIVE" : unlocked ? "EQUIP" : "LOCKED";
+    const buttonLabel = active ? "ACTIVE" : unlocked ? "EQUIP" : `LV ${skill.unlockLevel}`;
     const button = this.add.rectangle(x + 82, y + 34, 76, 22, active ? 0x72ff57 : unlocked ? skill.color : 0x2a322a, active ? 0.96 : 0.72)
       .setStrokeStyle(2, active ? 0xfcfff7 : skill.color, active ? 0.7 : 0.35)
       .setDepth(6);

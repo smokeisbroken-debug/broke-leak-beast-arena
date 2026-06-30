@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import type { InputState } from "../types/game";
+import { getSkillById, loadPlayerProfile } from "../data/gameRegistry";
 
 export class MobileControls {
   private inputState: InputState = { x: 0, y: 0, attack: false, dodge: false, pulse: false, shield: false, slash: false, skill1: false, skill2: false, ultimate: false };
@@ -84,6 +85,11 @@ export class MobileControls {
   }
 
   private createButtons(): void {
+    const profile = loadPlayerProfile();
+    const skill1 = getSkillById(profile.selectedSkillIds.skill1);
+    const skill2 = getSkillById(profile.selectedSkillIds.skill2);
+    const ultimate = getSkillById(profile.selectedSkillIds.ultimate);
+
     // Calibrated for landscape mobile: no button should sit outside the canvas edge.
     this.createActionButton(GAME_WIDTH - 166, GAME_HEIGHT - 82, 96, "PUNCH", "FAST", 0x72ff57, () => {
       this.inputState.attack = true;
@@ -99,17 +105,27 @@ export class MobileControls {
       this.inputState.dodge = true;
     });
 
-    this.createActionButton(GAME_WIDTH - 214, GAME_HEIGHT - 176, 62, "S1", "SKILL", 0x72ff57, () => {
+    this.createActionButton(GAME_WIDTH - 214, GAME_HEIGHT - 176, 62, "S1", this.getShortSkillLabel(skill1.name), skill1.color, () => {
       this.inputState.skill1 = true;
     });
 
-    this.createActionButton(GAME_WIDTH - 140, GAME_HEIGHT - 202, 62, "S2", "SKILL", 0xffeb72, () => {
+    this.createActionButton(GAME_WIDTH - 140, GAME_HEIGHT - 202, 62, "S2", this.getShortSkillLabel(skill2.name), skill2.color, () => {
       this.inputState.skill2 = true;
     });
 
-    this.createActionButton(GAME_WIDTH - 66, GAME_HEIGHT - 176, 66, "ULT", "100", 0xff4866, () => {
+    this.createActionButton(GAME_WIDTH - 66, GAME_HEIGHT - 176, 66, "ULT", this.getShortSkillLabel(ultimate.name), ultimate.color, () => {
       this.inputState.ultimate = true;
     });
+  }
+
+  private getShortSkillLabel(name: string): string {
+    return name
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 4)
+      .toUpperCase();
   }
 
   private createActionButton(

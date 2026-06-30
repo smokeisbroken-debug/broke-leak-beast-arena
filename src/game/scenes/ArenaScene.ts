@@ -443,6 +443,8 @@ export class ArenaScene extends Phaser.Scene {
       return;
     }
 
+    if (now < this.playerActionUntil) return;
+
     if (input.skill1) {
       if (this.useActiveSkill(this.skill1, "skill1", now)) return;
     }
@@ -470,8 +472,6 @@ export class ArenaScene extends Phaser.Scene {
       return;
     }
 
-    if (now < this.playerActionUntil) return;
-
     this.player.setTint(this.selectedSkin.tintColor);
     this.playerState = Math.abs(input.x) > 0.08 ? "moving" : "idle";
     const speed = Math.round(this.playerMoveSpeed * this.getStageMoveMultiplier());
@@ -479,6 +479,14 @@ export class ArenaScene extends Phaser.Scene {
     this.player.setVelocityY(0);
     this.player.setFlipX(false);
     this.playPlayerAnim(this.playerState === "moving" ? "mascot-run-front-anim" : "mascot-idle-front-anim");
+  }
+
+  private getShortSkillName(skill: SkillDefinition): string {
+    return skill.name.toUpperCase().replace(/\s+/g, " ").slice(0, 18);
+  }
+
+  private canSkillBreakGuard(label: string): boolean {
+    return label.includes("DEBT BREAKER") || label.includes("SCAM BUSTER") || label.includes("FINISHER");
   }
 
   private isUltimateActive(now = Date.now()): boolean {
@@ -520,6 +528,26 @@ export class ArenaScene extends Phaser.Scene {
 
     this.ultimatesUsedCount += 1;
     this.ultimateLockUntil = now + ULTIMATE_DURATION_MS + 650;
+
+    if (this.ultimateSkill.id === "green_finisher") {
+      this.playerActionUntil = now + 520;
+      this.playerState = "punch";
+      this.playerInvincibleUntil = now + 360;
+      this.player.setVelocityX(130);
+      this.player.setTint(this.ultimateSkill.color);
+      this.playPlayerAnim("mascot-attack-anim");
+      this.sfx.playDashSlash();
+      this.statusText.setText("GREEN FINISHER");
+      this.comboText.setText("GREEN FINISHER");
+      this.comboText.setPosition(this.player.x + 34, this.player.y - 146);
+      this.time.delayedCall(900, () => this.comboText.setText(""));
+      this.showUltimateFx();
+      this.time.delayedCall(90, () => this.tryHitEnemy(48, 236, 560, "GREEN FINISHER"));
+      this.cameras.main.flash(120, 255, 235, 114, false);
+      this.cameras.main.shake(180, 0.0046);
+      return true;
+    }
+
     this.ultimateActiveUntil = now + ULTIMATE_DURATION_MS;
     this.playerActionUntil = now + 360;
     this.playerState = "block";
@@ -541,7 +569,7 @@ export class ArenaScene extends Phaser.Scene {
   private useActiveSkill(skill: SkillDefinition, slot: "skill1" | "skill2", now: number): boolean {
     const cooldownUntil = slot === "skill1" ? this.skill1CooldownUntil : this.skill2CooldownUntil;
     if (now < cooldownUntil) {
-      this.showFloatingText(`${skill.name.toUpperCase()} ${Math.ceil((cooldownUntil - now) / 1000)}s`, this.player.x, this.player.y - 126, "#fcfff7");
+      this.showFloatingText(`${this.getShortSkillName(skill)} ${Math.ceil((cooldownUntil - now) / 1000)}s CD`, this.player.x, this.player.y - 126, "#fcfff7");
       this.statusText.setText("SKILL COOLDOWN");
       return false;
     }
@@ -558,8 +586,8 @@ export class ArenaScene extends Phaser.Scene {
     this.playerState = skill.effect === "heal" ? "block" : "punch";
     this.player.setTint(skill.color);
     this.playPlayerAnim(skill.effect === "heal" ? "mascot-pulse-front-anim" : "mascot-attack-anim");
-    this.statusText.setText(skill.name.toUpperCase());
-    this.comboText.setText(skill.name.toUpperCase());
+    this.statusText.setText(`${skill.name.toUpperCase()} · -${skill.energyCost} ENERGY`);
+    this.comboText.setText(this.getShortSkillName(skill));
     this.comboText.setPosition(this.player.x + 42, this.player.y - 138);
     this.time.delayedCall(560, () => this.comboText.setText(""));
 
@@ -654,14 +682,15 @@ export class ArenaScene extends Phaser.Scene {
 
     const counterHit = this.enemyState === "windup";
     const guarded = this.enemyState === "guard";
-    const heavyHit = label.includes("HEAVY") || label === "KICK";
+    const guardBreak = guarded && this.canSkillBreakGuard(label);
+    const heavyHit = label.includes("HEAVY") || label === "KICK" || label.includes("FINISHER");
     const bonus = counterHit ? 4 : 0;
     const ultimateBonus = this.isUltimateActive() ? 1.32 : 1;
     const rawDamage = Math.round((damage + bonus) * ultimateBonus);
-    const finalDamage = guarded ? Math.max(1, Math.floor(rawDamage * 0.35)) : rawDamage;
+    const finalDamage = guarded ? Math.max(1, Math.floor(rawDamage * (guardBreak ? 0.85 : 0.35))) : rawDamage;
     this.enemyHp = Math.max(0, this.enemyHp - finalDamage);
 
-    if (guarded) {
+    if (guarded && !guardBreak) {
       this.enemyState = "backstep";
       this.enemyBackstepUntil = Date.now() + 300;
       this.enemyCooldownUntil = Math.max(this.enemyCooldownUntil, Date.now() + 520);
@@ -682,17 +711,17 @@ export class ArenaScene extends Phaser.Scene {
 
     const impactX = this.enemy.x - Math.min(72, this.enemy.displayWidth * 0.38);
     const impactY = this.enemy.y - this.enemy.displayHeight * 0.34;
-    const impactColor = guarded ? 0x72ff57 : heavyHit ? 0xffeb72 : 0x72ff57;
+    const impactColor = guardBreak ? 0xffeb72 : guarded ? 0x72ff57 : heavyHit ? 0xffeb72 : 0x72ff57;
     this.showImpact(impactX, impactY, impactColor, heavyHit || guarded);
     this.showHitLine(this.player.x + 46, this.player.y - 42, impactX, impactY, impactColor, heavyHit || guarded);
-    this.showFloatingText(`${guarded ? "GUARD" : label} -${finalDamage}`, this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.64, guarded ? "#72ff57" : heavyHit ? "#ffeb72" : "#d7ffd0");
+    this.showFloatingText(`${guardBreak ? "GUARD BREAK" : guarded ? "GUARD" : label} -${finalDamage}`, this.enemy.x, this.enemy.y - this.enemy.displayHeight * 0.64, guardBreak ? "#ffeb72" : guarded ? "#72ff57" : heavyHit ? "#ffeb72" : "#d7ffd0");
     if (counterHit) this.showFloatingText("COUNTER", this.enemy.x - 8, this.enemy.y - this.enemy.displayHeight * 0.82, "#ffeb72");
 
-    this.comboText.setText(guarded ? "GUARDED" : counterHit ? "COUNTER HIT" : label);
+    this.comboText.setText(guardBreak ? "GUARD BREAK" : guarded ? "GUARDED" : counterHit ? "COUNTER HIT" : label);
     this.comboText.setPosition(this.player.x + 40, this.player.y - 136);
     this.time.delayedCall(520, () => this.comboText.setText(""));
-    this.statusText.setText(guarded ? "ENEMY GUARDED" : counterHit ? "COUNTER HIT" : label);
-    this.cameras.main.shake(heavyHit ? 115 : guarded ? 70 : 58, heavyHit ? 0.0042 : guarded ? 0.0028 : 0.0022);
+    this.statusText.setText(guardBreak ? "GUARD BROKEN" : guarded ? "ENEMY GUARDED" : counterHit ? "COUNTER HIT" : label);
+    this.cameras.main.shake(guardBreak ? 125 : heavyHit ? 115 : guarded ? 70 : 58, guardBreak ? 0.0044 : heavyHit ? 0.0042 : guarded ? 0.0028 : 0.0022);
     if (heavyHit) this.cameras.main.flash(36, 255, 235, 114, false);
 
     this.time.delayedCall(heavyHit || guarded ? 130 : 95, () => {
@@ -1410,13 +1439,13 @@ export class ArenaScene extends Phaser.Scene {
 
     if (this.skillStatusText) {
       const now = Date.now();
-      const s1 = now >= this.skill1CooldownUntil ? "READY" : `${Math.ceil((this.skill1CooldownUntil - now) / 1000)}s`;
-      const s2 = now >= this.skill2CooldownUntil ? "READY" : `${Math.ceil((this.skill2CooldownUntil - now) / 1000)}s`;
+      const s1 = now >= this.skill1CooldownUntil ? "RDY" : `${Math.ceil((this.skill1CooldownUntil - now) / 1000)}s`;
+      const s2 = now >= this.skill2CooldownUntil ? "RDY" : `${Math.ceil((this.skill2CooldownUntil - now) / 1000)}s`;
       const s1Cost = this.skill1.energyCost ?? 0;
       const s2Cost = this.skill2.energyCost ?? 0;
-      const s1State = this.playerEnergy >= s1Cost ? s1 : `NEED ${s1Cost}`;
-      const s2State = this.playerEnergy >= s2Cost ? s2 : `NEED ${s2Cost}`;
-      this.skillStatusText.setText(`S1 ${s1State}  |  S2 ${s2State}  |  ENERGY ${Math.floor(this.playerEnergy)}`);
+      const s1State = this.playerEnergy >= s1Cost ? s1 : `NEED ${s1Cost}E`;
+      const s2State = this.playerEnergy >= s2Cost ? s2 : `NEED ${s2Cost}E`;
+      this.skillStatusText.setText(`S1 ${this.getShortSkillName(this.skill1)} ${s1State}  |  S2 ${this.getShortSkillName(this.skill2)} ${s2State}`);
       this.skillStatusText.setColor(this.playerEnergy >= Math.min(s1Cost, s2Cost) ? "#fcfff7" : "#ff9aaa");
     }
 
