@@ -12,8 +12,9 @@ import {
 import { TASK_SKELETON_DEFINITIONS } from "../types/TaskTypes";
 import { TOURNAMENT_DEFINITIONS } from "../types/TournamentTypes";
 import { LEAK_DUEL_DEFINITION } from "../types/DuelTypes";
+import { SAVE_SCHEMA_DEFINITION_V2 } from "../types/SaveSchemaTypes";
 
-export const GAME_SYSTEMS_VERSION = "0.9.0-mode-registry";
+export const GAME_SYSTEMS_VERSION = "0.9.1-save-schema-v2";
 
 export type GameSystemId =
   | "modes"
@@ -61,6 +62,7 @@ export interface GameSystemsRegistrySnapshot {
   taskSkeletons: typeof TASK_SKELETON_DEFINITIONS;
   tournamentSkeletons: typeof TOURNAMENT_DEFINITIONS;
   duelSkeleton: typeof LEAK_DUEL_DEFINITION;
+  saveSchema: typeof SAVE_SCHEMA_DEFINITION_V2;
 }
 
 export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
@@ -72,7 +74,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Centralize playable, ranked and backend-locked mode routes before UI and multiplayer work expands.",
     dependsOn: [],
     relatedModes: ["arena", "campaign", "tasks", "profile", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.9.1-save-schema-v2",
+    nextPatch: "v0.9.2-player-profile-v2",
   },
   {
     id: "profile",
@@ -82,7 +84,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Store identity, selected loadout, progression and future multiplayer-safe fields.",
     dependsOn: ["modes"],
     relatedModes: ["profile", "arena", "campaign"],
-    nextPatch: "v0.9.1-save-schema-v2",
+    nextPatch: "v0.9.2-player-profile-v2",
   },
   {
     id: "progression",
@@ -92,7 +94,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Unify level, XP, evolution, mastery and capped power score.",
     dependsOn: ["modes", "profile"],
     relatedModes: ["profile", "campaign", "leaderboard"],
-    nextPatch: "v0.9.1-save-schema-v2",
+    nextPatch: "v0.9.2-player-profile-v2",
   },
   {
     id: "economy",
@@ -102,7 +104,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Separate XP, coins, leak points, rank points, tournament points and cosmetics.",
     dependsOn: ["modes", "profile", "progression"],
     relatedModes: ["tasks", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.9.1-save-schema-v2",
+    nextPatch: "v0.9.2-player-profile-v2",
   },
   {
     id: "balance",
@@ -112,7 +114,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped power score, difficulty score and matchup evaluation before ranked systems go live.",
     dependsOn: ["modes", "profile", "progression", "economy"],
     relatedModes: ["arena", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.9.1-save-schema-v2",
+    nextPatch: "v0.9.2-player-profile-v2",
   },
   {
     id: "tasks",
@@ -222,6 +224,7 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   taskSkeletons: TASK_SKELETON_DEFINITIONS,
   tournamentSkeletons: TOURNAMENT_DEFINITIONS,
   duelSkeleton: LEAK_DUEL_DEFINITION,
+  saveSchema: SAVE_SCHEMA_DEFINITION_V2,
 };
 
 export function getGameSystem(systemId: GameSystemId): GameSystemDefinition {

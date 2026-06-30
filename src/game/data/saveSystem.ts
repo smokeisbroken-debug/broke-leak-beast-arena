@@ -1,12 +1,17 @@
 import type { PlayerProfile } from "./playerProfile";
+import { CURRENT_SAVE_SCHEMA_VERSION, SAVE_SCHEMA_VERSION_LABEL } from "../types/SaveSchemaTypes";
 
 export const SAVE_FORMAT = "broke-leak-fighter-save";
-export const SAVE_FORMAT_VERSION = 1;
-export const PROFILE_BACKUP_STORAGE_KEY = "broke_leak_fighter_profile_backup_v1";
+export const SAVE_FORMAT_VERSION = CURRENT_SAVE_SCHEMA_VERSION;
+export const SAVE_MIN_SUPPORTED_FORMAT_VERSION = 1;
+export const PROFILE_BACKUP_STORAGE_KEY = "broke_leak_fighter_profile_backup_v2";
+export const LEGACY_PROFILE_BACKUP_STORAGE_KEYS = ["broke_leak_fighter_profile_backup_v1"] as const;
 
 export interface ExportedSaveFile {
   format: typeof SAVE_FORMAT;
-  formatVersion: typeof SAVE_FORMAT_VERSION;
+  formatVersion: number;
+  schemaVersion: typeof CURRENT_SAVE_SCHEMA_VERSION;
+  schemaLabel: typeof SAVE_SCHEMA_VERSION_LABEL;
   exportedAt: string;
   checksum: string;
   profile: PlayerProfile;
@@ -25,6 +30,7 @@ export interface SaveStatus {
   mainReadable: boolean;
   backupReadable: boolean;
   backupUpdatedAt: string | null;
+  backupStorageKey: string;
 }
 
 function stableStringify(value: unknown): string {
@@ -36,6 +42,24 @@ function stableStringify(value: unknown): string {
     .sort()
     .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
     .join(",")}}`;
+}
+
+function getReadableBackupRaw(): { key: string; raw: string | null; updatedAt: string | null } {
+  if (typeof window === "undefined") return { key: PROFILE_BACKUP_STORAGE_KEY, raw: null, updatedAt: null };
+
+  const storageKeys = [PROFILE_BACKUP_STORAGE_KEY, ...LEGACY_PROFILE_BACKUP_STORAGE_KEYS];
+  for (const key of storageKeys) {
+    const raw = window.localStorage.getItem(key);
+    if (raw) {
+      return {
+        key,
+        raw,
+        updatedAt: window.localStorage.getItem(`${key}_updated_at`),
+      };
+    }
+  }
+
+  return { key: PROFILE_BACKUP_STORAGE_KEY, raw: null, updatedAt: null };
 }
 
 export function calculateSaveChecksum(profile: Partial<PlayerProfile>): string {
@@ -52,6 +76,8 @@ export function createSaveExport(profile: PlayerProfile): string {
   const payload: ExportedSaveFile = {
     format: SAVE_FORMAT,
     formatVersion: SAVE_FORMAT_VERSION,
+    schemaVersion: CURRENT_SAVE_SCHEMA_VERSION,
+    schemaLabel: SAVE_SCHEMA_VERSION_LABEL,
     exportedAt: new Date().toISOString(),
     checksum: calculateSaveChecksum(profile),
     profile,
@@ -68,9 +94,14 @@ export function parseSaveImport(raw: string): SaveParseResult {
 
     if (maybeSaveFile.format === SAVE_FORMAT) {
       if (!maybeSaveFile.profile) return { ok: false, error: "SAVE FILE HAS NO PROFILE" };
+      const formatVersion = Number(maybeSaveFile.formatVersion || SAVE_MIN_SUPPORTED_FORMAT_VERSION);
+      if (formatVersion > SAVE_FORMAT_VERSION) return { ok: false, error: "SAVE FILE VERSION IS NEWER THAN THIS BUILD" };
+      if (formatVersion < SAVE_MIN_SUPPORTED_FORMAT_VERSION) return { ok: false, error: "SAVE FILE VERSION IS NOT SUPPORTED" };
+
       const expected = calculateSaveChecksum(maybeSaveFile.profile);
-      const warning = maybeSaveFile.checksum && maybeSaveFile.checksum !== expected ? "CHECKSUM MISMATCH" : undefined;
-      return { ok: true, profile: maybeSaveFile.profile, warning };
+      const checksumWarning = maybeSaveFile.checksum && maybeSaveFile.checksum !== expected ? "CHECKSUM MISMATCH" : undefined;
+      const migrationWarning = formatVersion < SAVE_FORMAT_VERSION ? "SAVE WILL MIGRATE TO SCHEMA V2" : undefined;
+      return { ok: true, profile: maybeSaveFile.profile, warning: checksumWarning ?? migrationWarning };
     }
 
     return { ok: true, profile: parsed as Partial<PlayerProfile>, warning: "LEGACY PROFILE JSON" };
@@ -81,19 +112,26 @@ export function parseSaveImport(raw: string): SaveParseResult {
 
 export function getLocalSaveStatus(mainKey: string): SaveStatus {
   if (typeof window === "undefined") {
-    return { hasMainSave: false, hasBackupSave: false, mainReadable: false, backupReadable: false, backupUpdatedAt: null };
+    return {
+      hasMainSave: false,
+      hasBackupSave: false,
+      mainReadable: false,
+      backupReadable: false,
+      backupUpdatedAt: null,
+      backupStorageKey: PROFILE_BACKUP_STORAGE_KEY,
+    };
   }
 
   const mainRaw = window.localStorage.getItem(mainKey);
-  const backupRaw = window.localStorage.getItem(PROFILE_BACKUP_STORAGE_KEY);
-  const backupUpdatedAt = window.localStorage.getItem(`${PROFILE_BACKUP_STORAGE_KEY}_updated_at`);
+  const backup = getReadableBackupRaw();
 
   return {
     hasMainSave: Boolean(mainRaw),
-    hasBackupSave: Boolean(backupRaw),
+    hasBackupSave: Boolean(backup.raw),
     mainReadable: mainRaw ? parseSaveImport(mainRaw).ok : false,
-    backupReadable: backupRaw ? parseSaveImport(backupRaw).ok : false,
-    backupUpdatedAt,
+    backupReadable: backup.raw ? parseSaveImport(backup.raw).ok : false,
+    backupUpdatedAt: backup.updatedAt,
+    backupStorageKey: backup.key,
   };
 }
 
@@ -107,5 +145,5 @@ export function writeProfileBackup(mainKey: string): void {
 
 export function readProfileBackup(): string | null {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(PROFILE_BACKUP_STORAGE_KEY);
+  return getReadableBackupRaw().raw;
 }

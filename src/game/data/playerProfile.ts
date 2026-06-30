@@ -39,9 +39,34 @@ import {
   type SaveParseResult,
   type SaveStatus,
 } from "./saveSystem";
+import {
+  CURRENT_SAVE_SCHEMA_VERSION,
+  createDefaultSaveSystemsState,
+  type DuelSaveStateV2,
+  type LeaderboardSaveStateV2,
+  type MultiplayerSaveStateV2,
+  type PlayerIdentityV2,
+  type ProgressionSaveStateV2,
+  type SaveSyncStateV2,
+  type SeasonSaveStateV2,
+  type TaskSaveStateV2,
+  type TournamentSaveStateV2,
+} from "../types/SaveSchemaTypes";
+import type { CurrencyWalletV2 } from "../types/EconomyTypes";
 
 export interface PlayerProfile {
   version: number;
+  schemaVersion: number;
+  identity: PlayerIdentityV2;
+  wallet: CurrencyWalletV2;
+  progressionV2: ProgressionSaveStateV2;
+  multiplayer: MultiplayerSaveStateV2;
+  tasksV2: TaskSaveStateV2;
+  leaderboards: LeaderboardSaveStateV2;
+  tournaments: TournamentSaveStateV2;
+  duels: DuelSaveStateV2;
+  seasons: SeasonSaveStateV2;
+  sync: SaveSyncStateV2;
   heroId: string;
   selectedSkinId: string;
   unlockedSkinIds: string[];
@@ -55,6 +80,10 @@ export interface PlayerProfile {
   xp: number;
   level: number;
   leakPoints: number;
+  rankPoints: number;
+  tournamentPoints: number;
+  taskPoints: number;
+  cosmeticTokens: number;
   skinShards: number;
   skillCards: number;
   campaignProgress: Record<string, number>;
@@ -123,8 +152,21 @@ export interface MissionClaimApplication {
 
 export const PROFILE_STORAGE_KEY = "broke_leak_fighter_profile_v1";
 
+const DEFAULT_SAVE_SYSTEMS_STATE = createDefaultSaveSystemsState("2026-01-01T00:00:00.000Z");
+
 export const DEFAULT_PLAYER_PROFILE: PlayerProfile = {
-  version: 1,
+  version: CURRENT_SAVE_SCHEMA_VERSION,
+  schemaVersion: CURRENT_SAVE_SCHEMA_VERSION,
+  identity: DEFAULT_SAVE_SYSTEMS_STATE.identity,
+  wallet: DEFAULT_SAVE_SYSTEMS_STATE.wallet,
+  progressionV2: DEFAULT_SAVE_SYSTEMS_STATE.progression,
+  multiplayer: DEFAULT_SAVE_SYSTEMS_STATE.multiplayer,
+  tasksV2: DEFAULT_SAVE_SYSTEMS_STATE.tasks,
+  leaderboards: DEFAULT_SAVE_SYSTEMS_STATE.leaderboards,
+  tournaments: DEFAULT_SAVE_SYSTEMS_STATE.tournaments,
+  duels: DEFAULT_SAVE_SYSTEMS_STATE.duels,
+  seasons: DEFAULT_SAVE_SYSTEMS_STATE.seasons,
+  sync: DEFAULT_SAVE_SYSTEMS_STATE.sync,
   heroId: DEFAULT_HERO_ID,
   selectedSkinId: DEFAULT_SKIN_ID,
   unlockedSkinIds: STARTER_SKIN_IDS,
@@ -138,6 +180,10 @@ export const DEFAULT_PLAYER_PROFILE: PlayerProfile = {
   xp: 0,
   level: 1,
   leakPoints: 0,
+  rankPoints: 0,
+  tournamentPoints: 0,
+  taskPoints: 0,
+  cosmeticTokens: 0,
   skinShards: 0,
   skillCards: 0,
   campaignProgress: { daily_leaks: 0 },
@@ -157,7 +203,40 @@ export const DEFAULT_PLAYER_PROFILE: PlayerProfile = {
 };
 
 export function createDefaultProfile(): PlayerProfile {
-  return structuredClone(DEFAULT_PLAYER_PROFILE);
+  const systems = createDefaultSaveSystemsState();
+  return {
+    ...structuredClone(DEFAULT_PLAYER_PROFILE),
+    version: CURRENT_SAVE_SCHEMA_VERSION,
+    schemaVersion: CURRENT_SAVE_SCHEMA_VERSION,
+    identity: systems.identity,
+    wallet: systems.wallet,
+    progressionV2: systems.progression,
+    multiplayer: systems.multiplayer,
+    tasksV2: systems.tasks,
+    leaderboards: systems.leaderboards,
+    tournaments: systems.tournaments,
+    duels: systems.duels,
+    seasons: systems.seasons,
+    sync: systems.sync,
+  };
+}
+
+function safeInteger(value: unknown): number {
+  return Math.max(0, Math.floor(Number(value) || 0));
+}
+
+function uniqueStrings(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)));
+}
+
+function safeNumberRecord(value: unknown): Record<string, number> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => key.trim().length > 0)
+      .map(([key, amount]) => [key, safeInteger(amount)]),
+  );
 }
 
 export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefined): PlayerProfile {
@@ -183,12 +262,123 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
     processedFightResultIds: Array.isArray(profile?.processedFightResultIds) ? profile.processedFightResultIds : [],
   };
 
+  const systems = createDefaultSaveSystemsState();
+  const incomingIdentity = profile?.identity;
+  normalized.version = CURRENT_SAVE_SCHEMA_VERSION;
+  normalized.schemaVersion = CURRENT_SAVE_SCHEMA_VERSION;
+  normalized.identity = {
+    ...systems.identity,
+    ...(incomingIdentity ?? {}),
+    localPlayerId: incomingIdentity?.localPlayerId || systems.identity.localPlayerId,
+    displayName: incomingIdentity?.displayName || systems.identity.displayName,
+    createdAtIso: incomingIdentity?.createdAtIso || systems.identity.createdAtIso,
+    lastSeenAtIso: new Date().toISOString(),
+  };
+  normalized.wallet = {
+    ...systems.wallet,
+    ...(profile?.wallet ?? {}),
+  };
+  normalized.progressionV2 = {
+    ...systems.progression,
+    ...(profile?.progressionV2 ?? {}),
+    powerBreakdown: {
+      ...systems.progression.powerBreakdown,
+      ...(profile?.progressionV2?.powerBreakdown ?? {}),
+    },
+    masteryBranchLevels: safeNumberRecord(profile?.progressionV2?.masteryBranchLevels),
+    skillLevels: safeNumberRecord(profile?.progressionV2?.skillLevels),
+    equippedCharmIds: uniqueStrings(profile?.progressionV2?.equippedCharmIds),
+  };
+  normalized.multiplayer = {
+    ...systems.multiplayer,
+    ...(profile?.multiplayer ?? {}),
+  };
+  normalized.tasksV2 = {
+    ...systems.tasks,
+    ...(profile?.tasksV2 ?? {}),
+    activeDailyTaskIds: uniqueStrings(profile?.tasksV2?.activeDailyTaskIds),
+    activeWeeklyTaskIds: uniqueStrings(profile?.tasksV2?.activeWeeklyTaskIds),
+    claimedTaskIds: uniqueStrings(profile?.tasksV2?.claimedTaskIds),
+    taskPointsByPeriod: safeNumberRecord(profile?.tasksV2?.taskPointsByPeriod),
+  };
+  normalized.leaderboards = {
+    ...systems.leaderboards,
+    ...(profile?.leaderboards ?? {}),
+    lastKnownRanks: safeNumberRecord(profile?.leaderboards?.lastKnownRanks),
+    bestValues: safeNumberRecord(profile?.leaderboards?.bestValues),
+  };
+  normalized.tournaments = {
+    ...systems.tournaments,
+    ...(profile?.tournaments ?? {}),
+    participationCount: safeInteger(profile?.tournaments?.participationCount),
+    bestTournamentPoints: safeInteger(profile?.tournaments?.bestTournamentPoints),
+    completedTournamentIds: uniqueStrings(profile?.tournaments?.completedTournamentIds),
+    pendingRunIds: uniqueStrings(profile?.tournaments?.pendingRunIds),
+  };
+  normalized.duels = {
+    ...systems.duels,
+    ...(profile?.duels ?? {}),
+    activeDuelIds: uniqueStrings(profile?.duels?.activeDuelIds),
+    completedDuelIds: uniqueStrings(profile?.duels?.completedDuelIds),
+  };
+  normalized.seasons = {
+    ...systems.seasons,
+    ...(profile?.seasons ?? {}),
+    claimedRewardIds: uniqueStrings(profile?.seasons?.claimedRewardIds),
+    completedMissionIds: uniqueStrings(profile?.seasons?.completedMissionIds),
+  };
+  normalized.sync = {
+    ...systems.sync,
+    ...(profile?.sync ?? {}),
+    pendingRunResultIds: uniqueStrings(profile?.sync?.pendingRunResultIds),
+    pendingEconomyEventIds: uniqueStrings(profile?.sync?.pendingEconomyEventIds),
+  };
+
   normalized.xp = Math.max(0, Math.floor(normalized.xp || 0));
   normalized.coins = Math.max(0, Math.floor(normalized.coins || 0));
   normalized.leakPoints = Math.max(0, Math.floor(normalized.leakPoints || 0));
+  normalized.rankPoints = Math.max(0, Math.floor(normalized.rankPoints || normalized.multiplayer.rankPoints || 0));
+  normalized.tournamentPoints = Math.max(0, Math.floor(normalized.tournamentPoints || normalized.multiplayer.tournamentPoints || 0));
+  normalized.taskPoints = Math.max(0, Math.floor(normalized.taskPoints || normalized.multiplayer.taskPoints || 0));
+  normalized.cosmeticTokens = Math.max(0, Math.floor(normalized.cosmeticTokens || normalized.multiplayer.cosmeticTokens || 0));
   normalized.skinShards = Math.max(0, Math.floor(normalized.skinShards || 0));
   normalized.skillCards = Math.max(0, Math.floor(normalized.skillCards || 0));
+  normalized.wallet = {
+    ...normalized.wallet,
+    xp: normalized.xp,
+    coins: normalized.coins,
+    leak_points: normalized.leakPoints,
+    rank_points: normalized.rankPoints,
+    tournament_points: normalized.tournamentPoints,
+    skill_cards: normalized.skillCards,
+    skin_shards: normalized.skinShards,
+    cosmetic_tokens: normalized.cosmeticTokens,
+  };
+  normalized.multiplayer = {
+    ...normalized.multiplayer,
+    rankPoints: normalized.rankPoints,
+    tournamentPoints: normalized.tournamentPoints,
+    taskPoints: normalized.taskPoints,
+    cosmeticTokens: normalized.cosmeticTokens,
+    duelWins: safeInteger(normalized.multiplayer.duelWins),
+    duelLosses: safeInteger(normalized.multiplayer.duelLosses),
+    weeklyBossDamage: safeInteger(normalized.multiplayer.weeklyBossDamage),
+    verifiedRunCount: safeInteger(normalized.multiplayer.verifiedRunCount),
+    pendingSubmissionCount: safeInteger(normalized.multiplayer.pendingSubmissionCount),
+  };
   normalized.level = getLevelForXp(normalized.xp).level;
+  normalized.progressionV2 = {
+    ...normalized.progressionV2,
+    powerScore: safeInteger(normalized.progressionV2.powerScore),
+    powerBreakdown: {
+      level: safeInteger(normalized.progressionV2.powerBreakdown.level),
+      skills: safeInteger(normalized.progressionV2.powerBreakdown.skills),
+      evolution: safeInteger(normalized.progressionV2.powerBreakdown.evolution),
+      mastery: safeInteger(normalized.progressionV2.powerBreakdown.mastery),
+      charms: safeInteger(normalized.progressionV2.powerBreakdown.charms),
+    },
+    masteryPoints: safeInteger(normalized.progressionV2.masteryPoints),
+  };
 
   const todayKey = getDailyMissionDateKey();
   if (normalized.dailyMissionDate !== todayKey) {
