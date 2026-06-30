@@ -3,10 +3,11 @@ import type { CurrencyId } from "../types/EconomyTypes";
 import type { PlayerProfile } from "../data/playerProfile";
 import { CAMPAIGN_CHAPTERS } from "../data/campaigns";
 import { getMascotEvolutionSummary } from "./EvolutionSystem";
+import { getSkillUpgradeSummary } from "./SkillUpgradeSystem";
 import { getXpProgress } from "../data/progression";
 import type { PlayerProfileV2SystemDefinition, PlayerProfileV2Summary, ProfileCurrencyRow } from "../types/PlayerProfileTypes";
 
-export const PLAYER_PROFILE_V2_SYSTEM_VERSION = "0.9.3-mascot-evolution-skeleton";
+export const PLAYER_PROFILE_V2_SYSTEM_VERSION = "0.9.4-skill-upgrade-skeleton";
 
 export const PLAYER_PROFILE_V2_DEFINITION: PlayerProfileV2SystemDefinition = {
   version: PLAYER_PROFILE_V2_SYSTEM_VERSION,
@@ -64,6 +65,7 @@ export const PLAYER_PROFILE_V2_DEFINITION: PlayerProfileV2SystemDefinition = {
     "Profile v2 may display ranked values locally, but ranked rewards remain backend-locked.",
     "PowerScore is a capped summary for matching and recommendations, not direct damage scaling in this patch.",
     "Mascot evolution is visible in the profile and feeds capped PowerScore, but evolution bonuses are not applied to combat yet.",
+    "Skill upgrade levels are visible and feed capped PowerScore, but upgrade bonuses are not applied to combat yet.",
     "Legacy top-level profile fields stay supported while wallet and multiplayer mirrors are introduced.",
   ],
 };
@@ -111,6 +113,7 @@ export function getCampaignBossesCleared(profile: PlayerProfile): number {
 export function getPlayerProfileV2Summary(profile: PlayerProfile): PlayerProfileV2Summary {
   const xp = getXpProgress(profile.xp);
   const evolution = getMascotEvolutionSummary(profile);
+  const skillUpgrades = getSkillUpgradeSummary(profile);
 
   return {
     localPlayerId: profile.identity.localPlayerId,
@@ -134,6 +137,9 @@ export function getPlayerProfileV2Summary(profile: PlayerProfile): PlayerProfile
       nextEvolutionName: evolution.next?.evolution.name,
       nextEvolutionRequirement: evolution.next?.requirementLabel,
       masteryPoints: profile.progressionV2.masteryPoints,
+      skillLevelTotal: skillUpgrades.totalSkillLevels,
+      skillUpgradePower: skillUpgrades.totalSkillPower,
+      readySkillUpgrades: skillUpgrades.readyToUpgradeCount,
       powerScore: profile.progressionV2.powerScore,
       powerBreakdown: profile.progressionV2.powerBreakdown,
     },

@@ -155,3 +155,29 @@ export type {
 } from "../types/EvolutionTypes";
 export { getEvolutionProgressInput, getMascotEvolutionSummary } from "../systems/EvolutionSystem";
 export type { MascotEvolutionSummary } from "../systems/EvolutionSystem";
+export {
+  SKILL_UPGRADE_SYSTEM_DEFINITION,
+  SKILL_UPGRADE_SYSTEM_VERSION,
+  getActiveLoadoutSkillUpgradeStates,
+  getSkillLevelForProfile,
+  getSkillUpgradePowerForProfile,
+  getSkillUpgradeStateForProfile,
+  getSkillUpgradeSummary,
+  normalizeSkillLevelsForProfile,
+} from "../systems/SkillUpgradeSystem";
+export type { SkillUpgradeState, SkillUpgradeSummary } from "../systems/SkillUpgradeSystem";
+export {
+  MAX_SKILL_UPGRADE_LEVEL,
+  getSkillLevelCap,
+  getSkillUpgradeCost,
+  getSkillUpgradePower,
+  getSkillUpgradeRole,
+  normalizeSkillLevel,
+} from "../types/SkillUpgradeTypes";
+export type {
+  SkillUpgradeCost,
+  SkillUpgradeResourceId,
+  SkillUpgradeRole,
+  SkillUpgradeStatus,
+  SkillUpgradeSystemDefinition,
+} from "../types/SkillUpgradeTypes";

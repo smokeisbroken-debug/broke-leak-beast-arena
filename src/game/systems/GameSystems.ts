@@ -15,14 +15,16 @@ import { LEAK_DUEL_DEFINITION } from "../types/DuelTypes";
 import { SAVE_SCHEMA_DEFINITION_V2 } from "../types/SaveSchemaTypes";
 import { PLAYER_PROFILE_V2_DEFINITION } from "./ProfileSystem";
 import { EVOLUTION_SYSTEM_DEFINITION } from "../types/EvolutionTypes";
+import { SKILL_UPGRADE_SYSTEM_DEFINITION } from "../types/SkillUpgradeTypes";
 
-export const GAME_SYSTEMS_VERSION = "0.9.3-mascot-evolution-skeleton";
+export const GAME_SYSTEMS_VERSION = "0.9.4-skill-upgrade-skeleton";
 
 export type GameSystemId =
   | "modes"
   | "profile"
   | "progression"
   | "evolution"
+  | "skill_upgrades"
   | "economy"
   | "balance"
   | "tasks"
@@ -68,6 +70,7 @@ export interface GameSystemsRegistrySnapshot {
   saveSchema: typeof SAVE_SCHEMA_DEFINITION_V2;
   playerProfile: typeof PLAYER_PROFILE_V2_DEFINITION;
   evolution: typeof EVOLUTION_SYSTEM_DEFINITION;
+  skillUpgrades: typeof SKILL_UPGRADE_SYSTEM_DEFINITION;
 }
 
 export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
@@ -79,7 +82,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Centralize playable, ranked and backend-locked mode routes before UI and multiplayer work expands.",
     dependsOn: [],
     relatedModes: ["arena", "campaign", "tasks", "profile", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.9.3-mascot-evolution-skeleton",
+    nextPatch: "v0.9.5-mastery-skeleton",
   },
   {
     id: "profile",
@@ -89,7 +92,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Store identity, selected loadout, synced wallet, capped power score and future multiplayer-safe fields.",
     dependsOn: ["modes"],
     relatedModes: ["profile", "arena", "campaign"],
-    nextPatch: "v0.9.3-mascot-evolution-skeleton",
+    nextPatch: "v0.9.5-mastery-skeleton",
   },
   {
     id: "progression",
@@ -99,7 +102,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Unify level, XP, mastery placeholders and capped power score.",
     dependsOn: ["modes", "profile"],
     relatedModes: ["profile", "campaign", "leaderboard"],
-    nextPatch: "v0.9.3-mascot-evolution-skeleton",
+    nextPatch: "v0.9.5-mastery-skeleton",
   },
   {
     id: "evolution",
@@ -109,7 +112,17 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped long-term mascot forms for profile identity, PowerScore and future seasons without direct combat scaling yet.",
     dependsOn: ["modes", "profile", "progression"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel"],
-    nextPatch: "v0.9.4-skill-upgrade-skeleton",
+    nextPatch: "v0.9.5-mastery-skeleton",
+  },
+  {
+    id: "skill_upgrades",
+    title: "Skill Upgrades",
+    status: "skeleton",
+    priority: "now",
+    goal: "Define capped skill levels, upgrade costs and PowerScore contribution before real upgrade spending and combat scaling are enabled.",
+    dependsOn: ["modes", "profile", "progression", "evolution"],
+    relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel"],
+    nextPatch: "v0.9.5-mastery-skeleton",
   },
   {
     id: "economy",
@@ -117,9 +130,9 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     status: "skeleton",
     priority: "now",
     goal: "Separate XP, coins, leak points, rank points, tournament points and cosmetics.",
-    dependsOn: ["modes", "profile", "progression", "evolution"],
+    dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades"],
     relatedModes: ["tasks", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.9.4-skill-upgrade-skeleton",
+    nextPatch: "v0.9.5-mastery-skeleton",
   },
   {
     id: "balance",
@@ -127,9 +140,9 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     status: "skeleton",
     priority: "now",
     goal: "Define capped power score, difficulty score and matchup evaluation before ranked systems go live.",
-    dependsOn: ["modes", "profile", "progression", "evolution", "economy"],
+    dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades", "economy"],
     relatedModes: ["arena", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.9.4-skill-upgrade-skeleton",
+    nextPatch: "v0.9.5-mastery-skeleton",
   },
   {
     id: "tasks",
@@ -147,7 +160,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     status: "skeleton",
     priority: "next",
     goal: "Support global power, weekly arena, tasks, tournaments, duels and boss damage.",
-    dependsOn: ["profile", "progression", "evolution", "balance", "tasks", "anti_cheat"],
+    dependsOn: ["profile", "progression", "evolution", "skill_upgrades", "balance", "tasks", "anti_cheat"],
     relatedModes: ["leaderboard", "tournament", "leak_duel", "weekly_boss"],
     nextPatch: "v0.10.2-leaderboard-types",
   },
@@ -242,6 +255,7 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   saveSchema: SAVE_SCHEMA_DEFINITION_V2,
   playerProfile: PLAYER_PROFILE_V2_DEFINITION,
   evolution: EVOLUTION_SYSTEM_DEFINITION,
+  skillUpgrades: SKILL_UPGRADE_SYSTEM_DEFINITION,
 };
 
 export function getGameSystem(systemId: GameSystemId): GameSystemDefinition {
@@ -258,7 +272,7 @@ export function getSystemsByPriority(priority: GameSystemPriority): GameSystemDe
 
 export function getSystemsForLeaderboard(leaderboardId: LeaderboardId): GameSystemDefinition[] {
   const leaderboardSystemIds: Record<LeaderboardId, GameSystemId[]> = {
-    global_power: ["profile", "progression", "evolution", "balance", "leaderboard"],
+    global_power: ["profile", "progression", "evolution", "skill_upgrades", "balance", "leaderboard"],
     weekly_arena: ["profile", "balance", "leaderboard", "anti_cheat"],
     task_points: ["tasks", "leaderboard", "anti_cheat"],
     tournament: ["tournaments", "balance", "leaderboard", "anti_cheat"],

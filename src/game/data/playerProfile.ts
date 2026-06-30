@@ -55,6 +55,7 @@ import {
 } from "../types/SaveSchemaTypes";
 import type { CurrencyWalletV2 } from "../types/EconomyTypes";
 import { getEvolutionDefinition, getEvolutionPower, getUnlockedEvolutionForProgress, isEvolutionUnlocked } from "../types/EvolutionTypes";
+import { getSkillUpgradePowerForProfile, normalizeSkillLevelsForProfile } from "../systems/SkillUpgradeSystem";
 
 export interface PlayerProfile {
   version: number;
@@ -267,12 +268,12 @@ function syncProfileEvolution(profile: PlayerProfile): void {
 }
 
 function calculateProfilePowerBreakdown(profile: PlayerProfile): PowerBreakdown {
-  const skillLevelPower = sumRecordValues(profile.progressionV2.skillLevels) * 3;
+  const skillUpgradePower = getSkillUpgradePowerForProfile(profile);
   const masteryBranchPower = sumRecordValues(profile.progressionV2.masteryBranchLevels) * 3;
 
   return {
     level: (Math.max(1, profile.level) - 1) * 10 + Math.floor(Math.max(0, profile.xp) / 1000),
-    skills: profile.unlockedSkillIds.length * 4 + skillLevelPower,
+    skills: profile.unlockedSkillIds.length * 4 + skillUpgradePower,
     evolution: getEvolutionPower(profile.progressionV2.evolutionId),
     mastery: profile.progressionV2.masteryPoints * 2 + masteryBranchPower,
     charms: profile.progressionV2.equippedCharmIds.length * 8,
@@ -450,6 +451,10 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
   const levelUnlockedSkillIds = SKILLS.filter((skill) => skill.unlockLevel <= normalized.level).map((skill) => skill.id);
   const unlockedSkillIds = Array.from(new Set([...STARTER_SKILL_IDS, ...levelUnlockedSkillIds, ...(profile?.unlockedSkillIds ?? [])]));
   normalized.unlockedSkillIds = unlockedSkillIds;
+  normalized.progressionV2 = {
+    ...normalized.progressionV2,
+    skillLevels: normalizeSkillLevelsForProfile(normalized),
+  };
   normalized.selectedSkillIds = {
     ...DEFAULT_LOADOUT,
     ...(profile?.selectedSkillIds ?? {}),

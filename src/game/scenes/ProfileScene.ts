@@ -14,6 +14,7 @@ import {
   getStageById,
   getSaveStatus,
   getPlayerProfileV2Summary,
+  getSkillUpgradeSummary,
   getXpProgress,
   loadPlayerProfile,
 } from "../data/gameRegistry";
@@ -35,6 +36,7 @@ export class ProfileScene extends Phaser.Scene {
     };
     const xp = getXpProgress(profile.xp);
     const profileV2 = getPlayerProfileV2Summary(profile);
+    const skillUpgradeSummary = getSkillUpgradeSummary(profile);
     const campaignProgress = getCampaignProgress(profile);
     const missionStates = getDailyMissionStates(profile);
     const completedMissions = missionStates.filter((mission) => mission.completed).length;
@@ -67,7 +69,19 @@ export class ProfileScene extends Phaser.Scene {
       profileV2.progress.nextEvolutionRequirement,
     );
     this.createStatsCard(profile.totalWins, profile.totalLosses, profile.bestScore, completedMissions, claimableMissions, profileV2.multiplayer.taskPoints, profileV2.multiplayer.rankPoints);
-    this.createLoadoutCard(skin.name, stage.name, boss.name, skills.skill1.name, skills.skill2.name, skills.ultimate.name);
+    const skillLine = (skillId: string, name: string): string => {
+      const state = skillUpgradeSummary.activeLoadout.find((item) => item.skillId === skillId);
+      return `${name} LV ${state?.level ?? 1}/${state?.maxLevel ?? 10}`;
+    };
+    this.createLoadoutCard(
+      stage.name,
+      boss.name,
+      skillLine(profile.selectedSkillIds.skill1, skills.skill1.name),
+      skillLine(profile.selectedSkillIds.skill2, skills.skill2.name),
+      skillLine(profile.selectedSkillIds.ultimate, skills.ultimate.name),
+      profileV2.progress.skillUpgradePower,
+      profileV2.progress.readySkillUpgrades,
+    );
     this.createProgressCard(profile.unlockedSkinIds.length, profile.unlockedSkillIds.length, profile.unlockedStageIds.length, campaignProgress);
     const saveStatus = getSaveStatus();
     this.createResourceCard(
@@ -131,15 +145,15 @@ export class ProfileScene extends Phaser.Scene {
     this.writeLines(322, 130, lines, "#fcfff7");
   }
 
-  private createLoadoutCard(skin: string, stage: string, boss: string, skill1: string, skill2: string, ultimate: string): void {
+  private createLoadoutCard(stage: string, boss: string, skill1: string, skill2: string, ultimate: string, skillPower: number, readySkillUpgrades: number): void {
     this.createPanel(430, 288, 246, 138, "ACTIVE LOADOUT", 0xb66cff);
     this.writeLines(322, 268, [
-      `SKIN: ${skin}`,
-      `STAGE: ${stage}`,
-      `BOSS: ${boss}`,
+      `SKILL POWER: ${skillPower} · READY: ${readySkillUpgrades}`,
       `S1: ${skill1}`,
       `S2: ${skill2}`,
       `ULT: ${ultimate}`,
+      `STAGE: ${stage}`,
+      `BOSS: ${boss}`,
     ], "#d7ffd0", 10);
   }
 
