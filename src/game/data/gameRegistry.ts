@@ -329,3 +329,47 @@ export type {
   TaskPointSourceBreakdownRow,
   TaskPointSourceId,
 } from "../types/TaskPointTypes";
+
+export {
+  LEADERBOARD_SYSTEM_DEFINITION,
+  LEADERBOARD_SYSTEM_VERSION,
+  createLeaderboardEntryFromProfile,
+  createLeaderboardSubmitPayload,
+  createLocalLeaderboardSnapshot,
+  getLeaderboardDefinitionsByBackendStatus,
+  getLeaderboardScoreBreakdownForProfile,
+  getLeaderboardValueForProfile,
+} from "../systems/LeaderboardSystem";
+export {
+  LEADERBOARD_DEFINITIONS,
+  LEADERBOARD_SCORE_BUCKETS,
+  getBackendRequiredLeaderboards,
+  getLeaderboardDefinition,
+  getLeaderboardPeriodKey,
+  getLeaderboardReadiness,
+  getLeaderboardScoreBucket,
+  getLeaderboardsByScope,
+  getLocalPreviewLeaderboards,
+  isLeaderboardBackendLocked,
+} from "../types/LeaderboardTypes";
+export type {
+  LeaderboardBackendStatus,
+  LeaderboardDefinition,
+  LeaderboardEntry,
+  LeaderboardId,
+  LeaderboardMetric,
+  LeaderboardPeriodKey,
+  LeaderboardReadiness,
+  LeaderboardResetRule,
+  LeaderboardScope,
+  LeaderboardScoreBreakdownRow,
+  LeaderboardScoreBucketDefinition,
+  LeaderboardScoreBucketId,
+  LeaderboardScorePolicy,
+  LeaderboardSnapshot,
+  LeaderboardSortDirection,
+  LeaderboardSubmitPayload,
+  LeaderboardSubmissionStatus,
+  LeaderboardSystemDefinition,
+  LeaderboardValidationTier,
+} from "../types/LeaderboardTypes";

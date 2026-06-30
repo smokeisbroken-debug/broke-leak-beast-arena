@@ -1,6 +1,7 @@
 import { GAME_MODE_DEFINITIONS, type GameModeId } from "../types/GameModeTypes";
 import { GAME_MODE_REGISTRY_DEFINITION, GAME_MODE_ROUTES, createModeRegistrySnapshot } from "./ModeRegistry";
 import { LEADERBOARD_DEFINITIONS, type LeaderboardId } from "../types/LeaderboardTypes";
+import { LEADERBOARD_SYSTEM_DEFINITION } from "./LeaderboardSystem";
 import { DEFAULT_POWER_CAPS } from "../types/ProgressionTypes";
 import { BALANCE_SYSTEM_DEFINITION } from "../types/BalanceTypes";
 import {
@@ -22,7 +23,7 @@ import { SKILL_UPGRADE_SYSTEM_DEFINITION } from "../types/SkillUpgradeTypes";
 import { MASTERY_SYSTEM_DEFINITION } from "../types/MasteryTypes";
 import { PROGRESSION_UI_SYSTEM_DEFINITION } from "./ProgressionUiSystem";
 
-export const GAME_SYSTEMS_VERSION = "0.10.1-task-points-leaderboard-prep";
+export const GAME_SYSTEMS_VERSION = "0.10.2-leaderboard-types";
 
 export type GameSystemId =
   | "modes"
@@ -70,6 +71,7 @@ export interface GameSystemsRegistrySnapshot {
   rewardSources: typeof REWARD_SOURCE_DEFINITIONS;
   powerCaps: typeof DEFAULT_POWER_CAPS;
   leaderboards: typeof LEADERBOARD_DEFINITIONS;
+  leaderboardSystem: typeof LEADERBOARD_SYSTEM_DEFINITION;
   taskSystem: typeof TASK_SYSTEM_DEFINITION;
   taskRewardSystem: typeof TASK_REWARD_SYSTEM_DEFINITION;
   taskClaimSystem: typeof TASK_CLAIM_SYSTEM_DEFINITION;
@@ -96,7 +98,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Centralize playable, ranked and backend-locked mode routes before UI and multiplayer work expands.",
     dependsOn: [],
     relatedModes: ["arena", "campaign", "tasks", "profile", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.10.2-leaderboard-types",
+    nextPatch: "v0.10.3-local-leaderboard-mock",
   },
   {
     id: "profile",
@@ -106,7 +108,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Store identity, selected loadout, synced wallet, capped power score and future multiplayer-safe fields.",
     dependsOn: ["modes"],
     relatedModes: ["profile", "arena", "campaign"],
-    nextPatch: "v0.10.1-task-points-leaderboard-prep",
+    nextPatch: "v0.10.3-local-leaderboard-mock",
   },
   {
     id: "progression",
@@ -116,7 +118,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Unify level, XP, mastery placeholders and capped power score.",
     dependsOn: ["modes", "profile"],
     relatedModes: ["profile", "campaign", "leaderboard"],
-    nextPatch: "v0.10.1-task-points-leaderboard-prep",
+    nextPatch: "v0.10.3-local-leaderboard-mock",
   },
   {
     id: "evolution",
@@ -126,7 +128,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped long-term mascot forms for profile identity, PowerScore and future seasons without direct combat scaling yet.",
     dependsOn: ["modes", "profile", "progression"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel"],
-    nextPatch: "v0.10.1-task-points-leaderboard-prep",
+    nextPatch: "v0.10.3-local-leaderboard-mock",
   },
   {
     id: "skill_upgrades",
@@ -136,7 +138,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped skill levels, upgrade costs and PowerScore contribution before real upgrade spending and combat scaling are enabled.",
     dependsOn: ["modes", "profile", "progression", "evolution"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel"],
-    nextPatch: "v0.10.1-task-points-leaderboard-prep",
+    nextPatch: "v0.10.3-local-leaderboard-mock",
   },
   {
     id: "mastery",
@@ -146,7 +148,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define long-term horizontal branches for guard, dash, skills, bosses, leak control and survival without direct combat scaling yet.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades"],
     relatedModes: ["profile", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.10.1-task-points-leaderboard-prep",
+    nextPatch: "v0.10.3-local-leaderboard-mock",
   },
   {
     id: "economy",
@@ -156,7 +158,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Separate XP, coins, leak points, rank points, tournament points and cosmetics.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades", "mastery"],
     relatedModes: ["tasks", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.10.1-task-points-leaderboard-prep",
+    nextPatch: "v0.10.3-local-leaderboard-mock",
   },
   {
     id: "balance",
@@ -166,7 +168,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define capped power score, difficulty score and matchup evaluation before ranked systems go live.",
     dependsOn: ["modes", "profile", "progression", "evolution", "skill_upgrades", "mastery", "economy"],
     relatedModes: ["arena", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.10.1-task-points-leaderboard-prep",
+    nextPatch: "v0.10.3-local-leaderboard-mock",
   },
   {
     id: "tasks",
@@ -176,17 +178,17 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Define daily, weekly, tournament, duel and boss tasks, reward previews, local progress tracking and safe daily claim flow before task-point leaderboard payloads are enabled.",
     dependsOn: ["profile", "economy", "balance"],
     relatedModes: ["tasks", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.10.1-task-points-leaderboard-prep",
+    nextPatch: "v0.10.3-local-leaderboard-mock",
   },
   {
     id: "leaderboard",
     title: "Leaderboard",
     status: "skeleton",
     priority: "next",
-    goal: "Support global power, weekly arena, tasks, tournaments, duels and boss damage.",
+    goal: "Define typed score contracts for global power, weekly arena, task points, tournaments, Leak Duel rank and boss damage before local mock UI and remote submission are enabled.",
     dependsOn: ["profile", "progression", "evolution", "skill_upgrades", "mastery", "balance", "tasks", "anti_cheat"],
     relatedModes: ["leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.10.2-leaderboard-types",
+    nextPatch: "v0.10.3-local-leaderboard-mock",
   },
   {
     id: "tournaments",
@@ -273,6 +275,7 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   rewardSources: REWARD_SOURCE_DEFINITIONS,
   powerCaps: DEFAULT_POWER_CAPS,
   leaderboards: LEADERBOARD_DEFINITIONS,
+  leaderboardSystem: LEADERBOARD_SYSTEM_DEFINITION,
   taskSystem: TASK_SYSTEM_DEFINITION,
   taskRewardSystem: TASK_REWARD_SYSTEM_DEFINITION,
   taskClaimSystem: TASK_CLAIM_SYSTEM_DEFINITION,
