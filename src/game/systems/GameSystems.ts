@@ -1,6 +1,7 @@
 import { GAME_MODE_DEFINITIONS, type GameModeId } from "../types/GameModeTypes";
 import { LEADERBOARD_DEFINITIONS, type LeaderboardId } from "../types/LeaderboardTypes";
 import { DEFAULT_POWER_CAPS } from "../types/ProgressionTypes";
+import { BALANCE_SYSTEM_DEFINITION } from "../types/BalanceTypes";
 import {
   CURRENCY_DEFINITIONS,
   ECONOMY_SYSTEM_DEFINITION,
@@ -11,12 +12,13 @@ import { TASK_SKELETON_DEFINITIONS } from "../types/TaskTypes";
 import { TOURNAMENT_DEFINITIONS } from "../types/TournamentTypes";
 import { LEAK_DUEL_DEFINITION } from "../types/DuelTypes";
 
-export const GAME_SYSTEMS_VERSION = "0.8.8-economy-types";
+export const GAME_SYSTEMS_VERSION = "0.8.9-balance-formula";
 
 export type GameSystemId =
   | "profile"
   | "progression"
   | "economy"
+  | "balance"
   | "tasks"
   | "leaderboard"
   | "tournaments"
@@ -46,6 +48,7 @@ export interface GameSystemsRegistrySnapshot {
   systems: readonly GameSystemDefinition[];
   modes: typeof GAME_MODE_DEFINITIONS;
   economy: typeof ECONOMY_SYSTEM_DEFINITION;
+  balance: typeof BALANCE_SYSTEM_DEFINITION;
   currencies: typeof CURRENCY_DEFINITIONS;
   rewardSources: typeof REWARD_SOURCE_DEFINITIONS;
   powerCaps: typeof DEFAULT_POWER_CAPS;
@@ -74,7 +77,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Unify level, XP, evolution, mastery and capped power score.",
     dependsOn: ["profile"],
     relatedModes: ["profile", "campaign", "leaderboard"],
-    nextPatch: "v0.8.9-balance-formula",
+    nextPatch: "v0.9.0-mode-registry",
   },
   {
     id: "economy",
@@ -84,7 +87,17 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Separate XP, coins, leak points, rank points, tournament points and cosmetics.",
     dependsOn: ["profile", "progression"],
     relatedModes: ["tasks", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.8.8-economy-types",
+    nextPatch: "v0.9.0-mode-registry",
+  },
+  {
+    id: "balance",
+    title: "Balance Formula",
+    status: "skeleton",
+    priority: "now",
+    goal: "Define capped power score, difficulty score and matchup evaluation before ranked systems go live.",
+    dependsOn: ["profile", "progression", "economy"],
+    relatedModes: ["arena", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
+    nextPatch: "v0.9.0-mode-registry",
   },
   {
     id: "tasks",
@@ -92,7 +105,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     status: "skeleton",
     priority: "next",
     goal: "Award task points, progression rewards and future leaderboard activity score.",
-    dependsOn: ["profile", "economy"],
+    dependsOn: ["profile", "economy", "balance"],
     relatedModes: ["tasks", "leaderboard", "tournament", "leak_duel"],
     nextPatch: "v0.9.7-task-system-skeleton",
   },
@@ -102,7 +115,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     status: "skeleton",
     priority: "next",
     goal: "Support global power, weekly arena, tasks, tournaments, duels and boss damage.",
-    dependsOn: ["profile", "progression", "tasks", "anti_cheat"],
+    dependsOn: ["profile", "progression", "balance", "tasks", "anti_cheat"],
     relatedModes: ["leaderboard", "tournament", "leak_duel", "weekly_boss"],
     nextPatch: "v0.10.2-leaderboard-types",
   },
@@ -112,7 +125,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     status: "skeleton",
     priority: "next",
     goal: "Define time-boxed events with rules, participation points and ranked scoring.",
-    dependsOn: ["leaderboard", "economy", "anti_cheat"],
+    dependsOn: ["leaderboard", "economy", "balance", "anti_cheat"],
     relatedModes: ["tournament", "leaderboard"],
     nextPatch: "v0.10.7-tournament-types",
   },
@@ -122,7 +135,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     status: "skeleton",
     priority: "next",
     goal: "Create asynchronous 1 vs 1 battles on identical leak-pressure seeds.",
-    dependsOn: ["leaderboard", "economy", "anti_cheat"],
+    dependsOn: ["leaderboard", "economy", "balance", "anti_cheat"],
     relatedModes: ["leak_duel", "leaderboard"],
     nextPatch: "v0.11.3-duel-types",
   },
@@ -132,7 +145,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     status: "existing",
     priority: "later",
     goal: "Turn PvE chapters into the main onboarding and long-term boss journey.",
-    dependsOn: ["profile", "progression", "economy"],
+    dependsOn: ["profile", "progression", "economy", "balance"],
     relatedModes: ["campaign"],
     nextPatch: "v0.11.9-campaign-chapter-skeleton",
   },
@@ -142,7 +155,7 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     status: "existing",
     priority: "later",
     goal: "Connect solo bosses, campaign bosses and weekly community bosses.",
-    dependsOn: ["campaign", "leaderboard"],
+    dependsOn: ["campaign", "leaderboard", "balance"],
     relatedModes: ["arena", "campaign", "weekly_boss"],
     nextPatch: "v0.12.0-boss-registry-v2",
   },
@@ -183,6 +196,7 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   systems: GAME_SYSTEMS,
   modes: GAME_MODE_DEFINITIONS,
   economy: ECONOMY_SYSTEM_DEFINITION,
+  balance: BALANCE_SYSTEM_DEFINITION,
   currencies: CURRENCY_DEFINITIONS,
   rewardSources: REWARD_SOURCE_DEFINITIONS,
   powerCaps: DEFAULT_POWER_CAPS,
@@ -206,12 +220,12 @@ export function getSystemsByPriority(priority: GameSystemPriority): GameSystemDe
 
 export function getSystemsForLeaderboard(leaderboardId: LeaderboardId): GameSystemDefinition[] {
   const leaderboardSystemIds: Record<LeaderboardId, GameSystemId[]> = {
-    global_power: ["profile", "progression", "leaderboard"],
-    weekly_arena: ["profile", "leaderboard", "anti_cheat"],
+    global_power: ["profile", "progression", "balance", "leaderboard"],
+    weekly_arena: ["profile", "balance", "leaderboard", "anti_cheat"],
     task_points: ["tasks", "leaderboard", "anti_cheat"],
-    tournament: ["tournaments", "leaderboard", "anti_cheat"],
-    duel_ranked: ["duels", "leaderboard", "anti_cheat"],
-    boss_damage: ["bosses", "leaderboard", "anti_cheat"],
+    tournament: ["tournaments", "balance", "leaderboard", "anti_cheat"],
+    duel_ranked: ["duels", "balance", "leaderboard", "anti_cheat"],
+    boss_damage: ["bosses", "balance", "leaderboard", "anti_cheat"],
   };
 
   return leaderboardSystemIds[leaderboardId].map(getGameSystem);
