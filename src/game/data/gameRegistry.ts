@@ -181,3 +181,30 @@ export type {
   SkillUpgradeStatus,
   SkillUpgradeSystemDefinition,
 } from "../types/SkillUpgradeTypes";
+
+export {
+  MASTERY_SYSTEM_DEFINITION,
+  MASTERY_SYSTEM_VERSION,
+  MASTERY_BRANCHES,
+  getMasteryBranchDefinition,
+  getMasteryBranchPower,
+  getMasteryBranchUnlockLabel,
+  normalizeMasteryBranchLevel,
+} from "../types/MasteryTypes";
+export type {
+  MasteryBranchBonus,
+  MasteryBranchDefinition,
+  MasteryBranchId,
+  MasteryBranchRole,
+  MasteryBranchState,
+  MasterySystemDefinition,
+  MasteryUnlockStatus,
+} from "../types/MasteryTypes";
+export {
+  getMasteryBranchStatesForProfile,
+  getMasteryPowerForProfile,
+  getMasterySpentPointsForProfile,
+  getMasterySummary,
+  normalizeMasteryBranchLevelsForProfile,
+} from "../systems/MasterySystem";
+export type { MasterySummary } from "../systems/MasterySystem";

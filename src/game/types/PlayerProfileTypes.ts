@@ -42,6 +42,13 @@ export interface ProfileV2ProgressSummary {
   nextEvolutionName?: string;
   nextEvolutionRequirement?: string;
   masteryPoints: number;
+  masterySpentPoints: number;
+  masteryAvailablePoints: number;
+  masteryBranchTotal: number;
+  masteryUnlockedBranches: number;
+  masteryPower: number;
+  nextMasteryUnlockName?: string;
+  nextMasteryUnlockRequirement?: string;
   skillLevelTotal: number;
   skillUpgradePower: number;
   readySkillUpgrades: number;

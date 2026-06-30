@@ -56,6 +56,7 @@ import {
 import type { CurrencyWalletV2 } from "../types/EconomyTypes";
 import { getEvolutionDefinition, getEvolutionPower, getUnlockedEvolutionForProgress, isEvolutionUnlocked } from "../types/EvolutionTypes";
 import { getSkillUpgradePowerForProfile, normalizeSkillLevelsForProfile } from "../systems/SkillUpgradeSystem";
+import { getMasteryPowerForProfile, normalizeMasteryBranchLevelsForProfile } from "../systems/MasterySystem";
 
 export interface PlayerProfile {
   version: number;
@@ -269,13 +270,13 @@ function syncProfileEvolution(profile: PlayerProfile): void {
 
 function calculateProfilePowerBreakdown(profile: PlayerProfile): PowerBreakdown {
   const skillUpgradePower = getSkillUpgradePowerForProfile(profile);
-  const masteryBranchPower = sumRecordValues(profile.progressionV2.masteryBranchLevels) * 3;
+  const masteryPower = getMasteryPowerForProfile(profile);
 
   return {
     level: (Math.max(1, profile.level) - 1) * 10 + Math.floor(Math.max(0, profile.xp) / 1000),
     skills: profile.unlockedSkillIds.length * 4 + skillUpgradePower,
     evolution: getEvolutionPower(profile.progressionV2.evolutionId),
-    mastery: profile.progressionV2.masteryPoints * 2 + masteryBranchPower,
+    mastery: profile.progressionV2.masteryPoints * 2 + masteryPower,
     charms: profile.progressionV2.equippedCharmIds.length * 8,
   };
 }
@@ -428,6 +429,7 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
       charms: safeInteger(normalized.progressionV2.powerBreakdown.charms),
     },
     masteryPoints: safeInteger(normalized.progressionV2.masteryPoints),
+    masteryBranchLevels: normalizeMasteryBranchLevelsForProfile(normalized),
   };
 
   const todayKey = getDailyMissionDateKey();

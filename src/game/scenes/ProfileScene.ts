@@ -14,6 +14,7 @@ import {
   getStageById,
   getSaveStatus,
   getPlayerProfileV2Summary,
+  getMasterySummary,
   getSkillUpgradeSummary,
   getXpProgress,
   loadPlayerProfile,
@@ -37,6 +38,7 @@ export class ProfileScene extends Phaser.Scene {
     const xp = getXpProgress(profile.xp);
     const profileV2 = getPlayerProfileV2Summary(profile);
     const skillUpgradeSummary = getSkillUpgradeSummary(profile);
+    const masterySummary = getMasterySummary(profile);
     const campaignProgress = getCampaignProgress(profile);
     const missionStates = getDailyMissionStates(profile);
     const completedMissions = missionStates.filter((mission) => mission.completed).length;
@@ -90,6 +92,12 @@ export class ProfileScene extends Phaser.Scene {
       profile.skillCards,
       profileV2.multiplayer.tournamentPoints,
       profileV2.multiplayer.duelRating,
+      masterySummary.totalBranchLevels,
+      masterySummary.totalMaxBranchLevels,
+      masterySummary.totalMasteryPower,
+      masterySummary.availablePoints,
+      masterySummary.nextUnlockBranch?.shortName,
+      masterySummary.nextUnlockBranch?.unlockLabel,
       saveStatus.mainReadable,
       saveStatus.backupReadable,
     );
@@ -169,15 +177,31 @@ export class ProfileScene extends Phaser.Scene {
     ], "#fcfff7");
   }
 
-  private createResourceCard(leakPoints: number, skinShards: number, skillCards: number, tournamentPoints: number, duelRating: number, saveOk: boolean, backupOk: boolean): void {
-    this.createPanel(700, 288, 266, 138, "RESOURCES / SAVE V2", 0x8cdcff);
-    this.writeLines(576, 274, [
+  private createResourceCard(
+    leakPoints: number,
+    skinShards: number,
+    skillCards: number,
+    tournamentPoints: number,
+    duelRating: number,
+    masteryBranchTotal: number,
+    masteryBranchMax: number,
+    masteryPower: number,
+    masteryAvailablePoints: number,
+    nextMasteryName: string | undefined,
+    nextMasteryRequirement: string | undefined,
+    saveOk: boolean,
+    backupOk: boolean,
+  ): void {
+    this.createPanel(700, 288, 266, 138, "RESOURCES / MASTERY", 0x8cdcff);
+    const nextMasteryLine = nextMasteryName ? `NEXT ${nextMasteryName}: ${nextMasteryRequirement}` : "NEXT MASTERY: ALL BRANCHES OPEN";
+    this.writeLines(576, 270, [
+      `MASTERY: ${masteryBranchTotal}/${masteryBranchMax} · PWR ${masteryPower}`,
+      `FREE POINTS: ${masteryAvailablePoints} · DUEL ${duelRating}`,
       `LEAK: ${leakPoints} · TP: ${tournamentPoints}`,
-      `DUEL RATING: ${duelRating}`,
-      `SKIN SHARDS: ${skinShards}`,
-      `SKILL CARDS: ${skillCards}`,
+      `CARDS: ${skillCards} · SHARDS: ${skinShards}`,
+      nextMasteryLine,
       `SAVE ${saveOk ? "OK" : "EMPTY"} · BACKUP ${backupOk ? "OK" : "EMPTY"}`,
-    ], "#d7ffd0", 11);
+    ], "#d7ffd0", 10);
   }
 
   private createPanel(x: number, y: number, w: number, h: number, title: string, color: number): void {

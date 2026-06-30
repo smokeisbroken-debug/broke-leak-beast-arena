@@ -109,3 +109,23 @@ export type {
   EvolutionUnlockStatus,
   MascotEvolutionDefinition,
 } from "./EvolutionTypes";
+
+export {
+  MASTERY_BRANCHES,
+  MASTERY_SYSTEM_DEFINITION,
+  MASTERY_SYSTEM_VERSION,
+  getMasteryBranchDefinition,
+  getMasteryBranchPower,
+  getMasteryBranchUnlockLabel,
+  normalizeMasteryBranchLevel,
+} from "./MasteryTypes";
+
+export type {
+  MasteryBranchBonus,
+  MasteryBranchDefinition,
+  MasteryBranchId,
+  MasteryBranchRole,
+  MasteryBranchState,
+  MasterySystemDefinition,
+  MasteryUnlockStatus,
+} from "./MasteryTypes";
