@@ -10,7 +10,7 @@ import {
   type GameModeRouteDefinition,
 } from "../types/GameModeTypes";
 
-export const MODE_REGISTRY_VERSION = "0.11.1-tournament-run-result";
+export const MODE_REGISTRY_VERSION = "0.11.3-duel-types";
 
 export interface GameModeRegistrySnapshot {
   version: string;
@@ -114,7 +114,7 @@ export const GAME_MODE_ROUTES: readonly GameModeRouteDefinition[] = [
     sortOrder: 70,
     requiresBackend: true,
     requiresValidation: true,
-    nextUnlockPatch: "v0.11.3-duel-types",
+    nextUnlockPatch: "v0.11.4-duel-seed-system",
   },
   {
     modeId: "weekly_boss",
