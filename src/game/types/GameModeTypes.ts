@@ -10,6 +10,8 @@ export type GameModeId =
 
 export type GameModeCategory = "pve" | "pvp" | "progression" | "social" | "meta";
 export type GameModeStatus = "live" | "skeleton" | "planned";
+export type GameModeAvailability = "playable" | "menu_only" | "mock_ready" | "backend_locked" | "planned";
+export type GameModeEntryPoint = "main_menu" | "profile" | "direct_scene" | "future_backend";
 
 export interface GameModeDefinition {
   id: GameModeId;
@@ -20,6 +22,27 @@ export interface GameModeDefinition {
   multiplayerReady: boolean;
   ranked: boolean;
   unlockVersion: string;
+}
+
+export interface GameModeRouteDefinition {
+  modeId: GameModeId;
+  menuLabel: string;
+  menuSubLabel: string;
+  currentSceneKey?: string;
+  plannedSceneKey: string;
+  availability: GameModeAvailability;
+  entryPoint: GameModeEntryPoint;
+  sortOrder: number;
+  requiresBackend: boolean;
+  requiresValidation: boolean;
+  nextUnlockPatch: string;
+}
+
+export interface GameModeRegistryDefinition {
+  version: string;
+  title: string;
+  routes: readonly GameModeRouteDefinition[];
+  rules: readonly string[];
 }
 
 export const GAME_MODE_DEFINITIONS: readonly GameModeDefinition[] = [
@@ -115,6 +138,10 @@ export function getGameModeDefinition(modeId: GameModeId): GameModeDefinition {
 
 export function getRankedGameModes(): GameModeDefinition[] {
   return GAME_MODE_DEFINITIONS.filter((mode) => mode.ranked);
+}
+
+export function getMultiplayerGameModes(): GameModeDefinition[] {
+  return GAME_MODE_DEFINITIONS.filter((mode) => mode.multiplayerReady);
 }
 
 export function isMultiplayerReadyMode(modeId: GameModeId): boolean {

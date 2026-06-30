@@ -1,4 +1,5 @@
 import { GAME_MODE_DEFINITIONS, type GameModeId } from "../types/GameModeTypes";
+import { GAME_MODE_REGISTRY_DEFINITION, GAME_MODE_ROUTES, createModeRegistrySnapshot } from "./ModeRegistry";
 import { LEADERBOARD_DEFINITIONS, type LeaderboardId } from "../types/LeaderboardTypes";
 import { DEFAULT_POWER_CAPS } from "../types/ProgressionTypes";
 import { BALANCE_SYSTEM_DEFINITION } from "../types/BalanceTypes";
@@ -12,9 +13,10 @@ import { TASK_SKELETON_DEFINITIONS } from "../types/TaskTypes";
 import { TOURNAMENT_DEFINITIONS } from "../types/TournamentTypes";
 import { LEAK_DUEL_DEFINITION } from "../types/DuelTypes";
 
-export const GAME_SYSTEMS_VERSION = "0.8.9-balance-formula";
+export const GAME_SYSTEMS_VERSION = "0.9.0-mode-registry";
 
 export type GameSystemId =
+  | "modes"
   | "profile"
   | "progression"
   | "economy"
@@ -47,6 +49,9 @@ export interface GameSystemsRegistrySnapshot {
   version: string;
   systems: readonly GameSystemDefinition[];
   modes: typeof GAME_MODE_DEFINITIONS;
+  modeRoutes: typeof GAME_MODE_ROUTES;
+  modeRegistry: ReturnType<typeof createModeRegistrySnapshot>;
+  modeRegistryDefinition: typeof GAME_MODE_REGISTRY_DEFINITION;
   economy: typeof ECONOMY_SYSTEM_DEFINITION;
   balance: typeof BALANCE_SYSTEM_DEFINITION;
   currencies: typeof CURRENCY_DEFINITIONS;
@@ -60,12 +65,22 @@ export interface GameSystemsRegistrySnapshot {
 
 export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
   {
+    id: "modes",
+    title: "Mode Registry",
+    status: "skeleton",
+    priority: "now",
+    goal: "Centralize playable, ranked and backend-locked mode routes before UI and multiplayer work expands.",
+    dependsOn: [],
+    relatedModes: ["arena", "campaign", "tasks", "profile", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
+    nextPatch: "v0.9.1-save-schema-v2",
+  },
+  {
     id: "profile",
     title: "Player Profile",
     status: "existing",
     priority: "now",
     goal: "Store identity, selected loadout, progression and future multiplayer-safe fields.",
-    dependsOn: [],
+    dependsOn: ["modes"],
     relatedModes: ["profile", "arena", "campaign"],
     nextPatch: "v0.9.1-save-schema-v2",
   },
@@ -75,9 +90,9 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     status: "skeleton",
     priority: "now",
     goal: "Unify level, XP, evolution, mastery and capped power score.",
-    dependsOn: ["profile"],
+    dependsOn: ["modes", "profile"],
     relatedModes: ["profile", "campaign", "leaderboard"],
-    nextPatch: "v0.9.0-mode-registry",
+    nextPatch: "v0.9.1-save-schema-v2",
   },
   {
     id: "economy",
@@ -85,9 +100,9 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     status: "skeleton",
     priority: "now",
     goal: "Separate XP, coins, leak points, rank points, tournament points and cosmetics.",
-    dependsOn: ["profile", "progression"],
+    dependsOn: ["modes", "profile", "progression"],
     relatedModes: ["tasks", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.9.0-mode-registry",
+    nextPatch: "v0.9.1-save-schema-v2",
   },
   {
     id: "balance",
@@ -95,9 +110,9 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     status: "skeleton",
     priority: "now",
     goal: "Define capped power score, difficulty score and matchup evaluation before ranked systems go live.",
-    dependsOn: ["profile", "progression", "economy"],
+    dependsOn: ["modes", "profile", "progression", "economy"],
     relatedModes: ["arena", "campaign", "leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.9.0-mode-registry",
+    nextPatch: "v0.9.1-save-schema-v2",
   },
   {
     id: "tasks",
@@ -195,6 +210,9 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   version: GAME_SYSTEMS_VERSION,
   systems: GAME_SYSTEMS,
   modes: GAME_MODE_DEFINITIONS,
+  modeRoutes: GAME_MODE_ROUTES,
+  modeRegistry: createModeRegistrySnapshot(),
+  modeRegistryDefinition: GAME_MODE_REGISTRY_DEFINITION,
   economy: ECONOMY_SYSTEM_DEFINITION,
   balance: BALANCE_SYSTEM_DEFINITION,
   currencies: CURRENCY_DEFINITIONS,
