@@ -3,10 +3,9 @@ import { GAME_CONFIG, GAME_HEIGHT, GAME_WIDTH } from "../../config/game";
 import { SCENE_KEYS } from "../../config/routes";
 import {
   LEADERBOARD_DEFINITIONS,
-  createLeaderboardSubmitPayload,
-  createLocalLeaderboardMockSnapshot,
+  createLeaderboardAdapterSnapshot,
+  createLeaderboardAdapterSubmitPreview,
   getLeaderboardDefinition,
-  getLeaderboardReadiness,
   getWeeklyLeaderboardPreview,
   isWeeklyLeaderboardId,
   loadPlayerProfile,
@@ -37,7 +36,7 @@ export class LeaderboardScene extends Phaser.Scene {
       strokeThickness: 6,
     }).setOrigin(0.5).setDepth(3);
 
-    this.add.text(GAME_WIDTH / 2, 51, `${GAME_CONFIG.version} · LOCAL MOCK TABLES · PUBLIC SUBMIT DISABLED`, {
+    this.add.text(GAME_WIDTH / 2, 51, `${GAME_CONFIG.version} · ADAPTER READY · PUBLIC SUBMIT DISABLED`, {
       fontFamily: "Arial",
       fontSize: "10px",
       color: "#d7ffd0",
@@ -94,9 +93,9 @@ export class LeaderboardScene extends Phaser.Scene {
 
     const profile = loadPlayerProfile();
     const definition = getLeaderboardDefinition(this.selectedLeaderboardId);
-    const snapshot = createLocalLeaderboardMockSnapshot(this.selectedLeaderboardId, profile);
-    const payload = createLeaderboardSubmitPayload(this.selectedLeaderboardId, profile);
-    const readiness = getLeaderboardReadiness(this.selectedLeaderboardId);
+    const adapterSnapshot = createLeaderboardAdapterSnapshot(this.selectedLeaderboardId, profile);
+    const submitPreview = createLeaderboardAdapterSubmitPreview(this.selectedLeaderboardId, profile);
+    const snapshot = adapterSnapshot.snapshot;
     const weeklyPreview = getWeeklyLeaderboardPreview(this.selectedLeaderboardId, profile);
     const playerEntry = snapshot.playerEntry;
     const color = this.getLeaderboardColor(this.selectedLeaderboardId);
@@ -119,8 +118,8 @@ export class LeaderboardScene extends Phaser.Scene {
       `METRIC: ${definition.metric.replace(/_/g, " ")}`,
       `RESET: ${definition.resetRule}`,
       `BACKEND: ${definition.backendStatus.replace(/_/g, " ")}`,
-      `VALIDATION: ${readiness.backendValidationRequired ? "REQUIRED" : "LOCAL PREVIEW"}`,
-      `SUBMIT: ${payload.submissionEnabled ? "ENABLED" : "DISABLED"}`,
+      `ADAPTER: ${adapterSnapshot.providerId.replace(/_/g, " ")}`,
+      `SUBMIT: ${submitPreview.adapterSubmitLock.replace(/_/g, " ")}`,
     ];
     statusLines.forEach((line, index) => {
       this.content?.add(this.add.text(68, 200 + index * 18, line.toUpperCase(), {
@@ -144,7 +143,7 @@ export class LeaderboardScene extends Phaser.Scene {
       });
     }
 
-    const requirements = readiness.requiredBeforePublicSubmit.slice(0, weeklyPreview ? 2 : 3);
+    const requirements = submitPreview.requiredBeforeRemote.slice(0, weeklyPreview ? 2 : 3);
     const requirementsY = weeklyPreview ? 368 : 325;
     this.content.add(this.add.text(68, requirementsY, "PUBLIC SUBMIT REQUIRES:", {
       fontFamily: "Arial", fontSize: "10px", color: "#8cdcff", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
@@ -167,8 +166,8 @@ export class LeaderboardScene extends Phaser.Scene {
       fontFamily: "Arial", fontSize: "13px", color: "#72ff57", fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setDepth(4));
 
-    this.content.add(this.add.text(398, 370, this.getSnapshotNotice(snapshot.lockedNotice ?? snapshot.mockNotice), {
-      fontFamily: "Arial", fontSize: "9px", color: snapshot.lockedNotice ? "#ffeb72" : "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
+    this.content.add(this.add.text(398, 370, this.getSnapshotNotice(adapterSnapshot.notice), {
+      fontFamily: "Arial", fontSize: "9px", color: adapterSnapshot.adapterReadiness.remoteRequired ? "#ffeb72" : "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
       wordWrap: { width: 430 },
     }).setDepth(4));
   }

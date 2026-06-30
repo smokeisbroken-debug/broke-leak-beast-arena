@@ -412,3 +412,27 @@ export type {
   WeeklyLeaderboardSubmitLock,
   WeeklyLeaderboardSystemDefinition,
 } from "../types/WeeklyLeaderboardTypes";
+
+export {
+  LEADERBOARD_ADAPTER_PROVIDERS,
+  LEADERBOARD_ADAPTER_SYSTEM_DEFINITION,
+  LEADERBOARD_ADAPTER_SYSTEM_VERSION,
+  createAllLeaderboardAdapterSnapshots,
+  createLeaderboardAdapterSnapshot,
+  createLeaderboardAdapterSubmitPreview,
+  getLeaderboardAdapterProvider,
+  getLeaderboardAdapterReadiness,
+  getLeaderboardAdapterSubmitLock,
+} from "../systems/LeaderboardAdapterSystem";
+export type {
+  LeaderboardAdapterCapability,
+  LeaderboardAdapterMode,
+  LeaderboardAdapterProviderDefinition,
+  LeaderboardAdapterProviderId,
+  LeaderboardAdapterReadiness,
+  LeaderboardAdapterSnapshot,
+  LeaderboardAdapterSubmitLock,
+  LeaderboardAdapterSubmitPreview,
+  LeaderboardAdapterSyncStatus,
+  LeaderboardAdapterSystemDefinition,
+} from "../types/LeaderboardAdapterTypes";
