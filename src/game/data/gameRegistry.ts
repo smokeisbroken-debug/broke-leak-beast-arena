@@ -130,3 +130,28 @@ export type {
   ProfileV2ProgressSummary,
   ProfileV2UnlockSummary,
 } from "../types/PlayerProfileTypes";
+export {
+  EVOLUTION_SYSTEM_DEFINITION,
+  EVOLUTION_SYSTEM_VERSION,
+  MASCOT_EVOLUTIONS,
+  formatEvolutionRequirement,
+  getEvolutionDefinition,
+  getEvolutionPower,
+  getEvolutionUnlockStatus,
+  getMissingEvolutionRequirement,
+  getNextEvolution,
+  getUnlockedEvolutionForProgress,
+  isEvolutionUnlocked,
+} from "../types/EvolutionTypes";
+export type {
+  EvolutionBonus,
+  EvolutionBonusId,
+  EvolutionId,
+  EvolutionProgressInput,
+  EvolutionRequirement,
+  EvolutionSystemDefinition,
+  EvolutionUnlockStatus,
+  MascotEvolutionDefinition,
+} from "../types/EvolutionTypes";
+export { getEvolutionProgressInput, getMascotEvolutionSummary } from "../systems/EvolutionSystem";
+export type { MascotEvolutionSummary } from "../systems/EvolutionSystem";

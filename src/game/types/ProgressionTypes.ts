@@ -84,3 +84,28 @@ export function calculatePowerScore(breakdown: Partial<PowerBreakdown>, caps: Po
     caps,
   };
 }
+
+export {
+  EVOLUTION_SYSTEM_DEFINITION,
+  EVOLUTION_SYSTEM_VERSION,
+  MASCOT_EVOLUTIONS,
+  formatEvolutionRequirement,
+  getEvolutionDefinition,
+  getEvolutionPower,
+  getEvolutionUnlockStatus,
+  getMissingEvolutionRequirement,
+  getNextEvolution,
+  getUnlockedEvolutionForProgress,
+  isEvolutionUnlocked,
+} from "./EvolutionTypes";
+
+export type {
+  EvolutionBonus,
+  EvolutionBonusId,
+  EvolutionId,
+  EvolutionProgressInput,
+  EvolutionRequirement,
+  EvolutionSystemDefinition,
+  EvolutionUnlockStatus,
+  MascotEvolutionDefinition,
+} from "./EvolutionTypes";

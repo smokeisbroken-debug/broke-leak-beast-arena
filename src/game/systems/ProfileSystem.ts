@@ -2,10 +2,11 @@ import { CURRENCY_DEFINITIONS } from "../types/EconomyTypes";
 import type { CurrencyId } from "../types/EconomyTypes";
 import type { PlayerProfile } from "../data/playerProfile";
 import { CAMPAIGN_CHAPTERS } from "../data/campaigns";
+import { getMascotEvolutionSummary } from "./EvolutionSystem";
 import { getXpProgress } from "../data/progression";
 import type { PlayerProfileV2SystemDefinition, PlayerProfileV2Summary, ProfileCurrencyRow } from "../types/PlayerProfileTypes";
 
-export const PLAYER_PROFILE_V2_SYSTEM_VERSION = "0.9.2-player-profile-v2";
+export const PLAYER_PROFILE_V2_SYSTEM_VERSION = "0.9.3-mascot-evolution-skeleton";
 
 export const PLAYER_PROFILE_V2_DEFINITION: PlayerProfileV2SystemDefinition = {
   version: PLAYER_PROFILE_V2_SYSTEM_VERSION,
@@ -26,7 +27,7 @@ export const PLAYER_PROFILE_V2_DEFINITION: PlayerProfileV2SystemDefinition = {
       id: "progression",
       title: "Progression",
       status: "live",
-      purpose: "Expose level, XP, evolution id, mastery placeholders and capped power score.",
+      purpose: "Expose level, XP, mascot evolution, mastery placeholders and capped power score.",
     },
     {
       id: "multiplayer",
@@ -62,6 +63,7 @@ export const PLAYER_PROFILE_V2_DEFINITION: PlayerProfileV2SystemDefinition = {
   rules: [
     "Profile v2 may display ranked values locally, but ranked rewards remain backend-locked.",
     "PowerScore is a capped summary for matching and recommendations, not direct damage scaling in this patch.",
+    "Mascot evolution is visible in the profile and feeds capped PowerScore, but evolution bonuses are not applied to combat yet.",
     "Legacy top-level profile fields stay supported while wallet and multiplayer mirrors are introduced.",
   ],
 };
@@ -108,6 +110,7 @@ export function getCampaignBossesCleared(profile: PlayerProfile): number {
 
 export function getPlayerProfileV2Summary(profile: PlayerProfile): PlayerProfileV2Summary {
   const xp = getXpProgress(profile.xp);
+  const evolution = getMascotEvolutionSummary(profile);
 
   return {
     localPlayerId: profile.identity.localPlayerId,
@@ -124,7 +127,12 @@ export function getPlayerProfileV2Summary(profile: PlayerProfile): PlayerProfile
       nextLevel: xp.nextLevel?.level,
       xpRemaining: xp.remaining,
       xpProgress: xp.progress,
-      evolutionId: profile.progressionV2.evolutionId,
+      evolutionId: evolution.current.id,
+      evolutionName: evolution.current.name,
+      evolutionTitle: evolution.current.title,
+      evolutionPower: evolution.current.powerValue,
+      nextEvolutionName: evolution.next?.evolution.name,
+      nextEvolutionRequirement: evolution.next?.requirementLabel,
       masteryPoints: profile.progressionV2.masteryPoints,
       powerScore: profile.progressionV2.powerScore,
       powerBreakdown: profile.progressionV2.powerBreakdown,

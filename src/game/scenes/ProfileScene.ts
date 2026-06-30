@@ -53,7 +53,19 @@ export class ProfileScene extends Phaser.Scene {
       fontFamily: "Arial", fontSize: "11px", color: "#d7ffd0", fontStyle: "bold", stroke: "#041004", strokeThickness: 3,
     }).setOrigin(0.5).setDepth(3);
 
-    this.createHeroCard(skin, profileV2.displayName, profile.level, profile.coins, profile.xp, xp.remaining, profileV2.progress.powerScore);
+    this.createHeroCard(
+      skin,
+      profileV2.displayName,
+      profile.level,
+      profile.coins,
+      profile.xp,
+      xp.remaining,
+      profileV2.progress.powerScore,
+      profileV2.progress.evolutionName,
+      profileV2.progress.evolutionTitle,
+      profileV2.progress.nextEvolutionName,
+      profileV2.progress.nextEvolutionRequirement,
+    );
     this.createStatsCard(profile.totalWins, profile.totalLosses, profile.bestScore, completedMissions, claimableMissions, profileV2.multiplayer.taskPoints, profileV2.multiplayer.rankPoints);
     this.createLoadoutCard(skin.name, stage.name, boss.name, skills.skill1.name, skills.skill2.name, skills.ultimate.name);
     this.createProgressCard(profile.unlockedSkinIds.length, profile.unlockedSkillIds.length, profile.unlockedStageIds.length, campaignProgress);
@@ -70,7 +82,19 @@ export class ProfileScene extends Phaser.Scene {
     this.createFooterButtons();
   }
 
-  private createHeroCard(skin: ReturnType<typeof getSkinById>, displayName: string, level: number, coins: number, xp: number, xpRemaining: number, powerScore: number): void {
+  private createHeroCard(
+    skin: ReturnType<typeof getSkinById>,
+    displayName: string,
+    level: number,
+    coins: number,
+    xp: number,
+    xpRemaining: number,
+    powerScore: number,
+    evolutionName: string,
+    evolutionTitle: string,
+    nextEvolutionName?: string,
+    nextEvolutionRequirement?: string,
+  ): void {
     const x = 164;
     this.add.rectangle(x, 194, 250, 246, 0x071107, 0.88)
       .setStrokeStyle(2, skin.auraColor, 0.48)
@@ -87,9 +111,11 @@ export class ProfileScene extends Phaser.Scene {
     this.add.text(x, 318, skin.name.toUpperCase(), {
       fontFamily: "Arial", fontSize: "12px", color: skin.uiColor, fontStyle: "bold", stroke: "#041004", strokeThickness: 4,
     }).setOrigin(0.5).setDepth(4);
-    this.add.text(x, 342, `LV ${level} · POWER ${powerScore}\nXP ${xp} · NEXT ${xpRemaining}\nCOINS ${coins}`, {
-      fontFamily: "Arial", fontSize: "12px", color: "#fcfff7", fontStyle: "bold", align: "center", stroke: "#041004", strokeThickness: 3,
-      lineSpacing: 3,
+    const nextEvolutionLine = nextEvolutionName ? `NEXT EVO: ${nextEvolutionName} (${nextEvolutionRequirement})` : "NEXT EVO: SEASON PRESTIGE";
+    this.add.text(x, 342, `LV ${level} · POWER ${powerScore}\nXP ${xp} · NEXT ${xpRemaining} · COINS ${coins}\nEVO: ${evolutionName} · ${evolutionTitle}\n${nextEvolutionLine}`, {
+      fontFamily: "Arial", fontSize: "10px", color: "#fcfff7", fontStyle: "bold", align: "center", stroke: "#041004", strokeThickness: 3,
+      lineSpacing: 2,
+      wordWrap: { width: 224 },
     }).setOrigin(0.5).setDepth(4);
   }
 

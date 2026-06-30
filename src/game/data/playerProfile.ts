@@ -54,6 +54,7 @@ import {
   type TournamentSaveStateV2,
 } from "../types/SaveSchemaTypes";
 import type { CurrencyWalletV2 } from "../types/EconomyTypes";
+import { getEvolutionDefinition, getEvolutionPower, getUnlockedEvolutionForProgress, isEvolutionUnlocked } from "../types/EvolutionTypes";
 
 export interface PlayerProfile {
   version: number;
@@ -240,28 +241,39 @@ function safeNumberRecord(value: unknown): Record<string, number> {
   );
 }
 
-const EVOLUTION_POWER_BY_ID: Record<string, number> = {
-  broke_rookie: 0,
-  leak_fighter: 8,
-  wallet_guard: 16,
-  beast_breaker: 24,
-  anti_leak_champion: 32,
-  broke_legend: 40,
-};
-
 function sumRecordValues(value: Record<string, number>): number {
   return Object.values(value).reduce((total, amount) => total + safeInteger(amount), 0);
+}
+
+function getEvolutionProgressForProfile(profile: PlayerProfile) {
+  return {
+    level: Math.max(1, Math.floor(profile.level || 1)),
+    leakPoints: Math.max(0, Math.floor(profile.leakPoints || 0)),
+    wins: Math.max(0, Math.floor(profile.totalWins || 0)),
+    campaignBossesCleared: sumRecordValues(profile.campaignProgress),
+  };
+}
+
+function syncProfileEvolution(profile: PlayerProfile): void {
+  const progress = getEvolutionProgressForProfile(profile);
+  const highestUnlocked = getUnlockedEvolutionForProgress(progress);
+  const current = getEvolutionDefinition(profile.progressionV2.evolutionId);
+  const currentUnlocked = isEvolutionUnlocked(current, progress);
+
+  profile.progressionV2 = {
+    ...profile.progressionV2,
+    evolutionId: currentUnlocked && current.powerValue >= highestUnlocked.powerValue ? current.id : highestUnlocked.id,
+  };
 }
 
 function calculateProfilePowerBreakdown(profile: PlayerProfile): PowerBreakdown {
   const skillLevelPower = sumRecordValues(profile.progressionV2.skillLevels) * 3;
   const masteryBranchPower = sumRecordValues(profile.progressionV2.masteryBranchLevels) * 3;
-  const savedEvolutionPower = safeInteger(profile.progressionV2.powerBreakdown.evolution);
 
   return {
     level: (Math.max(1, profile.level) - 1) * 10 + Math.floor(Math.max(0, profile.xp) / 1000),
     skills: profile.unlockedSkillIds.length * 4 + skillLevelPower,
-    evolution: EVOLUTION_POWER_BY_ID[profile.progressionV2.evolutionId] ?? savedEvolutionPower,
+    evolution: getEvolutionPower(profile.progressionV2.evolutionId),
     mastery: profile.progressionV2.masteryPoints * 2 + masteryBranchPower,
     charms: profile.progressionV2.equippedCharmIds.length * 8,
   };
@@ -474,6 +486,7 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
     normalized.selectedCampaignId = getCampaignChapterForBoss(normalized.selectedBossId).id;
   }
 
+  syncProfileEvolution(normalized);
   syncProfilePower(normalized);
 
   return normalized;

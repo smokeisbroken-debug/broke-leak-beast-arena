@@ -1,6 +1,7 @@
 import type { CurrencyId } from "./EconomyTypes";
 import type { PowerBreakdown } from "./ProgressionTypes";
 import type { SaveValidationStatus } from "./SaveSchemaTypes";
+import type { EvolutionId } from "./EvolutionTypes";
 
 export type ProfileV2BlockId =
   | "identity"
@@ -34,7 +35,12 @@ export interface ProfileV2ProgressSummary {
   nextLevel?: number;
   xpRemaining: number;
   xpProgress: number;
-  evolutionId: string;
+  evolutionId: EvolutionId;
+  evolutionName: string;
+  evolutionTitle: string;
+  evolutionPower: number;
+  nextEvolutionName?: string;
+  nextEvolutionRequirement?: string;
   masteryPoints: number;
   powerScore: number;
   powerBreakdown: PowerBreakdown;
