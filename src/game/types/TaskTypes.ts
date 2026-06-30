@@ -47,6 +47,36 @@ export interface TaskProgressEvent {
   bossId?: string;
 }
 
+export type TaskMetricDeltaMap = Partial<Record<TaskProgressMetric, number>>;
+
+export interface TaskProgressTrackingStats {
+  source: TaskEventSource;
+  victory?: boolean;
+  score?: number;
+  leaksDefeated?: number;
+  bossDamage?: number;
+  guards?: number;
+  skillUses?: number;
+  tournamentRuns?: number;
+  duelWins?: number;
+  participation?: number;
+  runId?: string;
+  tournamentId?: string;
+  duelId?: string;
+  bossId?: string;
+  createdAtIso?: string;
+}
+
+export interface TaskProgressApplySummary {
+  appliedEventCount: number;
+  ignoredEventCount: number;
+  updatedTaskIds: string[];
+  completedTaskIds: string[];
+  progressDeltaByTaskId: Record<string, number>;
+  completedTaskPointsPreview: number;
+  backendValidationRequired: boolean;
+}
+
 export interface TaskProgressState {
   taskId: string;
   title: string;
@@ -87,6 +117,7 @@ export interface TaskSystemSummary {
   completedCount: number;
   claimedCount: number;
   localTaskPoints: number;
+  completedTaskPointsPreview: number;
   backendLockedTaskCount: number;
   taskLeaderboardId: LeaderboardId;
 }
@@ -106,7 +137,7 @@ export const TASK_POINT_LEADERBOARD_ID: LeaderboardId = "task_points";
 export const DEFAULT_DAILY_TASK_IDS = ["daily_win_one_arena", "daily_defeat_five_leaks", "daily_use_guard"] as const;
 export const DEFAULT_WEEKLY_TASK_IDS = ["weekly_tournament_participation", "weekly_duel_win", "weekly_boss_damage_push"] as const;
 
-export const TASK_SYSTEM_VERSION = "0.9.8-task-rewards";
+export const TASK_SYSTEM_VERSION = "0.9.9-task-progress-tracking";
 
 export const TASK_SYSTEM_DEFINITION: TaskSystemDefinition = {
   version: TASK_SYSTEM_VERSION,
@@ -118,8 +149,8 @@ export const TASK_SYSTEM_DEFINITION: TaskSystemDefinition = {
   rules: [
     "Daily task rewards may stay local during skeleton development, but Leak Points remain future validation-sensitive.",
     "Weekly, tournament, duel and boss task points are leaderboard-sensitive and must be backend-validated before public ranking.",
-    "Task reward previews are now defined, but this system still does not enable task claiming, ranked submission or real multiplayer rewards.",
-    "Task Points become the bridge between daily activity, tournament participation and future leaderboard placement.",
+    "Task reward previews and progress tracking are now defined, but this system still does not enable task claiming, ranked submission or real multiplayer rewards.",
+    "Task progress is updated from local gameplay events; Task Points remain preview-only until claim flow and backend validation exist.",
   ],
 };
 

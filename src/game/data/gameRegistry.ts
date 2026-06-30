@@ -230,7 +230,9 @@ export type {
 export {
   TASK_SYSTEM_DEFINITION,
   TASK_SYSTEM_VERSION,
+  applyTaskProgressEventsToProfile,
   createTaskProgressEvent,
+  createTaskProgressEventsFromStats,
   getActiveTaskDefinitionsForProfile,
   getActiveTaskIdsForCadence,
   getTaskPeriodKey,
@@ -239,6 +241,7 @@ export {
   getTaskProgressState,
   getTaskStatesForProfile,
   getTaskSystemSummary,
+  syncTaskPeriodsForProfile,
 } from "../systems/TaskSystem";
 export {
   DEFAULT_DAILY_TASK_IDS,
@@ -255,9 +258,12 @@ export type {
   TaskClaimResult,
   TaskDefinitionV2,
   TaskEventSource,
+  TaskMetricDeltaMap,
   TaskPeriodSnapshot,
+  TaskProgressApplySummary,
   TaskProgressEvent,
   TaskProgressMetric,
+  TaskProgressTrackingStats,
   TaskProgressState,
   TaskStatus,
   TaskSystemDefinition,

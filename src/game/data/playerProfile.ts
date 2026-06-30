@@ -57,6 +57,7 @@ import type { CurrencyWalletV2 } from "../types/EconomyTypes";
 import { getEvolutionDefinition, getEvolutionPower, getUnlockedEvolutionForProgress, isEvolutionUnlocked } from "../types/EvolutionTypes";
 import { getSkillUpgradePowerForProfile, normalizeSkillLevelsForProfile } from "../systems/SkillUpgradeSystem";
 import { getMasteryPowerForProfile, normalizeMasteryBranchLevelsForProfile } from "../systems/MasterySystem";
+import { applyTaskProgressEventsToProfile, createTaskProgressEventsFromStats, syncTaskPeriodsForProfile } from "../systems/TaskSystem";
 
 export interface PlayerProfile {
   version: number;
@@ -355,7 +356,10 @@ export function normalizeProfile(profile: Partial<PlayerProfile> | null | undefi
     completedTaskIds: uniqueStrings(profile?.tasksV2?.completedTaskIds),
     taskProgressById: safeNumberRecord(profile?.tasksV2?.taskProgressById),
     taskPointsByPeriod: safeNumberRecord(profile?.tasksV2?.taskPointsByPeriod),
+    lastDailyResetKey: typeof profile?.tasksV2?.lastDailyResetKey === "string" ? profile.tasksV2.lastDailyResetKey : systems.tasks.lastDailyResetKey,
+    lastWeeklyResetKey: typeof profile?.tasksV2?.lastWeeklyResetKey === "string" ? profile.tasksV2.lastWeeklyResetKey : systems.tasks.lastWeeklyResetKey,
   };
+  normalized.tasksV2 = syncTaskPeriodsForProfile(normalized).tasksV2;
   normalized.leaderboards = {
     ...systems.leaderboards,
     ...(profile?.leaderboards ?? {}),
@@ -706,7 +710,18 @@ export function applyFightResultToProfile(profile: PlayerProfile, input: FightRe
   };
 
   const missionApplication = applyDailyMissionFightProgress(normalized, buildMissionStatsFromFight(input));
-  const synced = syncLevelUnlocks(missionApplication.profile, oldLevel);
+  const taskEvents = createTaskProgressEventsFromStats({
+    source: defeatedBossIds.length ? "campaign" : "arena",
+    victory: input.victory,
+    score: input.score,
+    leaksDefeated: input.leaksDefeated,
+    guards: input.blocks ?? 0,
+    skillUses: (input.skillsUsed ?? 0) + (input.ultimatesUsed ?? 0),
+    runId: resultId,
+    bossId: defeatedBossIds[0],
+  });
+  const taskApplication = applyTaskProgressEventsToProfile(missionApplication.profile, taskEvents);
+  const synced = syncLevelUnlocks(taskApplication.profile, oldLevel);
   const finalProfile = syncCampaignFlowSelection(synced.profile);
   return { ...synced, profile: finalProfile, baseRewards, completedMissionIds: missionApplication.completedMissionIds };
 }
