@@ -106,6 +106,28 @@ export type {
   BossThreatTag,
 } from "../types/BossRegistryTypes";
 export {
+  BOSS_REWARD_POLICIES,
+  BOSS_REWARD_SYSTEM_DEFINITION,
+  BOSS_REWARD_SYSTEM_VERSION,
+  createBossRewardFormulaInput,
+  createBossRewardPreviewCard,
+  getBossRewardPreviewCard,
+  getBossRewardPreviewCards,
+  getBossRewardSummary,
+} from "../systems/BossRewardSystem";
+export type {
+  BossRewardBreakdownRow,
+  BossRewardClaimStatus,
+  BossRewardFormulaInput,
+  BossRewardPolicyDefinition,
+  BossRewardPolicyId,
+  BossRewardPreviewCard,
+  BossRewardRiskTier,
+  BossRewardSummary,
+  BossRewardSystemDefinition,
+  BossRewardUnlockKind,
+} from "../types/BossRewardTypes";
+export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,
   createChapter1MapSnapshot,

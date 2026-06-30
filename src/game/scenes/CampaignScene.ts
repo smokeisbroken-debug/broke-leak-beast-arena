@@ -10,6 +10,7 @@ import {
   getCampaignProgress,
   getCampaignProgressSummary,
   getCampaignUnlockLabel,
+  getBossRewardPreviewCard,
   getRecommendedCampaignBoss,
   isCampaignChapterUnlocked,
   loadPlayerProfile,
@@ -148,7 +149,7 @@ export class CampaignScene extends Phaser.Scene {
     }
 
     const startY = chapter1Map ? 232 : 186;
-    const spacingY = chapter1Map ? 68 : 76;
+    const spacingY = chapter1Map ? 72 : 78;
     bosses.forEach((boss, index) => this.createBossCard(boss, 620, startY + index * spacingY));
   }
 
@@ -210,23 +211,28 @@ export class CampaignScene extends Phaser.Scene {
     const state = getCampaignBossState(this.profile, boss.id);
     const unlocked = state !== "locked";
     const selected = this.profile.selectedBossId === boss.id;
-    const card = this.add.rectangle(x, y, 408, 64, 0x071107, unlocked ? 0.94 : 0.56)
+    const reward = getBossRewardPreviewCard(boss.id, { alreadyCleared: state === "complete" });
+    const card = this.add.rectangle(x, y, 408, 70, 0x071107, unlocked ? 0.94 : 0.56)
       .setStrokeStyle(selected ? 4 : 2, unlocked ? boss.color : 0x555555, selected ? 0.95 : 0.38)
       .setDepth(3)
       .setInteractive({ useHandCursor: true });
     const stateLabel = state === "complete" ? "CLEARED · REPLAY" : state === "unlocked" ? "READY" : "LOCKED";
     const lockReason = getCampaignBossUnlockLabel(this.profile, boss.id);
-    const title = this.add.text(x - 186, y - 22, boss.name.toUpperCase(), {
+    const title = this.add.text(x - 186, y - 25, boss.name.toUpperCase(), {
       fontFamily: "Arial", fontSize: "13px", color: unlocked ? "#fcfff7" : "#888888", fontStyle: "bold", stroke: "#050805", strokeThickness: 4,
     }).setDepth(4);
-    const meta = this.add.text(x - 186, y - 3, unlocked ? `${stateLabel} · LEVEL ${boss.unlockLevel} · ${boss.leakLabel}` : `LOCKED · ${lockReason.toUpperCase()}`, {
+    const meta = this.add.text(x - 186, y - 7, unlocked ? `${stateLabel} · LEVEL ${boss.unlockLevel} · ${boss.leakLabel}` : `LOCKED · ${lockReason.toUpperCase()}`, {
       fontFamily: "Arial", fontSize: "10px", color: unlocked ? boss.color === 0xffeb72 ? "#ffeb72" : "#d7ffd0" : "#9c9c9c", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
     }).setDepth(4);
-    const hint = this.add.text(x - 186, y + 16, boss.introLine, {
+    const hint = this.add.text(x - 186, y + 9, boss.introLine, {
       fontFamily: "Arial", fontSize: "9px", color: "#cfe8ca", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
-      wordWrap: { width: 300 },
+      wordWrap: { width: 286 },
     }).setDepth(4).setAlpha(unlocked ? 1 : 0.45);
-    const fight = this.add.text(x + 156, y, unlocked ? "FIGHT" : "---", {
+    const rewardLine = this.add.text(x - 186, y + 26, `REWARD PREVIEW: ${reward.displayLine}`, {
+      fontFamily: "Arial", fontSize: "8px", color: reward.backendValidationRequired ? "#ffeb72" : "#72ff57", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+      wordWrap: { width: 292 },
+    }).setDepth(4).setAlpha(unlocked ? 1 : 0.42);
+    const fight = this.add.text(x + 156, y + 2, unlocked ? "FIGHT" : "---", {
       fontFamily: "Arial", fontSize: "13px", color: unlocked ? "#050805" : "#777777", backgroundColor: unlocked ? "#72ff57" : "#222222", padding: { x: 13, y: 7 }, fontStyle: "bold",
     }).setOrigin(0.5).setDepth(4);
 
@@ -235,7 +241,7 @@ export class CampaignScene extends Phaser.Scene {
     fight.on("pointerdown", () => this.selectBoss(boss, unlocked));
     card.on("pointerover", () => { if (unlocked) card.setScale(1.012); });
     card.on("pointerout", () => card.setScale(1));
-    this.bossObjects.push(card, title, meta, hint, fight);
+    this.bossObjects.push(card, title, meta, hint, rewardLine, fight);
   }
 
   private selectBoss(boss: ArenaBossDefinition, unlocked: boolean): void {

@@ -268,7 +268,7 @@ export function getBossRegistrySummary(entries = getBossRegistryEntries()): Boss
     minRecommendedPower: recommendedPowers.length ? Math.min(...recommendedPowers) : 0,
     maxRecommendedPower: recommendedPowers.length ? Math.max(...recommendedPowers) : 0,
     difficultyBands,
-    nextPatch: "v0.12.2-boss-rewards",
+    nextPatch: "v0.12.3-recommended-power-ui",
   };
 }
 
@@ -281,6 +281,6 @@ export function createBossRegistrySnapshot(): BossRegistrySnapshot {
     summary: getBossRegistrySummary(entries),
     backendSubmitEnabled: false,
     localPreviewOnly: true,
-    nextPatch: "v0.12.2-boss-rewards",
+    nextPatch: "v0.12.3-recommended-power-ui",
   };
 }

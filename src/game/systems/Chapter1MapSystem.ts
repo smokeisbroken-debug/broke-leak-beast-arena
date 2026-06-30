@@ -211,7 +211,7 @@ export function createChapter1MapSnapshot(profile: CampaignProfileState = DEFAUL
     currentNodeId: getCurrentNodeId(nodes),
     backendSubmitEnabled: false,
     localPreviewOnly: true,
-    nextPatch: "v0.12.2-boss-rewards",
+    nextPatch: "v0.12.3-recommended-power-ui",
   };
 }
 
