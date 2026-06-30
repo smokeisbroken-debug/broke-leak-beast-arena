@@ -66,6 +66,7 @@ export class MainMenuScene extends Phaser.Scene {
       { label: "CAMPAIGN", sub: activeChapter.name, x: 342, y: 350, color: activeChapter.color, callback: () => this.scene.start(SCENE_KEYS.campaign) },
       { label: "SKINS", sub: activeSkin.name, x: 478, y: 350, color: activeSkin.auraColor, callback: () => this.scene.start(SCENE_KEYS.skinSelect) },
       { label: "SKILLS", sub: `${activeSkills.skill1.name} / ${activeSkills.skill2.name}`, x: 614, y: 350, color: 0x72ff57, callback: () => this.scene.start(SCENE_KEYS.skillLoadout) },
+      { label: "RANKS", sub: "LOCAL LB", x: 750, y: 304, color: 0xff7aeb, callback: () => this.scene.start(SCENE_KEYS.leaderboard) },
       { label: "STAGES", sub: activeStage.name, x: 750, y: 350, color: activeStage.color, callback: () => this.scene.start(SCENE_KEYS.stageSelect) },
       { label: "MISSIONS", sub: claimableMissions > 0 ? `${claimableMissions} CLAIM` : "DAILY", x: 342, y: 396, color: 0xffeb72, callback: () => this.scene.start(SCENE_KEYS.missions) },
       { label: "PROFILE", sub: `LV ${profile.level} · ${profile.coins} COINS`, x: 478, y: 396, color: 0xb66cff, callback: () => this.scene.start(SCENE_KEYS.profile) },

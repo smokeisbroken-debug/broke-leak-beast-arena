@@ -16,7 +16,7 @@ import {
   type LeaderboardSystemDefinition,
 } from "../types/LeaderboardTypes";
 
-export const LEADERBOARD_SYSTEM_VERSION = "0.10.3-local-leaderboard-mock";
+export const LEADERBOARD_SYSTEM_VERSION = "0.10.4-leaderboard-scene";
 
 export const LEADERBOARD_SYSTEM_DEFINITION: LeaderboardSystemDefinition = {
   version: LEADERBOARD_SYSTEM_VERSION,

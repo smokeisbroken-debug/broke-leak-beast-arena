@@ -84,7 +84,7 @@ export const GAME_MODE_DEFINITIONS: readonly GameModeDefinition[] = [
     shortDescription: "Global, weekly, tournament, duel and boss-damage ranking tracks.",
     multiplayerReady: true,
     ranked: true,
-    unlockVersion: "v0.10.2+",
+    unlockVersion: "v0.10.4+",
   },
   {
     id: "tournament",

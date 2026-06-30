@@ -7,6 +7,7 @@ export const SCENE_KEYS = {
   stageSelect: "StageSelectScene",
   campaign: "CampaignScene",
   missions: "MissionsScene",
+  leaderboard: "LeaderboardScene",
   profile: "ProfileScene",
   settings: "SettingsScene",
   arena: "ArenaScene",

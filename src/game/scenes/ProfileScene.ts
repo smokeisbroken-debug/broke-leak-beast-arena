@@ -235,12 +235,13 @@ export class ProfileScene extends Phaser.Scene {
 
   private createFooterButtons(): void {
     const items = [
-      { label: "PLAY", x: 180, route: SCENE_KEYS.arena, color: 0x72ff57 },
-      { label: "CAMPAIGN", x: 300, route: SCENE_KEYS.campaign, color: 0xb66cff },
-      { label: "SKINS", x: 420, route: SCENE_KEYS.skinSelect, color: 0x72ff57 },
-      { label: "SKILLS", x: 540, route: SCENE_KEYS.skillLoadout, color: 0xffeb72 },
-      { label: "MISSIONS", x: 660, route: SCENE_KEYS.missions, color: 0x8cdcff },
-      { label: "MENU", x: 780, route: SCENE_KEYS.menu, color: 0xfcfff7 },
+      { label: "PLAY", x: 130, route: SCENE_KEYS.arena, color: 0x72ff57 },
+      { label: "CAMPAIGN", x: 240, route: SCENE_KEYS.campaign, color: 0xb66cff },
+      { label: "SKINS", x: 350, route: SCENE_KEYS.skinSelect, color: 0x72ff57 },
+      { label: "SKILLS", x: 460, route: SCENE_KEYS.skillLoadout, color: 0xffeb72 },
+      { label: "MISSIONS", x: 570, route: SCENE_KEYS.missions, color: 0x8cdcff },
+      { label: "RANKS", x: 680, route: SCENE_KEYS.leaderboard, color: 0xff7aeb },
+      { label: "MENU", x: 790, route: SCENE_KEYS.menu, color: 0xfcfff7 },
     ];
     items.forEach((item) => this.createFooterButton(item.x, item.label, item.color, () => this.scene.start(item.route)));
   }

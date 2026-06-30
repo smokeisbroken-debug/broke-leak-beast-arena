@@ -10,7 +10,7 @@ import {
   type GameModeRouteDefinition,
 } from "../types/GameModeTypes";
 
-export const MODE_REGISTRY_VERSION = "0.9.0-mode-registry";
+export const MODE_REGISTRY_VERSION = "0.10.4-leaderboard-scene";
 
 export interface GameModeRegistrySnapshot {
   version: string;
@@ -82,13 +82,14 @@ export const GAME_MODE_ROUTES: readonly GameModeRouteDefinition[] = [
     modeId: "leaderboard",
     menuLabel: "LEADERBOARD",
     menuSubLabel: "RANKED",
-    plannedSceneKey: "LeaderboardScene",
+    currentSceneKey: SCENE_KEYS.leaderboard,
+    plannedSceneKey: SCENE_KEYS.leaderboard,
     availability: "mock_ready",
-    entryPoint: "future_backend",
+    entryPoint: "main_menu",
     sortOrder: 50,
     requiresBackend: true,
     requiresValidation: true,
-    nextUnlockPatch: "v0.10.2-leaderboard-types",
+    nextUnlockPatch: "v0.10.4-leaderboard-scene",
   },
   {
     modeId: "tournament",
