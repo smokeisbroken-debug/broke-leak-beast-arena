@@ -166,6 +166,35 @@ export type {
   CampaignCompletionRewardSystemDefinition,
 } from "../types/CampaignCompletionRewardTypes";
 
+
+export {
+  REWARD_TABLE_DEFINITIONS,
+  REWARD_TABLE_SYSTEM_DEFINITION,
+  REWARD_TABLE_SYSTEM_VERSION,
+  getRewardTableCard,
+  getRewardTableCardMap,
+  getRewardTableCards,
+  getRewardTableCatalogSummary,
+  getRewardTableDefinitions,
+  getRewardTableRowMap,
+  getRewardTableRows,
+} from "../systems/RewardTableSystem";
+export type {
+  RewardTableCard,
+  RewardTableCardMap,
+  RewardTableCatalogSummary,
+  RewardTableClaimMode,
+  RewardTableDefinition,
+  RewardTableId,
+  RewardTablePreviewRow,
+  RewardTableRiskTier,
+  RewardTableRowDefinition,
+  RewardTableRowMap,
+  RewardTableRowTier,
+  RewardTableScope,
+  RewardTableSystemDefinition,
+} from "../types/RewardTableTypes";
+
 export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,
