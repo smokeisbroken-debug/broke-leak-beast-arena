@@ -127,6 +127,27 @@ export type {
   BossRewardSystemDefinition,
   BossRewardUnlockKind,
 } from "../types/BossRewardTypes";
+
+export {
+  RECOMMENDED_POWER_UI_SYSTEM_DEFINITION,
+  RECOMMENDED_POWER_UI_SYSTEM_VERSION,
+  createRecommendedPowerUiCardFromBoss,
+  createRecommendedPowerUiSnapshot,
+  getCampaignRecommendedPowerCards,
+  getCampaignRecommendedPowerSummary,
+  getProfileRecommendedPowerValue,
+  getRecommendedPowerUiCard,
+} from "../systems/RecommendedPowerUiSystem";
+export type {
+  RecommendedPowerChapterSummary,
+  RecommendedPowerContentKind,
+  RecommendedPowerStatusId,
+  RecommendedPowerTone,
+  RecommendedPowerUiCard,
+  RecommendedPowerUiSnapshot,
+  RecommendedPowerUiSystemDefinition,
+} from "../types/RecommendedPowerUiTypes";
+
 export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,

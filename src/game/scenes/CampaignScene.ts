@@ -11,6 +11,8 @@ import {
   getCampaignProgressSummary,
   getCampaignUnlockLabel,
   getBossRewardPreviewCard,
+  getCampaignRecommendedPowerSummary,
+  getRecommendedPowerUiCard,
   getRecommendedCampaignBoss,
   isCampaignChapterUnlocked,
   loadPlayerProfile,
@@ -67,7 +69,8 @@ export class CampaignScene extends Phaser.Scene {
     this.add.rectangle(GAME_WIDTH / 2, 88, 804, 34, 0x071107, 0.88)
       .setStrokeStyle(2, currentChapter.color, 0.28)
       .setDepth(2);
-    this.add.text(GAME_WIDTH / 2, 88, `LEVEL ${this.profile.level} · COINS ${this.profile.coins} · CLEARS ${totalCleared}/${summary.total} · NEXT ${recommendedBoss.name.toUpperCase()}`, {
+    const powerSummary = getCampaignRecommendedPowerSummary(this.profile, currentChapter.id);
+    this.add.text(GAME_WIDTH / 2, 88, `LEVEL ${this.profile.level} · POWER ${powerSummary.playerPower} · COINS ${this.profile.coins} · CLEARS ${totalCleared}/${summary.total} · NEXT ${recommendedBoss.name.toUpperCase()}`, {
       fontFamily: "Arial", fontSize: "12px", color: "#fcfff7", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
     }).setOrigin(0.5).setDepth(3);
   }
@@ -160,7 +163,8 @@ export class CampaignScene extends Phaser.Scene {
     const title = this.add.text(420, 149, `${snapshot.title.toUpperCase()} · ${snapshot.progressLabel.toUpperCase()}`, {
       fontFamily: "Arial", fontSize: "9px", color: "#72ff57", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
     }).setDepth(4);
-    const power = this.add.text(792, 149, `PWR ${snapshot.recommendedPowerMin}-${snapshot.recommendedPowerMax}`, {
+    const chapterPower = getCampaignRecommendedPowerSummary(this.profile, snapshot.chapterId);
+    const power = this.add.text(792, 149, `YOUR ${chapterPower.playerPower} · REC ${snapshot.recommendedPowerMin}-${snapshot.recommendedPowerMax}`, {
       fontFamily: "Arial", fontSize: "9px", color: "#ffeb72", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
     }).setOrigin(1, 0).setDepth(4);
 
@@ -209,6 +213,7 @@ export class CampaignScene extends Phaser.Scene {
 
   private createBossCard(boss: ArenaBossDefinition, x: number, y: number): void {
     const state = getCampaignBossState(this.profile, boss.id);
+    const powerCard = getRecommendedPowerUiCard(this.profile, boss.id);
     const unlocked = state !== "locked";
     const selected = this.profile.selectedBossId === boss.id;
     const reward = getBossRewardPreviewCard(boss.id, { alreadyCleared: state === "complete" });
@@ -230,18 +235,33 @@ export class CampaignScene extends Phaser.Scene {
     }).setDepth(4).setAlpha(unlocked ? 1 : 0.45);
     const rewardLine = this.add.text(x - 186, y + 26, `REWARD PREVIEW: ${reward.displayLine}`, {
       fontFamily: "Arial", fontSize: "8px", color: reward.backendValidationRequired ? "#ffeb72" : "#72ff57", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
-      wordWrap: { width: 292 },
+      wordWrap: { width: 254 },
     }).setDepth(4).setAlpha(unlocked ? 1 : 0.42);
-    const fight = this.add.text(x + 156, y + 2, unlocked ? "FIGHT" : "---", {
+    const statusBadge = this.add.text(x + 156, y - 25, powerCard.statusLabel, {
+      fontFamily: "Arial", fontSize: "9px", color: "#050805", backgroundColor: powerCard.color, padding: { x: 8, y: 3 }, fontStyle: "bold",
+    }).setOrigin(0.5).setDepth(4).setAlpha(unlocked ? 1 : 0.44);
+    const powerLine = this.add.text(x + 156, y - 9, powerCard.shortLine, {
+      fontFamily: "Arial", fontSize: "8px", color: unlocked ? "#fcfff7" : "#888888", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(4).setAlpha(unlocked ? 1 : 0.44);
+    const difficultyLine = this.add.text(x + 156, y + 24, powerCard.difficultyLabel, {
+      fontFamily: "Arial", fontSize: "7px", color: unlocked ? powerCard.color : "#888888", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(4).setAlpha(unlocked ? 1 : 0.44);
+    const fight = this.add.text(x + 156, y + 6, unlocked ? "FIGHT" : "---", {
       fontFamily: "Arial", fontSize: "13px", color: unlocked ? "#050805" : "#777777", backgroundColor: unlocked ? "#72ff57" : "#222222", padding: { x: 13, y: 7 }, fontStyle: "bold",
     }).setOrigin(0.5).setDepth(4);
 
     card.on("pointerdown", () => this.selectBoss(boss, unlocked));
     fight.setInteractive({ useHandCursor: unlocked });
     fight.on("pointerdown", () => this.selectBoss(boss, unlocked));
-    card.on("pointerover", () => { if (unlocked) card.setScale(1.012); });
+    card.on("pointerover", () => {
+      if (unlocked) {
+        card.setScale(1.012);
+        this.flowStatusText?.setText(`${powerCard.statusLabel}: ${powerCard.detailLine}`);
+        this.flowStatusText?.setColor(powerCard.color);
+      }
+    });
     card.on("pointerout", () => card.setScale(1));
-    this.bossObjects.push(card, title, meta, hint, rewardLine, fight);
+    this.bossObjects.push(card, title, meta, hint, rewardLine, statusBadge, powerLine, difficultyLine, fight);
   }
 
   private selectBoss(boss: ArenaBossDefinition, unlocked: boolean): void {
@@ -254,8 +274,9 @@ export class CampaignScene extends Phaser.Scene {
     }
     this.profile = selectProfileCampaignBoss(this.profile, boss.id);
     savePlayerProfile(this.profile);
-    this.flowStatusText?.setText(`Starting ${boss.name.toUpperCase()}...`);
-    this.flowStatusText?.setColor("#72ff57");
+    const powerCard = getRecommendedPowerUiCard(this.profile, boss.id);
+    this.flowStatusText?.setText(`${powerCard.statusLabel}: ${powerCard.shortLine} · starting ${boss.name.toUpperCase()}...`);
+    this.flowStatusText?.setColor(powerCard.color);
     this.cameras.main.flash(80, 114, 255, 87, false);
     this.time.delayedCall(90, () => this.scene.start(SCENE_KEYS.arena));
   }
