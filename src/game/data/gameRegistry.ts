@@ -227,6 +227,36 @@ export type {
   UpgradeCostTier,
 } from "../types/UpgradeCostTypes";
 
+
+export {
+  SOFT_CAP_DEFINITIONS,
+  SOFT_CAP_SYSTEM_DEFINITION,
+  SOFT_CAP_SYSTEM_VERSION,
+  createSoftCapPreviewRow,
+  evaluateSoftCap,
+  getSoftCapCatalogSummary,
+  getSoftCapDefinitions,
+  getSoftCapRowMap,
+  getSoftCapRows,
+  getSoftCapScopeCardMap,
+  getSoftCapScopeCards,
+} from "../systems/SoftCapSystem";
+export type {
+  SoftCapCatalogSummary,
+  SoftCapDefinition,
+  SoftCapEnforcementMode,
+  SoftCapEvaluation,
+  SoftCapPreviewRow,
+  SoftCapRiskTier,
+  SoftCapRowMap,
+  SoftCapScopeCard,
+  SoftCapScopeCardMap,
+  SoftCapScopeId,
+  SoftCapSystemDefinition,
+  SoftCapTargetId,
+  SoftCapTargetKind,
+} from "../types/SoftCapTypes";
+
 export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,
