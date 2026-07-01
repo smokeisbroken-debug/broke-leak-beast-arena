@@ -196,6 +196,38 @@ export type {
 } from "../types/RewardTableTypes";
 
 export {
+  UPGRADE_COST_CATALOGS,
+  UPGRADE_COST_SYSTEM_DEFINITION,
+  UPGRADE_COST_SYSTEM_VERSION,
+  getUpgradeCostAffordability,
+  getUpgradeCostCard,
+  getUpgradeCostCardMap,
+  getUpgradeCostCards,
+  getUpgradeCostCatalogSummary,
+  getUpgradeCostCatalogs,
+  getUpgradeCostRowMap,
+  getUpgradeCostRows,
+} from "../systems/UpgradeCostSystem";
+export type {
+  UpgradeCostAffordability,
+  UpgradeCostCard,
+  UpgradeCostCardMap,
+  UpgradeCostCatalogDefinition,
+  UpgradeCostCatalogId,
+  UpgradeCostCatalogSummary,
+  UpgradeCostCurrencyCaps,
+  UpgradeCostKind,
+  UpgradeCostPreviewRow,
+  UpgradeCostRiskTier,
+  UpgradeCostRowDefinition,
+  UpgradeCostRowMap,
+  UpgradeCostScope,
+  UpgradeCostSpendMode,
+  UpgradeCostSystemDefinition,
+  UpgradeCostTier,
+} from "../types/UpgradeCostTypes";
+
+export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,
   createChapter1MapSnapshot,

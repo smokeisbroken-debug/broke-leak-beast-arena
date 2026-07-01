@@ -290,6 +290,6 @@ export function getBossRewardSummary(cards = getBossRewardPreviewCards()): BossR
     backendLockedCards: cards.filter((card) => card.backendValidationRequired).length,
     totalLocalWalletPreview: localWallet,
     totalBackendLockedWalletPreview: backendWallet,
-    nextPatch: "v0.12.6-upgrade-costs",
+    nextPatch: "v0.12.7-soft-caps",
   };
 }

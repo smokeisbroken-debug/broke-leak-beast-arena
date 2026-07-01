@@ -212,6 +212,6 @@ export function getCampaignCompletionRewardSummary(profile: CampaignProfileState
     backendLockedCards: cards.filter((card) => card.backendValidationRequired).length,
     localPreviewWallet,
     backendLockedWallet,
-    nextPatch: "v0.12.6-upgrade-costs",
+    nextPatch: "v0.12.7-soft-caps",
   };
 }

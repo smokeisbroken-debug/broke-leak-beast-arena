@@ -493,6 +493,6 @@ export function getRewardTableCatalogSummary(rows = getRewardTableRows()): Rewar
     rankedSensitiveRowCount: rows.filter((row) => row.riskTier !== "safe_local" || Boolean(row.leaderboardId)).length,
     localWalletPreview,
     backendLockedWalletPreview,
-    nextPatch: "v0.12.6-upgrade-costs",
+    nextPatch: "v0.12.7-soft-caps",
   };
 }
