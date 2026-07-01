@@ -7,6 +7,7 @@ import {
   getCampaignBossState,
   getCampaignBosses,
   getCampaignBossUnlockLabel,
+  getCampaignCompletionRewardCard,
   getCampaignProgress,
   getCampaignProgressSummary,
   getCampaignUnlockLabel,
@@ -19,6 +20,8 @@ import {
   savePlayerProfile,
   selectProfileCampaignBoss,
   type CampaignChapterDefinition,
+  type CampaignChapterId,
+  type CampaignCompletionRewardCard,
   type Chapter1MapNodeCard,
   type Chapter1MapSnapshot,
   type PlayerProfile,
@@ -118,6 +121,36 @@ export class CampaignScene extends Phaser.Scene {
       card.on("pointerout", () => card.setScale(1));
       this.chapterObjects.push(card, title, sub, barBg, bar);
     });
+
+    this.createChapterCompletionRewardPanel();
+  }
+
+  private formatCompletionRewardLine(card: CampaignCompletionRewardCard): string {
+    return card.rewards
+      .filter((reward) => reward.amount > 0)
+      .slice(0, 3)
+      .map((reward) => `${reward.amount} ${reward.currencyId.replace(/_/g, " ").toUpperCase()}`)
+      .join(" · ") || "Reward preview pending";
+  }
+
+  private createChapterCompletionRewardPanel(): void {
+    const rewardCard = getCampaignCompletionRewardCard(this.profile, this.selectedChapter.id as CampaignChapterId);
+    const statusColor = rewardCard.status === "complete_preview" ? "#72ff57" : rewardCard.status === "in_progress" ? "#ffeb72" : "#9c9c9c";
+    const strokeColor = rewardCard.status === "complete_preview" ? 0x72ff57 : rewardCard.status === "in_progress" ? 0xffeb72 : 0x555555;
+    const panel = this.add.rectangle(250, 394, 260, 42, 0x071107, 0.86)
+      .setStrokeStyle(2, strokeColor, rewardCard.status === "locked" ? 0.3 : 0.52)
+      .setDepth(3);
+    const title = this.add.text(132, 378, `CHAPTER CLEAR · ${rewardCard.statusLabel}`, {
+      fontFamily: "Arial", fontSize: "8px", color: statusColor, fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setDepth(4);
+    const progress = this.add.text(132, 392, `${rewardCard.progressLabel.toUpperCase()} · CLAIM OFF`, {
+      fontFamily: "Arial", fontSize: "8px", color: "#d7ffd0", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setDepth(4);
+    const rewards = this.add.text(132, 406, this.formatCompletionRewardLine(rewardCard), {
+      fontFamily: "Arial", fontSize: "8px", color: rewardCard.backendValidationRequired ? "#ffeb72" : "#72ff57", fontStyle: "bold", stroke: "#050805", strokeThickness: 3,
+    }).setDepth(4);
+
+    this.chapterObjects.push(panel, title, progress, rewards);
   }
 
   private renderBosses(): void {

@@ -186,6 +186,6 @@ export function createRecommendedPowerUiSnapshot(profile: PlayerProfile): Recomm
     chapterSummaries,
     backendSubmitEnabled: false,
     localPreviewOnly: true,
-    nextPatch: "v0.12.4-campaign-completion-rewards",
+    nextPatch: "v0.12.5-reward-tables",
   };
 }

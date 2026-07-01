@@ -148,6 +148,24 @@ export type {
   RecommendedPowerUiSystemDefinition,
 } from "../types/RecommendedPowerUiTypes";
 
+
+export {
+  CAMPAIGN_COMPLETION_REWARD_SYSTEM_DEFINITION,
+  CAMPAIGN_COMPLETION_REWARD_SYSTEM_VERSION,
+  getCampaignCompletionRewardCard,
+  getCampaignCompletionRewardCards,
+  getCampaignCompletionRewardSummary,
+} from "../systems/CampaignCompletionRewardSystem";
+export type {
+  CampaignCompletionRewardCard,
+  CampaignCompletionRewardLine,
+  CampaignCompletionRewardLineId,
+  CampaignCompletionRewardRiskTier,
+  CampaignCompletionRewardStatus,
+  CampaignCompletionRewardSummary,
+  CampaignCompletionRewardSystemDefinition,
+} from "../types/CampaignCompletionRewardTypes";
+
 export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,

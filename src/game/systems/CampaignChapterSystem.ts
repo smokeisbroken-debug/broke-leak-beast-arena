@@ -254,7 +254,7 @@ export function createCampaignChapterSnapshot(profile: CampaignProfileState = DE
     completionPercent: summary.percent,
     backendSubmitEnabled: false,
     localPreviewOnly: true,
-    nextPatch: "v0.12.3-recommended-power-ui",
+    nextPatch: "v0.12.5-reward-tables",
   };
 }
 
