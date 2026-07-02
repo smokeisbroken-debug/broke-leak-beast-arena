@@ -390,6 +390,30 @@ export type {
 } from "../types/RunValidationPayloadTypes";
 
 export {
+  ANTI_CHEAT_RULES,
+  ANTI_CHEAT_SYSTEM_DEFINITION,
+  ANTI_CHEAT_SYSTEM_VERSION,
+  createAntiCheatAssessment,
+  createAntiCheatAssessmentFromPayload,
+  createAntiCheatAssessmentMap,
+  getAntiCheatSummary,
+} from "../systems/AntiCheatSystem";
+export type {
+  AntiCheatAssessment,
+  AntiCheatAssessmentInput,
+  AntiCheatAssessmentMap,
+  AntiCheatCheckStatus,
+  AntiCheatFinding,
+  AntiCheatMetricAssessment,
+  AntiCheatRuleDefinition,
+  AntiCheatRuleId,
+  AntiCheatSeverity,
+  AntiCheatSummary,
+  AntiCheatSystemDefinition,
+  AntiCheatVerdict,
+} from "../types/AntiCheatTypes";
+
+export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,
   createChapter1MapSnapshot,

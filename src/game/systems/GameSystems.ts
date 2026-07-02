@@ -168,6 +168,15 @@ import {
 } from "./RunValidationPayloadSystem";
 
 import {
+  ANTI_CHEAT_RULES,
+  ANTI_CHEAT_SYSTEM_DEFINITION,
+  createAntiCheatAssessment,
+  createAntiCheatAssessmentFromPayload,
+  createAntiCheatAssessmentMap,
+  getAntiCheatSummary,
+} from "./AntiCheatSystem";
+
+import {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   createChapter1MapSnapshot,
   getChapter1MapCurrentNode,
@@ -186,7 +195,7 @@ import {
   getRecommendedPowerUiCard,
 } from "./RecommendedPowerUiSystem";
 
-export const GAME_SYSTEMS_VERSION = "0.13.2-run-validation-payload";
+export const GAME_SYSTEMS_VERSION = "0.13.3-anti-cheat-skeleton";
 
 export type GameSystemId =
   | "modes"
@@ -358,6 +367,12 @@ export interface GameSystemsRegistrySnapshot {
   runValidationPayloadMapFactory: typeof createRunValidationPayloadMap;
   runValidationPayloadFactory: typeof createRunValidationPayload;
   runValidationPayloadFromProfileFactory: typeof createRunValidationPayloadFromProfile;
+  antiCheatSystem: typeof ANTI_CHEAT_SYSTEM_DEFINITION;
+  antiCheatRules: typeof ANTI_CHEAT_RULES;
+  antiCheatSummary: ReturnType<typeof getAntiCheatSummary>;
+  antiCheatAssessmentFactory: typeof createAntiCheatAssessment;
+  antiCheatAssessmentFromPayloadFactory: typeof createAntiCheatAssessmentFromPayload;
+  antiCheatAssessmentMapFactory: typeof createAntiCheatAssessmentMap;
   chapter1MapSystem: typeof CHAPTER_1_MAP_SYSTEM_DEFINITION;
   chapter1MapSnapshot: ReturnType<typeof createChapter1MapSnapshot>;
   chapter1MapSnapshotFactory: typeof createChapter1MapSnapshot;
@@ -534,17 +549,17 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     goal: "Prepare backend adapters for cloud save, leaderboard, tournament and duel submission while public remote sync remains locked.",
     dependsOn: ["profile", "leaderboard", "tournaments", "duels"],
     relatedModes: ["leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.13.3-anti-cheat-skeleton",
+    nextPatch: "v0.13.4-backend-config-layer",
   },
   {
     id: "anti_cheat",
-    title: "Anti-Cheat",
+    title: "Anti-Cheat Skeleton",
     status: "skeleton",
-    priority: "later",
-    goal: "Validate run payloads before ranked scores or rewards become real.",
+    priority: "now",
+    goal: "Assess run validation payloads with local reasonable caps while ranked submit and reward reconciliation stay backend-locked.",
     dependsOn: ["profile", "multiplayer"],
     relatedModes: ["leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.13.3-anti-cheat-skeleton",
+    nextPatch: "v0.13.4-backend-config-layer",
   },
   {
     id: "seasons",
@@ -694,6 +709,12 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   runValidationPayloadMapFactory: createRunValidationPayloadMap,
   runValidationPayloadFactory: createRunValidationPayload,
   runValidationPayloadFromProfileFactory: createRunValidationPayloadFromProfile,
+  antiCheatSystem: ANTI_CHEAT_SYSTEM_DEFINITION,
+  antiCheatRules: ANTI_CHEAT_RULES,
+  antiCheatSummary: getAntiCheatSummary(),
+  antiCheatAssessmentFactory: createAntiCheatAssessment,
+  antiCheatAssessmentFromPayloadFactory: createAntiCheatAssessmentFromPayload,
+  antiCheatAssessmentMapFactory: createAntiCheatAssessmentMap,
   chapter1MapSystem: CHAPTER_1_MAP_SYSTEM_DEFINITION,
   chapter1MapSnapshot: createChapter1MapSnapshot(),
   chapter1MapSnapshotFactory: createChapter1MapSnapshot,
