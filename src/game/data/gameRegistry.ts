@@ -257,6 +257,33 @@ export type {
   SoftCapTargetKind,
 } from "../types/SoftCapTypes";
 
+
+export {
+  CATCH_UP_MECHANICS,
+  CATCH_UP_MECHANIC_SYSTEM_DEFINITION,
+  CATCH_UP_MECHANIC_SYSTEM_VERSION,
+  DEFAULT_CATCH_UP_PREVIEW_CONTEXT,
+  createCatchUpMechanicPreviewCard,
+  getCatchUpMechanic,
+  getCatchUpMechanicCardMap,
+  getCatchUpMechanicPreviewCards,
+  getCatchUpMechanicSummary,
+  getCatchUpMechanics,
+} from "../systems/CatchUpMechanicSystem";
+export type {
+  CatchUpMechanicCardMap,
+  CatchUpMechanicClaimMode,
+  CatchUpMechanicDefinition,
+  CatchUpMechanicId,
+  CatchUpMechanicPreviewCard,
+  CatchUpMechanicRiskTier,
+  CatchUpMechanicScope,
+  CatchUpMechanicSummary,
+  CatchUpMechanicSystemDefinition,
+  CatchUpMechanicTriggerKind,
+  CatchUpPreviewContext,
+} from "../types/CatchUpMechanicTypes";
+
 export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,
