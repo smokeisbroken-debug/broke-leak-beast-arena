@@ -304,6 +304,37 @@ export type {
 } from "../types/BalanceDebugPanelTypes";
 
 export {
+  MULTIPLAYER_ADAPTER_ENDPOINTS,
+  MULTIPLAYER_ADAPTER_PROVIDERS,
+  MULTIPLAYER_ADAPTER_SYSTEM_DEFINITION,
+  MULTIPLAYER_ADAPTER_SYSTEM_VERSION,
+  createMultiplayerAdapterEnvelope,
+  createMultiplayerAdapterSnapshot,
+  getMultiplayerAdapterEndpoint,
+  getMultiplayerAdapterReadinessRows,
+  getMultiplayerAdapterSummary,
+} from "../systems/MultiplayerAdapterSystem";
+export type {
+  MultiplayerAdapterCapability,
+  MultiplayerAdapterChannelId,
+  MultiplayerAdapterEndpointDefinition,
+  MultiplayerAdapterEnvelope,
+  MultiplayerAdapterEnvelopeInput,
+  MultiplayerAdapterEnvelopeStatus,
+  MultiplayerAdapterLockId,
+  MultiplayerAdapterMode,
+  MultiplayerAdapterPayloadKind,
+  MultiplayerAdapterProviderDefinition,
+  MultiplayerAdapterProviderId,
+  MultiplayerAdapterReadinessRow,
+  MultiplayerAdapterSnapshot,
+  MultiplayerAdapterSummary,
+  MultiplayerAdapterSyncStatus,
+  MultiplayerAdapterSystemDefinition,
+  MultiplayerAdapterTransport,
+} from "../types/MultiplayerAdapterTypes";
+
+export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,
   createChapter1MapSnapshot,

@@ -144,6 +144,14 @@ import {
 } from "./BalanceDebugPanelSystem";
 
 import {
+  MULTIPLAYER_ADAPTER_SYSTEM_DEFINITION,
+  createMultiplayerAdapterEnvelope,
+  createMultiplayerAdapterSnapshot,
+  getMultiplayerAdapterReadinessRows,
+  getMultiplayerAdapterSummary,
+} from "./MultiplayerAdapterSystem";
+
+import {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   createChapter1MapSnapshot,
   getChapter1MapCurrentNode,
@@ -162,7 +170,7 @@ import {
   getRecommendedPowerUiCard,
 } from "./RecommendedPowerUiSystem";
 
-export const GAME_SYSTEMS_VERSION = "0.12.9-balance-debug-panel";
+export const GAME_SYSTEMS_VERSION = "0.13.0-multiplayer-adapter";
 
 export type GameSystemId =
   | "modes"
@@ -319,6 +327,11 @@ export interface GameSystemsRegistrySnapshot {
   balanceDebugPanelSnapshotFactory: typeof createBalanceDebugPanelSnapshot;
   balanceDebugCriticalRiskCountFactory: typeof getBalanceDebugCriticalRiskCount;
   balanceDebugLockedCountFactory: typeof getBalanceDebugLockedCount;
+  multiplayerAdapterSystem: typeof MULTIPLAYER_ADAPTER_SYSTEM_DEFINITION;
+  multiplayerAdapterSnapshotFactory: typeof createMultiplayerAdapterSnapshot;
+  multiplayerAdapterEnvelopeFactory: typeof createMultiplayerAdapterEnvelope;
+  multiplayerAdapterReadinessRows: ReturnType<typeof getMultiplayerAdapterReadinessRows>;
+  multiplayerAdapterSummary: ReturnType<typeof getMultiplayerAdapterSummary>;
   chapter1MapSystem: typeof CHAPTER_1_MAP_SYSTEM_DEFINITION;
   chapter1MapSnapshot: ReturnType<typeof createChapter1MapSnapshot>;
   chapter1MapSnapshotFactory: typeof createChapter1MapSnapshot;
@@ -491,11 +504,11 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
     id: "multiplayer",
     title: "Multiplayer Adapter",
     status: "skeleton",
-    priority: "later",
+    priority: "now",
     goal: "Prepare backend adapters for save, leaderboard, tournament and duel submission.",
     dependsOn: ["profile", "leaderboard", "tournaments", "duels"],
     relatedModes: ["leaderboard", "tournament", "leak_duel", "weekly_boss"],
-    nextPatch: "v0.13.0-multiplayer-adapter",
+    nextPatch: "v0.13.1-cloud-save-adapter",
   },
   {
     id: "anti_cheat",
@@ -640,6 +653,11 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   balanceDebugPanelSnapshotFactory: createBalanceDebugPanelSnapshot,
   balanceDebugCriticalRiskCountFactory: getBalanceDebugCriticalRiskCount,
   balanceDebugLockedCountFactory: getBalanceDebugLockedCount,
+  multiplayerAdapterSystem: MULTIPLAYER_ADAPTER_SYSTEM_DEFINITION,
+  multiplayerAdapterSnapshotFactory: createMultiplayerAdapterSnapshot,
+  multiplayerAdapterEnvelopeFactory: createMultiplayerAdapterEnvelope,
+  multiplayerAdapterReadinessRows: getMultiplayerAdapterReadinessRows(),
+  multiplayerAdapterSummary: getMultiplayerAdapterSummary(),
   chapter1MapSystem: CHAPTER_1_MAP_SYSTEM_DEFINITION,
   chapter1MapSnapshot: createChapter1MapSnapshot(),
   chapter1MapSnapshotFactory: createChapter1MapSnapshot,
