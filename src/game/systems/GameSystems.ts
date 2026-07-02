@@ -209,6 +209,17 @@ import {
 } from "./RemoteLeaderboardSystem";
 
 import {
+  REMOTE_TOURNAMENT_SUBMIT_SYSTEM_DEFINITION,
+  createRemoteTournamentFetchPreview,
+  createRemoteTournamentSubmitPreview,
+  createRemoteTournamentSubmitPreviewMap,
+  createRemoteTournamentSubmitReadinessRow,
+  getRemoteTournamentSubmitReadinessRows,
+  getRemoteTournamentSubmitRoute,
+  getRemoteTournamentSubmitSummary,
+} from "./RemoteTournamentSubmitSystem";
+
+import {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   createChapter1MapSnapshot,
   getChapter1MapCurrentNode,
@@ -227,7 +238,7 @@ import {
   getRecommendedPowerUiCard,
 } from "./RecommendedPowerUiSystem";
 
-export const GAME_SYSTEMS_VERSION = "0.13.6-remote-leaderboard";
+export const GAME_SYSTEMS_VERSION = "0.13.7-remote-tournament-submit";
 
 export type GameSystemId =
   | "modes"
@@ -428,6 +439,14 @@ export interface GameSystemsRegistrySnapshot {
   remoteLeaderboardFetchPreviewFactory: typeof createRemoteLeaderboardFetchPreview;
   remoteLeaderboardSubmitPreviewFactory: typeof createRemoteLeaderboardSubmitPreview;
   remoteLeaderboardSubmitPreviewMapFactory: typeof createRemoteLeaderboardSubmitPreviewMap;
+  remoteTournamentSubmitSystem: typeof REMOTE_TOURNAMENT_SUBMIT_SYSTEM_DEFINITION;
+  remoteTournamentSubmitSummary: ReturnType<typeof getRemoteTournamentSubmitSummary>;
+  remoteTournamentSubmitReadinessRows: ReturnType<typeof getRemoteTournamentSubmitReadinessRows>;
+  remoteTournamentSubmitReadinessRowFactory: typeof createRemoteTournamentSubmitReadinessRow;
+  remoteTournamentSubmitRouteFactory: typeof getRemoteTournamentSubmitRoute;
+  remoteTournamentFetchPreviewFactory: typeof createRemoteTournamentFetchPreview;
+  remoteTournamentSubmitPreviewFactory: typeof createRemoteTournamentSubmitPreview;
+  remoteTournamentSubmitPreviewMapFactory: typeof createRemoteTournamentSubmitPreviewMap;
   chapter1MapSystem: typeof CHAPTER_1_MAP_SYSTEM_DEFINITION;
   chapter1MapSnapshot: ReturnType<typeof createChapter1MapSnapshot>;
   chapter1MapSnapshotFactory: typeof createChapter1MapSnapshot;
@@ -793,6 +812,14 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   remoteLeaderboardFetchPreviewFactory: createRemoteLeaderboardFetchPreview,
   remoteLeaderboardSubmitPreviewFactory: createRemoteLeaderboardSubmitPreview,
   remoteLeaderboardSubmitPreviewMapFactory: createRemoteLeaderboardSubmitPreviewMap,
+  remoteTournamentSubmitSystem: REMOTE_TOURNAMENT_SUBMIT_SYSTEM_DEFINITION,
+  remoteTournamentSubmitSummary: getRemoteTournamentSubmitSummary(),
+  remoteTournamentSubmitReadinessRows: getRemoteTournamentSubmitReadinessRows(),
+  remoteTournamentSubmitReadinessRowFactory: createRemoteTournamentSubmitReadinessRow,
+  remoteTournamentSubmitRouteFactory: getRemoteTournamentSubmitRoute,
+  remoteTournamentFetchPreviewFactory: createRemoteTournamentFetchPreview,
+  remoteTournamentSubmitPreviewFactory: createRemoteTournamentSubmitPreview,
+  remoteTournamentSubmitPreviewMapFactory: createRemoteTournamentSubmitPreviewMap,
   chapter1MapSystem: CHAPTER_1_MAP_SYSTEM_DEFINITION,
   chapter1MapSnapshot: createChapter1MapSnapshot(),
   chapter1MapSnapshotFactory: createChapter1MapSnapshot,
