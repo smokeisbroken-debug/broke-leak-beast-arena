@@ -530,6 +530,33 @@ export type {
 } from "../types/RemoteTournamentSubmitTypes";
 
 export {
+  REMOTE_DUEL_SUBMIT_LOCKS,
+  REMOTE_DUEL_SUBMIT_ROUTES,
+  REMOTE_DUEL_SUBMIT_SYSTEM_DEFINITION,
+  REMOTE_DUEL_SUBMIT_SYSTEM_VERSION,
+  createRemoteDuelFetchPreview,
+  createRemoteDuelSubmitPreview,
+  createRemoteDuelSubmitPreviewMap,
+  createRemoteDuelSubmitReadinessRow,
+  getRemoteDuelSubmitReadinessRows,
+  getRemoteDuelSubmitRoute,
+  getRemoteDuelSubmitSummary,
+} from "../systems/RemoteDuelSubmitSystem";
+export type {
+  RemoteDuelFetchPreview,
+  RemoteDuelSubmitLockId,
+  RemoteDuelSubmitOperationId,
+  RemoteDuelSubmitPreview,
+  RemoteDuelSubmitPreviewMap,
+  RemoteDuelSubmitReadinessRow,
+  RemoteDuelSubmitRouteDefinition,
+  RemoteDuelSubmitStatus,
+  RemoteDuelSubmitSummary,
+  RemoteDuelSubmitSystemDefinition,
+  RemoteDuelSubmitTransport,
+} from "../types/RemoteDuelSubmitTypes";
+
+export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,
   createChapter1MapSnapshot,
