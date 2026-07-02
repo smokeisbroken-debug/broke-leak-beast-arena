@@ -476,6 +476,33 @@ export type {
 } from "../types/AuthLinkTypes";
 
 export {
+  REMOTE_LEADERBOARD_LOCKS,
+  REMOTE_LEADERBOARD_ROUTES,
+  REMOTE_LEADERBOARD_SYSTEM_DEFINITION,
+  REMOTE_LEADERBOARD_SYSTEM_VERSION,
+  createRemoteLeaderboardFetchPreview,
+  createRemoteLeaderboardReadinessRow,
+  createRemoteLeaderboardSubmitPreview,
+  createRemoteLeaderboardSubmitPreviewMap,
+  getRemoteLeaderboardReadinessRows,
+  getRemoteLeaderboardRoute,
+  getRemoteLeaderboardSummary,
+} from "../systems/RemoteLeaderboardSystem";
+export type {
+  RemoteLeaderboardFetchPreview,
+  RemoteLeaderboardLockId,
+  RemoteLeaderboardOperationId,
+  RemoteLeaderboardPreviewMap,
+  RemoteLeaderboardReadinessRow,
+  RemoteLeaderboardRouteDefinition,
+  RemoteLeaderboardStatus,
+  RemoteLeaderboardSubmitPreview,
+  RemoteLeaderboardSummary,
+  RemoteLeaderboardSystemDefinition,
+  RemoteLeaderboardTransport,
+} from "../types/RemoteLeaderboardTypes";
+
+export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,
   createChapter1MapSnapshot,
