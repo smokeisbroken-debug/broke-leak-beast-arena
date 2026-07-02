@@ -11,6 +11,7 @@ export const SCENE_KEYS = {
   tournament: "TournamentScene",
   duel: "DuelScene",
   duelResult: "DuelResultScene",
+  balanceDebug: "BalanceDebugScene",
   profile: "ProfileScene",
   settings: "SettingsScene",
   arena: "ArenaScene",
