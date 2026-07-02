@@ -445,6 +445,36 @@ export type {
   BackendFeatureGateState,
 } from "../types/BackendConfigTypes";
 
+
+export {
+  AUTH_LINK_PROVIDER_DEFINITIONS,
+  AUTH_LINK_SYSTEM_DEFINITION,
+  AUTH_LINK_SYSTEM_VERSION,
+  createAuthLinkEnvelope,
+  createAuthLinkEnvelopeFromProfile,
+  createAuthLinkIdentitySnapshot,
+  createAuthLinkIdentitySnapshotFromProfile,
+  createAuthLinkRequirementRows,
+  getAuthLinkSummary,
+} from "../systems/AuthLinkSystem";
+export type {
+  AuthLinkEnvelope,
+  AuthLinkEnvelopeInput,
+  AuthLinkIdentitySnapshot,
+  AuthLinkLockId,
+  AuthLinkStatus,
+  AuthLinkSummary,
+  AuthLinkSystemDefinition,
+  AuthProviderCapability,
+  AuthProviderDefinition,
+  AuthProviderId,
+  AuthProviderMode,
+  AuthProviderTransport,
+  AuthRequirementId,
+  AuthRequirementRow,
+  AuthRequirementStatus,
+} from "../types/AuthLinkTypes";
+
 export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,

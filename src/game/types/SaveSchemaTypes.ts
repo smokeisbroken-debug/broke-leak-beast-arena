@@ -13,6 +13,9 @@ export interface PlayerIdentityV2 {
   displayName: string;
   handle?: string;
   walletAddress?: string;
+  authProviderId?: string;
+  authSubjectId?: string;
+  linkedAtIso?: string;
   createdAtIso: string;
   lastSeenAtIso: string;
 }
