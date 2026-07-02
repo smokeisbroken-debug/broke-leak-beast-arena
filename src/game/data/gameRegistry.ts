@@ -335,6 +335,34 @@ export type {
 } from "../types/MultiplayerAdapterTypes";
 
 export {
+  CLOUD_SAVE_ADAPTER_PROVIDERS,
+  CLOUD_SAVE_ADAPTER_SYSTEM_DEFINITION,
+  CLOUD_SAVE_ADAPTER_SYSTEM_VERSION,
+  CLOUD_SAVE_BLOCK_DEFINITIONS,
+  createCloudSaveBlockRows,
+  createCloudSaveProfileHash,
+  createCloudSaveSnapshotEnvelope,
+  getCloudSaveAdapterSummary,
+} from "../systems/CloudSaveAdapterSystem";
+export type {
+  CloudSaveAdapterCapability,
+  CloudSaveAdapterMode,
+  CloudSaveAdapterProviderDefinition,
+  CloudSaveAdapterProviderId,
+  CloudSaveAdapterSummary,
+  CloudSaveAdapterSystemDefinition,
+  CloudSaveAdapterTransport,
+  CloudSaveBlockDefinition,
+  CloudSaveBlockId,
+  CloudSaveBlockSnapshotRow,
+  CloudSaveBlockSyncMode,
+  CloudSaveConflictPolicy,
+  CloudSaveLockId,
+  CloudSaveOperationId,
+  CloudSaveSnapshotEnvelope,
+} from "../types/CloudSaveAdapterTypes";
+
+export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,
   createChapter1MapSnapshot,
