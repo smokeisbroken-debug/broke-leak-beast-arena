@@ -557,6 +557,31 @@ export type {
 } from "../types/RemoteDuelSubmitTypes";
 
 export {
+  WEEKLY_RESET_BACKEND_LOCKS,
+  WEEKLY_RESET_BACKEND_ROUTES,
+  WEEKLY_RESET_BACKEND_SYSTEM_DEFINITION,
+  WEEKLY_RESET_BACKEND_SYSTEM_VERSION,
+  createWeeklyResetBackendJobPreview,
+  createWeeklyResetBackendReadinessRow,
+  createWeeklyResetBackendSnapshot,
+  getWeeklyResetBackendReadinessRows,
+  getWeeklyResetBackendRoute,
+  getWeeklyResetBackendSummary,
+} from "../systems/WeeklyResetBackendSystem";
+export type {
+  WeeklyResetBackendJobPreview,
+  WeeklyResetBackendLockId,
+  WeeklyResetBackendOperationId,
+  WeeklyResetBackendReadinessRow,
+  WeeklyResetBackendRouteDefinition,
+  WeeklyResetBackendSnapshot,
+  WeeklyResetBackendStatus,
+  WeeklyResetBackendSummary,
+  WeeklyResetBackendSystemDefinition,
+  WeeklyResetBackendTransport,
+} from "../types/WeeklyResetBackendTypes";
+
+export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,
   createChapter1MapSnapshot,
