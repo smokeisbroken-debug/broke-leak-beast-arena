@@ -240,6 +240,18 @@ import {
   getWeeklyResetBackendSummary,
 } from "./WeeklyResetBackendSystem";
 
+
+import {
+  SEASON_BACKEND_PREP_SYSTEM_DEFINITION,
+  createSeasonBackendPreviewSeason,
+  createSeasonBackendReadinessRow,
+  createSeasonBackendSnapshot,
+  createSeasonBackendSyncPreview,
+  getSeasonBackendReadinessRows,
+  getSeasonBackendRoute,
+  getSeasonBackendSummary,
+} from "./SeasonBackendPrepSystem";
+
 import {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   createChapter1MapSnapshot,
@@ -259,7 +271,7 @@ import {
   getRecommendedPowerUiCard,
 } from "./RecommendedPowerUiSystem";
 
-export const GAME_SYSTEMS_VERSION = "0.13.9-weekly-reset-backend";
+export const GAME_SYSTEMS_VERSION = "0.14.0-season-backend-prep";
 
 export type GameSystemId =
   | "modes"
@@ -483,6 +495,14 @@ export interface GameSystemsRegistrySnapshot {
   weeklyResetBackendRouteFactory: typeof getWeeklyResetBackendRoute;
   weeklyResetBackendJobPreviewFactory: typeof createWeeklyResetBackendJobPreview;
   weeklyResetBackendSnapshotFactory: typeof createWeeklyResetBackendSnapshot;
+  seasonBackendPrepSystem: typeof SEASON_BACKEND_PREP_SYSTEM_DEFINITION;
+  seasonBackendSummary: ReturnType<typeof getSeasonBackendSummary>;
+  seasonBackendPreviewSeasonFactory: typeof createSeasonBackendPreviewSeason;
+  seasonBackendReadinessRows: ReturnType<typeof getSeasonBackendReadinessRows>;
+  seasonBackendReadinessRowFactory: typeof createSeasonBackendReadinessRow;
+  seasonBackendRouteFactory: typeof getSeasonBackendRoute;
+  seasonBackendSyncPreviewFactory: typeof createSeasonBackendSyncPreview;
+  seasonBackendSnapshotFactory: typeof createSeasonBackendSnapshot;
   chapter1MapSystem: typeof CHAPTER_1_MAP_SYSTEM_DEFINITION;
   chapter1MapSnapshot: ReturnType<typeof createChapter1MapSnapshot>;
   chapter1MapSnapshotFactory: typeof createChapter1MapSnapshot;
@@ -673,12 +693,12 @@ export const GAME_SYSTEMS: readonly GameSystemDefinition[] = [
   },
   {
     id: "seasons",
-    title: "Seasons",
-    status: "planned",
-    priority: "later",
-    goal: "Create long-term progression cycles, cosmetics, missions and seasonal rankings.",
-    dependsOn: ["leaderboard", "tournaments", "multiplayer"],
-    relatedModes: ["leaderboard", "tournament", "tasks", "weekly_boss"],
+    title: "Season Backend Prep",
+    status: "skeleton",
+    priority: "next",
+    goal: "Prepare server-clock season config, ranked track snapshots, season progress sync and reward-ledger locks before Season Types are exposed in UI.",
+    dependsOn: ["leaderboard", "tournaments", "duels", "multiplayer", "anti_cheat"],
+    relatedModes: ["leaderboard", "tournament", "tasks", "leak_duel", "weekly_boss"],
     nextPatch: "v0.14.1-season-types",
   },
 ];
@@ -871,6 +891,14 @@ export const GAME_SYSTEMS_REGISTRY: GameSystemsRegistrySnapshot = {
   weeklyResetBackendRouteFactory: getWeeklyResetBackendRoute,
   weeklyResetBackendJobPreviewFactory: createWeeklyResetBackendJobPreview,
   weeklyResetBackendSnapshotFactory: createWeeklyResetBackendSnapshot,
+  seasonBackendPrepSystem: SEASON_BACKEND_PREP_SYSTEM_DEFINITION,
+  seasonBackendSummary: getSeasonBackendSummary(),
+  seasonBackendPreviewSeasonFactory: createSeasonBackendPreviewSeason,
+  seasonBackendReadinessRows: getSeasonBackendReadinessRows(),
+  seasonBackendReadinessRowFactory: createSeasonBackendReadinessRow,
+  seasonBackendRouteFactory: getSeasonBackendRoute,
+  seasonBackendSyncPreviewFactory: createSeasonBackendSyncPreview,
+  seasonBackendSnapshotFactory: createSeasonBackendSnapshot,
   chapter1MapSystem: CHAPTER_1_MAP_SYSTEM_DEFINITION,
   chapter1MapSnapshot: createChapter1MapSnapshot(),
   chapter1MapSnapshotFactory: createChapter1MapSnapshot,
