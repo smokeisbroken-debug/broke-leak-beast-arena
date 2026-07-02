@@ -413,6 +413,38 @@ export type {
   AntiCheatVerdict,
 } from "../types/AntiCheatTypes";
 
+
+export {
+  BACKEND_CONFIG_ENVIRONMENTS,
+  BACKEND_FEATURE_GATES,
+  BACKEND_CONFIG_ROUTES,
+  BACKEND_CONFIG_SYSTEM_DEFINITION,
+  BACKEND_CONFIG_SYSTEM_VERSION,
+  createBackendConfigSnapshot,
+  getBackendConfigEnvironment,
+  getBackendConfigRoute,
+  getBackendConfigRouteRows,
+  getBackendConfigSummary,
+  getBackendFeatureGateRows,
+  isBackendRoutePublicWriteEnabled,
+} from "../systems/BackendConfigSystem";
+export type {
+  BackendConfigEnvironmentDefinition,
+  BackendConfigEnvironmentId,
+  BackendFeatureGateDefinition,
+  BackendConfigLockId,
+  BackendConfigReadinessRow,
+  BackendConfigRouteDefinition,
+  BackendConfigRouteKey,
+  BackendConfigRouteSnapshotRow,
+  BackendConfigSnapshot,
+  BackendConfigSummary,
+  BackendConfigSystemDefinition,
+  BackendConfigTransport,
+  BackendFeatureGateId,
+  BackendFeatureGateState,
+} from "../types/BackendConfigTypes";
+
 export {
   CHAPTER_1_MAP_SYSTEM_DEFINITION,
   CHAPTER_1_MAP_SYSTEM_VERSION,
