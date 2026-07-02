@@ -2,6 +2,7 @@ import type { PlayerIdentityV2 } from "./SaveSchemaTypes";
 
 export type MultiplayerAdapterChannelId =
   | "cloud_save"
+  | "run_validation_submit"
   | "leaderboard_submit"
   | "tournament_submit"
   | "duel_submit"
@@ -15,6 +16,7 @@ export type MultiplayerAdapterTransport = "none" | "http_json_future";
 export type MultiplayerAdapterSyncStatus = "local_only" | "remote_not_configured" | "remote_required";
 export type MultiplayerAdapterPayloadKind =
   | "save_snapshot"
+  | "run_validation"
   | "leaderboard_score"
   | "tournament_run"
   | "duel_result"

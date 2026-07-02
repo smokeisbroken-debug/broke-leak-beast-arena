@@ -13,7 +13,7 @@ import type {
   MultiplayerAdapterSnapshot,
 } from "../types/MultiplayerAdapterTypes";
 
-export const MULTIPLAYER_ADAPTER_SYSTEM_VERSION = "0.13.0-multiplayer-adapter";
+export const MULTIPLAYER_ADAPTER_SYSTEM_VERSION = "0.13.2-run-validation-payload";
 
 export const MULTIPLAYER_ADAPTER_PROVIDERS: readonly MultiplayerAdapterProviderDefinition[] = [
   {
@@ -52,6 +52,20 @@ export const MULTIPLAYER_ADAPTER_ENDPOINTS: readonly MultiplayerAdapterEndpointD
     requiresCloudSave: false,
     maxLocalPreviewQueue: 3,
     locks: ["remote_adapter_missing", "auth_required", "public_submit_disabled"],
+  },
+  {
+    channelId: "run_validation_submit",
+    label: "Run Validation Payload",
+    payloadKind: "run_validation",
+    providerId: "local_preview_adapter",
+    routeKey: "run.validation.submit",
+    remotePath: "/api/game/runs/validate",
+    backendLocked: true,
+    requiresAuth: true,
+    requiresAntiCheat: false,
+    requiresCloudSave: true,
+    maxLocalPreviewQueue: 20,
+    locks: ["remote_adapter_missing", "auth_required", "cloud_save_required", "run_validation_required", "public_submit_disabled"],
   },
   {
     channelId: "leaderboard_submit",
@@ -274,6 +288,16 @@ export function createMultiplayerAdapterSnapshot(profile: PlayerProfile, date = 
   const displayName = getDisplayName(profile);
   const readinessRows = getMultiplayerAdapterReadinessRows();
   const sampleEnvelopes = [
+    createMultiplayerAdapterEnvelope({
+      channelId: "run_validation_submit",
+      playerId,
+      displayName,
+      sourceId: "arena-run-validation-preview",
+      value: profile.bestScore,
+      periodKey: createdAtIso.slice(0, 10),
+      payloadPreview: { source: "arena", validationTier: "backend_required" },
+      createdAtIso,
+    }),
     createMultiplayerAdapterEnvelope({
       channelId: "leaderboard_submit",
       playerId,
